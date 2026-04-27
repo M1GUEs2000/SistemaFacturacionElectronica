@@ -6,7 +6,10 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
 using System.Xml.Linq;
+using System.Xml.Serialization;
+using xmlNotaCredito;
 
 namespace LogicaNegocios.Procesos
 {
@@ -542,89 +545,42 @@ namespace LogicaNegocios.Procesos
                 string totalSinImpStr = totalSinImpuestos.ToString("0.00", CultureInfo.InvariantCulture);
                 string importeTotalStr = importeTotal.ToString("0.00", CultureInfo.InvariantCulture);
 
-                var sb = new StringBuilder();
-                sb.Append(@"<?xml version=""1.0"" encoding=""UTF-8""?>");
-                sb.Append(@"<notaCredito id=""comprobante"" version=""1.0.0"">");
+                // ==========================================
+                // 5) Armar objeto tipado NotaCredito
+                // ==========================================
+                var totalConImpuestosNC = new List<TotalImpuestoNC>();
 
-                // infoTributaria
-                sb.Append("<infoTributaria>");
-                sb.Append("<ambiente>").Append(EscapeXml(ambiente)).Append("</ambiente>");
-                sb.Append("<tipoEmision>").Append(EscapeXml(tipoEmision)).Append("</tipoEmision>");
-                sb.Append("<razonSocial>").Append(EscapeXml(nombreComercial)).Append("</razonSocial>");
-                sb.Append("<nombreComercial>").Append(EscapeXml(nombreComercial)).Append("</nombreComercial>");
-                sb.Append("<ruc>").Append(EscapeXml(ruc)).Append("</ruc>");
-                sb.Append("<claveAcceso>").Append(EscapeXml(ClaveAccesoGenerada)).Append("</claveAcceso>");
-                sb.Append("<codDoc>").Append(codDoc).Append("</codDoc>");
-                sb.Append("<estab>").Append(EscapeXml(estab)).Append("</estab>");
-                sb.Append("<ptoEmi>").Append(EscapeXml(ptoEmi)).Append("</ptoEmi>");
-                sb.Append("<secuencial>").Append(EscapeXml(secuencial)).Append("</secuencial>");
-                sb.Append("<dirMatriz>").Append(EscapeXml(dirMatriz)).Append("</dirMatriz>");
-
-                if (!string.IsNullOrWhiteSpace(contribRimpe))
-                    sb.Append("<contribuyenteRimpe>").Append(EscapeXml(contribRimpe)).Append("</contribuyenteRimpe>");
-
-                sb.Append("</infoTributaria>");
-
-                // infoNotaCredito
-                sb.Append("<infoNotaCredito>");
-                sb.Append("<fechaEmision>").Append(EscapeXml(fechaEmisionNC)).Append("</fechaEmision>");
-                sb.Append("<dirEstablecimiento>").Append(EscapeXml(dirMatriz)).Append("</dirEstablecimiento>");
-                sb.Append("<tipoIdentificacionComprador>").Append(EscapeXml(tipoIdComprador)).Append("</tipoIdentificacionComprador>");
-                sb.Append("<razonSocialComprador>").Append(EscapeXml(razonSocialComprador)).Append("</razonSocialComprador>");
-                sb.Append("<identificacionComprador>").Append(EscapeXml(identificacionComprador)).Append("</identificacionComprador>");
-
-                // ✅ IMPORTANTE: NO incluir <direccionComprador> en Nota de Crédito
-
-                if (!string.IsNullOrWhiteSpace(obligadoContab))
-                    sb.Append("<obligadoContabilidad>").Append(EscapeXml(obligadoContab)).Append("</obligadoContabilidad>");
-
-                sb.Append("<codDocModificado>").Append(codDocModificado).Append("</codDocModificado>");
-                sb.Append("<numDocModificado>").Append(EscapeXml(numDocModificado)).Append("</numDocModificado>");
-                sb.Append("<fechaEmisionDocSustento>").Append(EscapeXml(fechaDocSustento)).Append("</fechaEmisionDocSustento>");
-
-                sb.Append("<totalSinImpuestos>").Append(totalSinImpStr).Append("</totalSinImpuestos>");
-                sb.Append("<valorModificacion>").Append(importeTotalStr).Append("</valorModificacion>");
-                sb.Append("<moneda>").Append(EscapeXml(moneda)).Append("</moneda>");
-
-                sb.Append("<totalConImpuestos>");
-                // ICE primero (código 3), luego IVA (código 2) — orden SRI
+                // ICE primero (código 3), luego IVA (código 2) — orden obligatorio SRI
                 foreach (var kv in iceAgrupado)
                 {
-                    sb.Append("<totalImpuesto>");
-                    sb.Append("<codigo>3</codigo>");
-                    sb.Append("<codigoPorcentaje>").Append(EscapeXml(kv.Key)).Append("</codigoPorcentaje>");
-                    sb.Append("<baseImponible>").Append(kv.Value.baseImp.ToString("0.00", CultureInfo.InvariantCulture)).Append("</baseImponible>");
-                    sb.Append("<valor>").Append(kv.Value.valor.ToString("0.00", CultureInfo.InvariantCulture)).Append("</valor>");
-                    sb.Append("</totalImpuesto>");
+                    totalConImpuestosNC.Add(new TotalImpuestoNC
+                    {
+                        Codigo = "3",
+                        CodigoPorcentaje = kv.Key,
+                        BaseImponible = kv.Value.baseImp.ToString("0.00", CultureInfo.InvariantCulture),
+                        Valor = kv.Value.valor.ToString("0.00", CultureInfo.InvariantCulture)
+                    });
                 }
                 foreach (var kv in impuestosAgrupados.Values)
                 {
-                    sb.Append("<totalImpuesto>");
-                    sb.Append("<codigo>").Append(EscapeXml(codigoImpuesto)).Append("</codigo>");
-                    sb.Append("<codigoPorcentaje>").Append(EscapeXml(kv.codPorc)).Append("</codigoPorcentaje>");
-                    sb.Append("<baseImponible>").Append(kv.baseImp.ToString("0.00", CultureInfo.InvariantCulture)).Append("</baseImponible>");
-                    sb.Append("<valor>").Append(kv.valor.ToString("0.00", CultureInfo.InvariantCulture)).Append("</valor>");
-                    sb.Append("</totalImpuesto>");
+                    totalConImpuestosNC.Add(new TotalImpuestoNC
+                    {
+                        Codigo = codigoImpuesto,
+                        CodigoPorcentaje = kv.codPorc,
+                        BaseImponible = kv.baseImp.ToString("0.00", CultureInfo.InvariantCulture),
+                        Valor = kv.valor.ToString("0.00", CultureInfo.InvariantCulture)
+                    });
                 }
-                sb.Append("</totalConImpuestos>");
 
-                sb.Append("<motivo>").Append(EscapeXml(motivo)).Append("</motivo>");
-                sb.Append("</infoNotaCredito>");
-
-                // detalles
-                sb.Append("<detalles>");
+                var detallesNC = new List<DetalleNC>();
                 foreach (DataRow r in TB_NC.Rows)
                 {
                     string producto = r["PRODUCTO"].ToString().Trim();
                     decimal cantidad = Convert.ToDecimal(r["CANTIDAD"]);
                     if (cantidad <= 0m) cantidad = 1m;
 
-                    // TOTAL real de la línea (lo que ya calcula tu sistema)
                     decimal totalLinea = Math.Round(Convert.ToDecimal(r["TOTAL"]), 2);
 
-                    // =====================================================
-                    // OBTENER IVA DESDE BD
-                    // =====================================================
                     DataSet dsProd = _services.Producto.ConsultaNombre(producto);
                     if (dsProd == null || dsProd.Tables.Count == 0 || dsProd.Tables[0].Rows.Count == 0)
                         throw new Exception("Producto no existe en BD: " + producto);
@@ -634,99 +590,130 @@ namespace LogicaNegocios.Procesos
 
                     decimal tarifa = (ivaProducto == "SI") ? tarifaBase : 0m;
                     string codPorcentaje = (tarifa == 0m) ? "0" : codigoPorcentajeBase;
-
                     decimal baseLinea = totalLinea;
 
-                    // ICE por línea
                     var ice2 = HelperIva.CalcularIceLinea(prodRow2, cantidad, baseLinea);
-
-                    // IVA — base incluye ICE (norma SRI)
                     decimal baseIVALinea2 = baseLinea + ice2.Valor;
                     decimal ivaLinea = tarifa > 0m ? Math.Round(baseIVALinea2 * tarifa, 2) : 0m;
-
-                    // Precio unitario SIN IVA (coherente con la base)
                     decimal precioUnitarioSinIva = Math.Round(baseLinea / cantidad, 6);
 
                     string codigoProd = r.Table.Columns.Contains("CODIGO")
                         ? r["CODIGO"].ToString().Trim()
                         : producto;
 
-                    // =====================================================
-                    // XML DETALLE
-                    // =====================================================
-                    sb.Append("<detalle>");
-                    sb.Append("<codigoInterno>").Append(EscapeXml(codigoProd)).Append("</codigoInterno>");
-                    sb.Append("<descripcion>").Append(EscapeXml(producto)).Append("</descripcion>");
-                    sb.Append("<cantidad>").Append(cantidad.ToString("0.00", CultureInfo.InvariantCulture)).Append("</cantidad>");
+                    var impuestosDetalle = new List<ImpuestoNC>();
 
-                    sb.Append("<precioUnitario>")
-                      .Append(precioUnitarioSinIva.ToString("0.000000", CultureInfo.InvariantCulture))
-                      .Append("</precioUnitario>");
-
-                    sb.Append("<descuento>0.00</descuento>");
-                    sb.Append("<precioTotalSinImpuesto>")
-                      .Append(baseLinea.ToString("0.00", CultureInfo.InvariantCulture))
-                      .Append("</precioTotalSinImpuesto>");
-
-                    sb.Append("<impuestos>");
-
-                    // ICE primero (código 3) — orden SRI
                     if (ice2.Aplica && !string.IsNullOrEmpty(ice2.Codigo))
                     {
-                        sb.Append("<impuesto>");
-                        sb.Append("<codigo>3</codigo>");
-                        sb.Append("<codigoPorcentaje>").Append(EscapeXml(ice2.Codigo)).Append("</codigoPorcentaje>");
-                        sb.Append("<tarifa>").Append(ice2.Tarifa.ToString("0.00", CultureInfo.InvariantCulture)).Append("</tarifa>");
-                        sb.Append("<baseImponible>").Append(ice2.BaseImponible.ToString("0.00", CultureInfo.InvariantCulture)).Append("</baseImponible>");
-                        sb.Append("<valor>").Append(ice2.Valor.ToString("0.00", CultureInfo.InvariantCulture)).Append("</valor>");
-                        sb.Append("</impuesto>");
+                        impuestosDetalle.Add(new ImpuestoNC
+                        {
+                            Codigo = "3",
+                            CodigoPorcentaje = ice2.Codigo,
+                            Tarifa = ice2.Tarifa.ToString("0.00", CultureInfo.InvariantCulture),
+                            BaseImponible = ice2.BaseImponible.ToString("0.00", CultureInfo.InvariantCulture),
+                            Valor = ice2.Valor.ToString("0.00", CultureInfo.InvariantCulture)
+                        });
                     }
 
-                    // IVA (código 2) — base incluye ICE
-                    sb.Append("<impuesto>");
-                    sb.Append("<codigo>").Append(EscapeXml(codigoImpuesto)).Append("</codigo>");
-                    sb.Append("<codigoPorcentaje>").Append(EscapeXml(codPorcentaje)).Append("</codigoPorcentaje>");
-                    sb.Append("<tarifa>")
-                      .Append((tarifa * 100m).ToString("0.00", CultureInfo.InvariantCulture))
-                      .Append("</tarifa>");
-                    sb.Append("<baseImponible>")
-                      .Append(baseIVALinea2.ToString("0.00", CultureInfo.InvariantCulture))
-                      .Append("</baseImponible>");
-                    sb.Append("<valor>")
-                      .Append(ivaLinea.ToString("0.00", CultureInfo.InvariantCulture))
-                      .Append("</valor>");
-                    sb.Append("</impuesto>");
+                    impuestosDetalle.Add(new ImpuestoNC
+                    {
+                        Codigo = codigoImpuesto,
+                        CodigoPorcentaje = codPorcentaje,
+                        Tarifa = (tarifa * 100m).ToString("0.00", CultureInfo.InvariantCulture),
+                        BaseImponible = baseIVALinea2.ToString("0.00", CultureInfo.InvariantCulture),
+                        Valor = ivaLinea.ToString("0.00", CultureInfo.InvariantCulture)
+                    });
 
-                    sb.Append("</impuestos>");
-
-                    sb.Append("</detalle>");
+                    detallesNC.Add(new DetalleNC
+                    {
+                        CodigoInterno = codigoProd,
+                        Descripcion = producto,
+                        Cantidad = cantidad.ToString("0.00", CultureInfo.InvariantCulture),
+                        PrecioUnitario = precioUnitarioSinIva.ToString("0.000000", CultureInfo.InvariantCulture),
+                        Descuento = "0.00",
+                        PrecioTotalSinImpuesto = baseLinea.ToString("0.00", CultureInfo.InvariantCulture),
+                        Impuestos = new ImpuestosNC { Impuesto = impuestosDetalle }
+                    });
                 }
-                sb.Append("</detalles>");
 
                 // infoAdicional (opcional: correo del cliente)
+                InfoAdicionalNC infoAdicional = null;
                 if (rowCliente.Table.Columns.Contains("CORREO"))
                 {
                     string correo = rowCliente["CORREO"].ToString().Trim();
                     if (!string.IsNullOrWhiteSpace(correo))
                     {
-                        sb.Append("<infoAdicional>");
-                        sb.Append("<campoAdicional nombre=\"MAIL\">").Append(EscapeXml(correo)).Append("</campoAdicional>");
-                        sb.Append("</infoAdicional>");
+                        infoAdicional = new InfoAdicionalNC
+                        {
+                            CampoAdicional = new List<CampoAdicionalNC>
+                            {
+                                new CampoAdicionalNC { Nombre = "MAIL", Text = correo }
+                            }
+                        };
                     }
                 }
 
-                sb.Append("</notaCredito>");
+                var nc = new NotaCredito
+                {
+                    Id = "comprobante",
+                    Version = "1.0.0",
+                    InfoTributaria = new InfoTributariaNC
+                    {
+                        Ambiente = ambiente,
+                        TipoEmision = tipoEmision,
+                        RazonSocial = nombreComercial,
+                        NombreComercial = nombreComercial,
+                        Ruc = ruc,
+                        ClaveAcceso = ClaveAccesoGenerada,
+                        CodDoc = codDoc,
+                        Estab = estab,
+                        PtoEmi = ptoEmi,
+                        Secuencial = secuencial,
+                        DirMatriz = dirMatriz,
+                        ContribuyenteRimpe = contribRimpe
+                    },
+                    InfoNotaCredito = new InfoNotaCredito
+                    {
+                        FechaEmision = fechaEmisionNC,
+                        DirEstablecimiento = dirMatriz,
+                        TipoIdentificacionComprador = tipoIdComprador,
+                        RazonSocialComprador = razonSocialComprador,
+                        IdentificacionComprador = identificacionComprador,
+                        ObligadoContabilidad = obligadoContab,
+                        CodDocModificado = codDocModificado,
+                        NumDocModificado = numDocModificado,
+                        FechaEmisionDocSustento = fechaDocSustento,
+                        TotalSinImpuestos = totalSinImpStr,
+                        ValorModificacion = importeTotalStr,
+                        Moneda = moneda,
+                        TotalConImpuestos = new TotalConImpuestosNC { TotalImpuesto = totalConImpuestosNC },
+                        Motivo = motivo
+                    },
+                    Detalles = new DetallesNC { Detalle = detallesNC },
+                    InfoAdicional = infoAdicional
+                };
 
                 // ==========================================
-                // 6) Guardar XML en disco (claveAcceso.xml)
+                // 6) Serializar y guardar XML en disco
                 // ==========================================
                 string carpeta = Path.Combine(_services.Paths.NotasCredito, "XML");
-
                 Directory.CreateDirectory(carpeta);
-
                 rutaXmlGenerado = Path.Combine(carpeta, ClaveAccesoGenerada + ".xml");
 
-                File.WriteAllText(rutaXmlGenerado, sb.ToString(), Encoding.UTF8);
+                var serializer = new XmlSerializer(typeof(NotaCredito));
+                var ns = new XmlSerializerNamespaces();
+                ns.Add("", "");
+
+                var settings = new XmlWriterSettings
+                {
+                    Encoding = new UTF8Encoding(false),
+                    Indent = false
+                };
+
+                using (var writer = XmlWriter.Create(rutaXmlGenerado, settings))
+                {
+                    serializer.Serialize(writer, nc, ns);
+                }
 
                 claveAcceso = ClaveAccesoGenerada;
                 return true;
@@ -1605,16 +1592,6 @@ namespace LogicaNegocios.Procesos
                 Exito = false,
                 Mensaje = mensaje
             };
-        }
-
-        private static string EscapeXml(string s)
-        {
-            if (s == null) return "";
-            return s.Replace("&", "&amp;")
-                    .Replace("<", "&lt;")
-                    .Replace(">", "&gt;")
-                    .Replace("\"", "&quot;")
-                    .Replace("'", "&apos;");
         }
 
         private static ResultadoFinalNotaCredito ErrorNC(ResultadoFinalNotaCredito r, string mensaje)

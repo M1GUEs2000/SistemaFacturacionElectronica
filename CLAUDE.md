@@ -84,17 +84,82 @@ Controllers mirror the desktop managers: `FacturasController`, `ClientesControll
 
 ## Cerebro del proyecto
 
-Todo el conocimiento, análisis, vulnerabilidades y decisiones de este proyecto viven en el vault de Obsidian:
+> ⚠️ **OBLIGATORIO:** Todo lo que no sea código técnico vive en el vault de Obsidian. Esto incluye: pendientes, vulnerabilidades, decisiones de arquitectura, estado actual, próximos pasos, análisis, contexto de negocio y conocimiento del dominio. **No buscar nada de eso aquí.**
 
-**Vault:** `d:\Obsidian\Bovedá\`
+### Vault
 
-Este CLAUDE.md solo contiene contexto técnico de código (build, arquitectura, dependencias). Para análisis, contexto y conocimiento del proyecto → ir al vault.
+**Ruta:** `d:\Obsidian\Bovedá\`
 
-### Cómo navegar el vault
+**Nombre del proyecto en el vault:** `Sistema de Facturación Electrónica`
 
-El vault tiene su propio `CLAUDE.md` que explica su estructura completa — leerlo antes de buscar cualquier nodo. Contiene: carpetas del vault, convenciones de nombres, y la estrategia de navegación de dos niveles (mapa de proyecto → nodos de detalle en `research/`).
+### Archivos de entrada obligatorios (leer en este orden)
 
-**NUNCA asumir la carpeta de un nodo** — listar el vault completo primero si no se sabe dónde está.
+| Archivo | Qué contiene |
+|---|---|
+| `d:\Obsidian\Bovedá\proyectos\sistema-facturacion.md` | Estado actual, pendientes (`P-XXX`, `CN-XXX`), próximos pasos, decisiones clave |
+| `d:\Obsidian\Bovedá\proyectos\sistema-facturacion-arquitectura.md` | Mapa de módulos, estado de nodos de research, qué está documentado |
+| `d:\Obsidian\Bovedá\CLAUDE.md` | Convenciones del vault, estructura de carpetas, estrategia de navegación |
+
+**Flujo de sesión:**
+1. Leer `sistema-facturacion.md` → estado actual y próximos pasos
+2. Leer `sistema-facturacion-arquitectura.md` → qué módulos están documentados
+3. Ir al nodo de research del módulo relevante si está ✅ completo
+4. Si el nodo está ⚠️ pendiente → leer código fuente
+5. Al cerrar sesión → actualizar `sistema-facturacion.md` en el vault
+
+**NUNCA asumir la carpeta de un nodo** — listar `d:\Obsidian\Bovedá\research\` si no se sabe dónde está.
+
+## Reglas de código (OBLIGATORIAS)
+
+### Manejo de errores — nunca catch vacío
+
+Todo `catch` debe registrar el error con contexto suficiente para diagnosticarlo:
+
+```csharp
+// ❌ NUNCA
+catch (Exception) { }
+catch (Exception ex) { }
+
+// ✅ SIEMPRE — mínimo log con contexto
+catch (Exception ex)
+{
+    _log.CrearLog($"Error en [NombreMetodo]: {ex.Message}", usuario, ip, sql);
+    throw; // o manejar según corresponda
+}
+```
+
+- Si el método tiene acceso a `_log`: usar `_log.CrearLog()`
+- Si es en `Global.asax` o capa API: escribir a `App_Data/error.log` con `DateTime` + mensaje + `ex.ToString()`
+- Si es un error esperado y recuperable: loguear como advertencia y continuar
+- **Nunca** silenciar una excepción con `catch {}` vacío — si no sabés qué hacer con el error, al menos hacé `throw`
+
+---
+
+### Seguridad — directivas por defecto
+
+Aplicar en cada línea de código nueva, no como revisión posterior:
+
+**SQL — siempre parametrizado:**
+```csharp
+// ❌ NUNCA concatenar input del usuario
+string sql = "SELECT * FROM TABLA WHERE CAMPO = '" + valor + "'";
+
+// ✅ SIEMPRE parámetros
+string sql = "SELECT * FROM TABLA WHERE CAMPO = ?";  // OleDb
+string sql = "SELECT * FROM TABLA WHERE CAMPO = @val"; // SqlClient
+```
+
+**Input externo — siempre validar en el boundary:**
+- Nombres de archivo: siempre `Path.GetFileName()` + verificar que el path resuelto esté dentro del directorio esperado
+- Datos de usuario: validar longitud y formato antes de usar
+
+**Credenciales — nunca en código:**
+- Toda credencial va en `secrets.config` (API) o variable de entorno — nunca hardcodeada ni en `Web.config` base
+- Nunca devolver campos de contraseña en respuestas API
+
+**Nota:** el agente `/cyber-neo` hace auditoría completa. Estas directivas son para prevenir vulnerabilidades en código nuevo antes de que lleguen a auditoría.
+
+---
 
 ## Documentación del proyecto
 

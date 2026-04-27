@@ -1,13 +1,16 @@
 ﻿using LogicaNegocios.Services;
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Security;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
 using System.Xml.Linq;
+using System.Xml.Serialization;
+using xmlRetencion;
 
 namespace LogicaNegocios.Procesos
 {
@@ -366,130 +369,93 @@ namespace LogicaNegocios.Procesos
                 );
 
                 // ======================================================
-                // 5. CONSTRUIR XML
+                // 5. CONSTRUIR OBJETO TIPADO ComprobanteRetencion
                 // ======================================================
-                StringBuilder sb = new StringBuilder();
-
-                sb.Append(@"<?xml version=""1.0"" encoding=""UTF-8""?>");
-                sb.Append(@"<comprobanteRetencion id=""comprobante"" version=""1.0.0"">");
-
-                string X(object v) =>
-                    SecurityElement.Escape(Convert.ToString(v) ?? "") ?? "";
-
-                // ===================== infoTributaria =====================
-                sb.Append("<infoTributaria>");
-                sb.Append("<ambiente>").Append(X(ambiente)).Append("</ambiente>");
-                sb.Append("<tipoEmision>").Append(X(tipoEmision)).Append("</tipoEmision>");
-                sb.Append("<razonSocial>").Append(X(rowEmpresa["NOMBRE"])).Append("</razonSocial>");
-                sb.Append("<nombreComercial>").Append(X(rowEmpresa["NOMBRE"])).Append("</nombreComercial>");
-                sb.Append("<ruc>").Append(X(ruc)).Append("</ruc>");
-                sb.Append("<claveAcceso>").Append(X(claveAccesoGenerada)).Append("</claveAcceso>");
-                sb.Append("<codDoc>07</codDoc>");
-                sb.Append("<estab>").Append(X(estab)).Append("</estab>");
-                sb.Append("<ptoEmi>").Append(X(ptoEmi)).Append("</ptoEmi>");
-                sb.Append("<secuencial>").Append(X(secuencial)).Append("</secuencial>");
-                sb.Append("<dirMatriz>").Append(X(rowEmpresa["DIRECCION"])).Append("</dirMatriz>");
-                sb.Append("</infoTributaria>");
-
-                // ===================== infoCompRetencion =====================
-                sb.Append("<infoCompRetencion>");
-                sb.Append("<fechaEmision>").Append(X(fechaEmision)).Append("</fechaEmision>");
-                sb.Append("<dirEstablecimiento>").Append(X(rowEmpresa["DIRECCION"])).Append("</dirEstablecimiento>");
-
                 string contribuyenteEspecial = "";
                 if (rowPfm.Table != null && rowPfm.Table.Columns.Contains("CONTRIBUYENTEESPECIAL"))
-                {
                     contribuyenteEspecial = (rowPfm["CONTRIBUYENTEESPECIAL"]?.ToString() ?? "").Trim();
-                }
 
-                if (!string.IsNullOrWhiteSpace(contribuyenteEspecial))
-                {
-                    sb.Append("<contribuyenteEspecial>")
-                      .Append(X(contribuyenteEspecial))
-                      .Append("</contribuyenteEspecial>");
-                }
-
-                sb.Append("<obligadoContabilidad>").Append(X(rowPfm["OBLIGADOCONTABILIDAD"])).Append("</obligadoContabilidad>");
-
-                sb.Append("<tipoIdentificacionSujetoRetenido>")
-                  .Append(X(datos.TipoIdentificacion))
-                  .Append("</tipoIdentificacionSujetoRetenido>");
-
-                sb.Append("<razonSocialSujetoRetenido>")
-                  .Append(X(datos.RazonSocial))
-                  .Append("</razonSocialSujetoRetenido>");
-
-                sb.Append("<identificacionSujetoRetenido>")
-                  .Append(X(datos.Identificacion))
-                  .Append("</identificacionSujetoRetenido>");
-
-                // 🔒 periodoFiscal desde la FECHA DE FACTURA
                 DateTime dtFactura = DateTime.ParseExact(
                     fechaFactura,
                     "dd/MM/yyyy",
                     CultureInfo.InvariantCulture
                 );
 
-                sb.Append("<periodoFiscal>")
-                  .Append(dtFactura.ToString("MM/yyyy"))
-                  .Append("</periodoFiscal>");
-
-                sb.Append("</infoCompRetencion>");
-
-                // ===================== impuestos =====================
-                sb.Append("<impuestos>");
-
+                var impuestosRet = new List<ImpuestoRetencion>();
                 foreach (DataRow r in TB_RET.Rows)
                 {
                     string tipo = (r["TIPOIMPUESTO"]?.ToString() ?? "").Trim().ToUpperInvariant();
                     string codigo = (r["CODIGOIMPUESTO"]?.ToString() ?? "").Trim();
-
                     decimal baseImp = ToDec(r["BASEIMPONIBLE"]);
                     decimal porc = ToDec(r["PORCENTAJERETENCION"]);
                     decimal valor = ToDec(r["VALORRETENIDO"]);
 
-                    sb.Append("<impuesto>");
-
-                    sb.Append("<codigo>")
-                      .Append(tipo == "RENTA" ? "1" : "2")
-                      .Append("</codigo>");
-
-                    sb.Append("<codigoRetencion>")
-                      .Append(X(codigo))
-                      .Append("</codigoRetencion>");
-
-                    sb.Append("<baseImponible>")
-                      .Append(baseImp.ToString("F2", CultureInfo.InvariantCulture))
-                      .Append("</baseImponible>");
-
-                    sb.Append("<porcentajeRetener>")
-                      .Append(porc.ToString("F2", CultureInfo.InvariantCulture))
-                      .Append("</porcentajeRetener>");
-
-                    sb.Append("<valorRetenido>")
-                      .Append(valor.ToString("F2", CultureInfo.InvariantCulture))
-                      .Append("</valorRetenido>");
-
-                    sb.Append("<codDocSustento>01</codDocSustento>");
-                    sb.Append("<numDocSustento>").Append(X(numDocSustento)).Append("</numDocSustento>");
-                    sb.Append("<fechaEmisionDocSustento>").Append(X(fechaFactura)).Append("</fechaEmisionDocSustento>");
-
-                    sb.Append("</impuesto>");
+                    impuestosRet.Add(new ImpuestoRetencion
+                    {
+                        Codigo = tipo == "RENTA" ? "1" : "2",
+                        CodigoRetencion = codigo,
+                        BaseImponible = baseImp.ToString("F2", CultureInfo.InvariantCulture),
+                        PorcentajeRetener = porc.ToString("F2", CultureInfo.InvariantCulture),
+                        ValorRetenido = valor.ToString("F2", CultureInfo.InvariantCulture),
+                        CodDocSustento = "01",
+                        NumDocSustento = numDocSustento,
+                        FechaEmisionDocSustento = fechaFactura
+                    });
                 }
 
-                sb.Append("</impuestos>");
-                sb.Append("</comprobanteRetencion>");
+                var compRetencion = new ComprobanteRetencion
+                {
+                    Id = "comprobante",
+                    Version = "1.0.0",
+                    InfoTributaria = new InfoTributariaRet
+                    {
+                        Ambiente = ambiente,
+                        TipoEmision = tipoEmision,
+                        RazonSocial = rowEmpresa["NOMBRE"].ToString(),
+                        NombreComercial = rowEmpresa["NOMBRE"].ToString(),
+                        Ruc = ruc,
+                        ClaveAcceso = claveAccesoGenerada,
+                        CodDoc = "07",
+                        Estab = estab,
+                        PtoEmi = ptoEmi,
+                        Secuencial = secuencial,
+                        DirMatriz = rowEmpresa["DIRECCION"].ToString()
+                    },
+                    InfoCompRetencion = new InfoCompRetencion
+                    {
+                        FechaEmision = fechaEmision,
+                        DirEstablecimiento = rowEmpresa["DIRECCION"].ToString(),
+                        ContribuyenteEspecial = contribuyenteEspecial,
+                        ObligadoContabilidad = rowPfm["OBLIGADOCONTABILIDAD"].ToString(),
+                        TipoIdentificacionSujetoRetenido = datos.TipoIdentificacion,
+                        RazonSocialSujetoRetenido = datos.RazonSocial,
+                        IdentificacionSujetoRetenido = datos.Identificacion,
+                        PeriodoFiscal = dtFactura.ToString("MM/yyyy")
+                    },
+                    Impuestos = new ImpuestosRetencion { Impuesto = impuestosRet }
+                };
 
                 // ======================================================
-                // 6. GUARDAR XML
+                // 6. SERIALIZAR Y GUARDAR XML
                 // ======================================================
                 string carpeta = Path.Combine(_services.Paths.Retenciones, "XML");
-
                 Directory.CreateDirectory(carpeta);
-
                 rutaXmlGenerado = Path.Combine(carpeta, claveAccesoGenerada + ".xml");
 
-                File.WriteAllText(rutaXmlGenerado, sb.ToString(), Encoding.UTF8);
+                var serializer = new XmlSerializer(typeof(ComprobanteRetencion));
+                var ns = new XmlSerializerNamespaces();
+                ns.Add("", "");
+
+                var settings = new XmlWriterSettings
+                {
+                    Encoding = new UTF8Encoding(false),
+                    Indent = false
+                };
+
+                using (var writer = XmlWriter.Create(rutaXmlGenerado, settings))
+                {
+                    serializer.Serialize(writer, compRetencion, ns);
+                }
 
                 claveAcceso = claveAccesoGenerada;
                 return true;

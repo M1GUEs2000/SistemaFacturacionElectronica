@@ -41,6 +41,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CDeserializadoFactura.cs" />
+    <Compile Include="CDeserializadoNotaCredito.cs" />
+    <Compile Include="CDeserializadoRetencion.cs" />
     <Compile Include="Dto\CFuncionesComprobantesElectronicos.cs" />
     <Compile Include="Dto\GenerarXmlDTO.cs" />
     <Compile Include="Dto\Mod11Dto.cs" />
