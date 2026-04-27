@@ -146,6 +146,7 @@
     <Compile Include="FormaPagoManejador.cs" />
     <Compile Include="LoginManejador.cs.cs" />
     <Compile Include="LogManejador.cs" />
+    <Compile Include="ManejadorBase.cs" />
     <Compile Include="NotasCreditoManejador.cs" />
     <Compile Include="ParametrosFacturaManejador.cs" />
     <Compile Include="ParametrosManejador.cs" />
