@@ -42,7 +42,7 @@ namespace LogicaNegocios.Services
 
                     Directory.CreateDirectory(carpetaSalida);
 
-                    var signer = new PassStoreKS.Signer();
+                    var signer = new FirmadorNativo();
                     signer.Sign(RutaXml, RutaFi, archivop12, contrasena);
 
                     if (!File.Exists(RutaFi))
