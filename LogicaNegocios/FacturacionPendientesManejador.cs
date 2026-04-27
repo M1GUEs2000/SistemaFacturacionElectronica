@@ -213,118 +213,38 @@ namespace LogicaNegocios
         // PENDIENTES
 
         public string ObtenerEstadoPendientePorTipo(string tipo)
-        {
-            // Traemos TODO lo que empiece por PENDIENTE para ese tipo
-            string sql = @"
-        SELECT ESTADO
-        FROM FACTURAS_PENDIENTES
-        WHERE TIPO = '" + tipo + @"'
-          AND ESTADO LIKE 'PENDIENTE%'
-    ";
-
-            DataSet ds = _conexion.Seleccionar(sql);
-
-            int max = 0;
-
-            if (ds != null && ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
-            {
-                foreach (DataRow row in ds.Tables[0].Rows)
-                {
-                    string valor = row["ESTADO"].ToString().Trim();
-                    // ejemplos:
-                    // PENDIENTE
-                    // PENDIENTE_AUTORIZACION
-                    // PENDIENTE001
-
-                    if (!valor.StartsWith("PENDIENTE", StringComparison.OrdinalIgnoreCase))
-                        continue;
-
-                    string numero = valor.Replace("PENDIENTE", "").Trim();
-
-                    // SOLO los que son numéricos (001, 002, etc.)
-                    if (int.TryParse(numero, out int num))
-                    {
-                        if (num > max) max = num;
-                    }
-                }
-            }
-
-            int siguiente = max + 1;
-            return "PENDIENTE" + siguiente.ToString("000");
-        }
+            => ObtenerSiguienteEstado("PENDIENTE", tipo);
 
         public string ObtenerEstadoPendienteAutorizacionPorTipo(string tipo)
-        {
-            string sql = @"
-        SELECT ESTADO
-        FROM FACTURAS_PENDIENTES
-        WHERE TIPO = '" + tipo + @"'
-          AND ESTADO LIKE 'PENDIENTE_AUTORIZACION%'
-    ";
-
-            DataSet ds = _conexion.Seleccionar(sql);
-
-            int max = 0;
-
-            if (ds != null && ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
-            {
-                foreach (DataRow row in ds.Tables[0].Rows)
-                {
-                    string valor = row["ESTADO"].ToString().Trim();
-
-                    if (!valor.StartsWith("PENDIENTE_AUTORIZACION", StringComparison.OrdinalIgnoreCase))
-                        continue;
-
-                    string numero = valor
-                        .Replace("PENDIENTE_AUTORIZACION", "")
-                        .Trim();
-
-                    if (int.TryParse(numero, out int num))
-                    {
-                        if (num > max) max = num;
-                    }
-                }
-            }
-
-            int siguiente = max + 1;
-            return "PENDIENTE_AUTORIZACION" + siguiente.ToString("000");
-        }
+            => ObtenerSiguienteEstado("PENDIENTE_AUTORIZACION", tipo);
 
         public string ObtenerEstadoPendienteCorreoPorTipo(string tipo)
+            => ObtenerSiguienteEstado("PENDIENTE_CORREO", tipo);
+
+        private string ObtenerSiguienteEstado(string prefijo, string tipo)
         {
             string sql = @"
         SELECT ESTADO
         FROM FACTURAS_PENDIENTES
         WHERE TIPO = '" + tipo + @"'
-          AND ESTADO LIKE 'PENDIENTE_CORREO%'
+          AND ESTADO LIKE '" + prefijo + @"%'
     ";
 
             DataSet ds = _conexion.Seleccionar(sql);
-
             int max = 0;
 
-            if (ds != null && ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
+            if (ds != null && ds.Tables.Count > 0)
             {
                 foreach (DataRow row in ds.Tables[0].Rows)
                 {
                     string valor = row["ESTADO"].ToString().Trim();
-
-                    if (!valor.StartsWith("PENDIENTE_CORREO", StringComparison.OrdinalIgnoreCase))
-                        continue;
-
-                    string numero = valor
-                        .Replace("PENDIENTE_CORREO", "")
-                        .Trim();
-
-                    if (int.TryParse(numero, out int num))
-                    {
-                        if (num > max) max = num;
-                    }
+                    if (!valor.StartsWith(prefijo, StringComparison.OrdinalIgnoreCase)) continue;
+                    string numero = valor.Substring(prefijo.Length).Trim();
+                    if (int.TryParse(numero, out int num) && num > max) max = num;
                 }
             }
 
-            int siguiente = max + 1;
-            return "PENDIENTE_CORREO" + siguiente.ToString("000");
+            return prefijo + (max + 1).ToString("000");
         }
 
         //Pintar boton accion

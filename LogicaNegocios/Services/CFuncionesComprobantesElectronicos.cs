@@ -113,10 +113,9 @@ namespace LogicaNegocios.Services
                 }
 
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
-
+                throw new Exception("Error generando XML autorizado: " + ex.Message, ex);
             }
 
         }

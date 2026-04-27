@@ -379,64 +379,25 @@ namespace LogicaNegocios
             return dsdatos;
         }
 
-        public string ObtenerSecuencialError()
-        {
-            // 1) Traer solo los errores
-            string sql = "SELECT NUMEROFACTURA FROM FACTURACION WHERE NUMEROFACTURA LIKE 'PENDIENTE%'";
-            DataSet ds = _conexion.Seleccionar(sql);
+        public string ObtenerSecuencialError() => ObtenerSecuencialInternoPorPrefijo("PENDIENTE");
 
+        public string ObtenerSecuencialConsumidor() => ObtenerSecuencialInternoPorPrefijo("FINAL");
+
+        private string ObtenerSecuencialInternoPorPrefijo(string prefijo)
+        {
+            string sql = $"SELECT NUMEROFACTURA FROM FACTURACION WHERE NUMEROFACTURA LIKE '{prefijo}%'";
+            DataSet ds = _conexion.Seleccionar(sql);
             int max = 0;
 
             foreach (DataRow row in ds.Tables[0].Rows)
             {
-                string valor = row["NUMEROFACTURA"].ToString();  // ejemplo: ERROR005
-
-                // si no empieza con ERROR, ignorar
-                if (!valor.StartsWith("PENDIENTE")) continue;
-
-                // extraer solo la parte numérica
-                string numero = valor.Replace("PENDIENTE", "").Trim(); // "005"
-
-                if (int.TryParse(numero, out int num))
-                {
-                    if (num > max) max = num;
-                }
+                string valor = row["NUMEROFACTURA"].ToString();
+                if (!valor.StartsWith(prefijo)) continue;
+                string numero = valor.Substring(prefijo.Length).Trim();
+                if (int.TryParse(numero, out int num) && num > max) max = num;
             }
 
-            // siguiente número
-            int siguiente = max + 1;
-
-            return "PENDIENTE" + siguiente.ToString("000"); // ERROR001, ERROR002
-        }
-
-        public string ObtenerSecuencialConsumidor()
-        {
-            // 1) Traer solo los errores
-            string sql = "SELECT NUMEROFACTURA FROM FACTURACION WHERE NUMEROFACTURA LIKE 'FINAL%'";
-            DataSet ds = _conexion.Seleccionar(sql);
-
-            int max = 0;
-
-            foreach (DataRow row in ds.Tables[0].Rows)
-            {
-                string valor = row["NUMEROFACTURA"].ToString();  // ejemplo: ERROR005
-
-                // si no empieza con ERROR, ignorar
-                if (!valor.StartsWith("FINAL")) continue;
-
-                // extraer solo la parte numérica
-                string numero = valor.Replace("FINAL", "").Trim(); // "005"
-
-                if (int.TryParse(numero, out int num))
-                {
-                    if (num > max) max = num;
-                }
-            }
-
-            // siguiente número
-            int siguiente = max + 1;
-
-            return "FINAL" + siguiente.ToString("000"); // ERROR001, ERROR002
+            return prefijo + (max + 1).ToString("000");
         }
 
         //Consulta General Web 
