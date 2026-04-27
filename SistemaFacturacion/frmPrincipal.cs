@@ -1,0 +1,1269 @@
+﻿using LogicaNegocios.Services;
+using Microsoft.Reporting.WinForms;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Drawing;
+using System.IO;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+
+namespace SistemaFacturacion
+{
+    public partial class frmPrincipal : Form
+    {
+        private readonly AppServices _services;
+
+
+        public frmPrincipal(
+            string Nombre,
+            string IP,
+            AppServices services
+        )
+        {
+
+            InitializeComponent();
+            _services = services;
+
+            lblNombreEmpresa.Text = Nombre.ToUpper();
+            UsuarioActual = Nombre;
+            IPActual = IP;
+            txtCliente.MaxLength = 13;
+            txtCliente.Text = "9999999999999";
+            this.FormClosing += frmPrincipal_FormClosing;
+            button3.Hide();
+        }
+
+        DataTable TB_DETALLEFACTURA = new DataTable();
+        DataTable TB_TRASFACTURADAS = new DataTable();
+        int Contador = 0;
+        public string UsuarioActual { get; set; }
+        public string IPActual { get; set; }
+
+
+        private void Timer1_Tick(object sender, EventArgs e)
+        {
+            //do whatever you want 
+            lblHora.Text = DateTime.Now.ToString("hh:mm:ss");
+            lblFecha.Text = DateTime.Now.ToString("yyyy/MM/dd");
+        }
+        private void frmPrincipal_Load(object sender, EventArgs e)
+        {
+            System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer();
+            timer.Interval = (1 * 1000);//(10 * 1000); // 10 seconds in milliseconds
+            timer.Tick += new EventHandler(Timer1_Tick);
+            timer.Start();
+            lblTotalVP.Visible = false;
+            btnLimpiar.Visible = false;
+            CargarDatosEmpresa();
+            txtComentario.Text = "Gracias por su compra!";
+            lblHora.Text = DateTime.Now.ToString("hh:mm:ss");
+            lblFecha.Text = DateTime.Now.ToString("yyyy/MM/dd");
+            CargarBotonesFormasPago();
+
+            btnProcesar.Visible = false;
+            btnPDF.Visible = false;
+
+            _services.CargarTarifaIva(lblNombreEmpresa.Text);
+
+            ConsultaProducto();
+            TB_DETALLEFACTURA.Columns.Add(new DataColumn("CANTIDAD",       typeof(string)));
+            TB_DETALLEFACTURA.Columns.Add(new DataColumn("VALOR",          typeof(double)));
+            TB_DETALLEFACTURA.Columns.Add(new DataColumn("PRODUCTO",       typeof(string)));
+            TB_DETALLEFACTURA.Columns.Add(new DataColumn("TOTAL",          typeof(double)));
+            TB_DETALLEFACTURA.Columns.Add(new DataColumn("IVA",            typeof(string)));
+            TB_DETALLEFACTURA.Columns.Add(new DataColumn("CODIGO",         typeof(string)));
+            TB_DETALLEFACTURA.Columns.Add(new DataColumn("TOTAL_DISPLAY",  typeof(double)));
+            TB_DETALLEFACTURA.Columns.Add(new DataColumn("APLICA_ICE",     typeof(string)));
+            TB_DETALLEFACTURA.Columns.Add(new DataColumn("ICE_TIPO",       typeof(string)));
+            TB_DETALLEFACTURA.Columns.Add(new DataColumn("ICE_PORCENTAJE", typeof(string)));
+            TB_DETALLEFACTURA.Columns.Add(new DataColumn("ICE_VALOR",      typeof(string)));
+            TB_DETALLEFACTURA.Columns.Add(new DataColumn("ICE_UNIDAD",     typeof(string)));
+            TB_DETALLEFACTURA.Columns.Add(new DataColumn("AZUCAR_GRAMOS",  typeof(string)));
+            TB_DETALLEFACTURA.Columns.Add(new DataColumn("VOLUMEN",        typeof(string)));
+
+            // Mostrar TOTAL_DISPLAY (con ICE+IVA) en la columna TOTAL del grid
+            this.TOTAL.DataPropertyName = "TOTAL_DISPLAY";
+            gvDetalleFactura.AutoGenerateColumns = false;
+
+            // TB_DETALLEFACTURA.Columns.Add(new DataColumn("ELIMINAR", typeof(DataGridViewImageColumn)));
+            TB_TRASFACTURADAS.Columns.Add(new DataColumn("CNT", typeof(int)));
+            TB_TRASFACTURADAS.Columns.Add(new DataColumn("VALOR", typeof(Double)));
+            TB_TRASFACTURADAS.Columns.Add(new DataColumn("PRODUCTO", typeof(string)));
+            TB_TRASFACTURADAS.Columns.Add(new DataColumn("TOTAL", typeof(Double)));
+            TB_TRASFACTURADAS.Columns.Add(new DataColumn("FORMADEPAGO", typeof(string)));
+            TB_TRASFACTURADAS.Columns.Add(new DataColumn("HORA", typeof(string)));
+            TB_TRASFACTURADAS.Columns.Add(new DataColumn("NUMEROFACTURA", typeof(string)));
+
+            this.reportViewer1.RefreshReport();
+        }
+        public void ConsultaProducto()
+        {
+            DataSet dsProductos = _services.Producto.MostrarProductos();
+            if (dsProductos.Tables[0].Rows.Count > 0)
+            {
+                AgregarColumnaTarifaIva(dsProductos.Tables[0]);
+                gvProductos.DataSource = dsProductos.Tables[0];
+                OcultarColumnasIce();
+                OrdenarColumnasProductos();
+            }
+        }
+
+        public void ConsultaProductoOrden()
+        {
+            DataSet dsProductos = _services.Producto.MostrarProductosOrden();
+            if (dsProductos.Tables[0].Rows.Count > 0)
+            {
+                AgregarColumnaTarifaIva(dsProductos.Tables[0]);
+                gvProductos.DataSource = dsProductos.Tables[0];
+                OcultarColumnasIce();
+                OrdenarColumnasProductos();
+            }
+        }
+
+        private void OcultarColumnasIce()
+        {
+            foreach (string col in new[] { "ICE_CODIGO", "ICE_TIPO", "ICE_PORCENTAJE", "ICE_VALOR", "ICE_UNIDAD", "AZUCAR_GRAMOS", "VOLUMEN", "TARIFA_IVA" })
+                if (gvProductos.Columns[col] != null)
+                    gvProductos.Columns[col].Visible = false;
+        }
+
+        private void OrdenarColumnasProductos()
+        {
+            // Orden deseado por DataPropertyName: NOMBRE, VALOR, IVA, APLICA_ICE, CODIGO
+            string[] orden = { "NOMBRE", "VALOR", "IVA", "APLICA_ICE", "CODIGO" };
+            int idx = 0;
+            foreach (string prop in orden)
+            {
+                foreach (DataGridViewColumn col in gvProductos.Columns)
+                {
+                    if (col.DataPropertyName == prop && col.Visible)
+                    {
+                        col.DisplayIndex = idx++;
+                        break;
+                    }
+                }
+            }
+        }
+
+        private void AgregarColumnaTarifaIva(DataTable dt)
+        {
+            if (dt.Columns.Contains("TARIFA_IVA")) return;
+            dt.Columns.Add("TARIFA_IVA", typeof(decimal));
+            foreach (DataRow row in dt.Rows)
+            {
+                string iva = row["IVA"]?.ToString().Trim().ToUpper();
+                decimal tarifa = iva == "SI" ? _services.TarifaIva : 0m;
+                row["TARIFA_IVA"] = tarifa;
+                if (tarifa > 0m)
+                    row["VALOR"] = Math.Round(Convert.ToDecimal(row["VALOR"]) * (1 + tarifa), 2);
+            }
+        }
+
+        private void btnSalir_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void CargarDatosEmpresa()
+        {
+            long secReal = _services.Param.ObtenerSecuencialReal("01"); // FACTURA
+            long siguiente = secReal;
+            lblNumeroFactura.Text = siguiente.ToString("D9");
+            DataSet em = _services.Empresa.MostrarEmpresa(lblNombreEmpresa.Text);
+            if (em != null && em.Tables.Count > 0 && em.Tables[0].Rows.Count > 0)
+            {
+                DataRow row = em.Tables[0].Rows[0];
+
+                lblImpresion.Text = row["IMPRESION"].ToString();
+                lblFactura.Text = row["FACTURACION"].ToString();
+            }
+            else
+            {
+                lblImpresion.Text = "Impresión: ---";
+                lblFactura.Text = "Facturación: ---";
+            }
+        }
+
+        private string FormaPagoCodigo = "";
+
+        private async void btnProcesar_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // =============================================================
+                // 0) VALIDAR AMBIENTE (PRUEBAS / PRODUCCIÓN)
+                //    SOLO SI NO ES CONSUMIDOR FINAL
+                // =============================================================
+                bool esConsumidorFinal = txtCliente.Text.Trim().ToUpper() == "FINAL";
+
+                if (!esConsumidorFinal)
+                {
+                    bool esProduccion = _services.ParamFactura
+                        .EsProduccion(lblNombreEmpresa.Text);
+
+                    if (!esProduccion)
+                    {
+                        bool continuar = Notificaciones.Show(
+                            this,
+                            "⚠ USTED ESTÁ EN AMBIENTE DE PRUEBAS.\n\n" +
+                            "Los comprobantes NO tendrán validez tributaria.\n\n" +
+                            "¿Desea continuar en PRUEBAS?",
+                            "confirmacion"
+                        );
+
+                        if (!continuar)
+                        {
+                            bool cambiar = Notificaciones.Show(
+                                this,
+                                "¿Desea cambiar ahora a PRODUCCIÓN?",
+                                "confirmacion"
+                            );
+
+                            if (cambiar)
+                            {
+                                _services.ParamFactura
+                                    .CambiarAProduccion(lblNombreEmpresa.Text, UsuarioActual, IPActual);
+
+                                Notificaciones.Show(
+                                    this,
+                                    "Sistema cambiado a PRODUCCIÓN correctamente.\n" +
+                                    "Vuelva a presionar Procesar.",
+                                    "exito"
+                                );
+                            }
+
+                            return;
+                        }
+                    }
+                }
+
+                // =============================================================
+                // 1) VALIDACIONES UI
+                // =============================================================
+                var errores = Validar();
+                if (errores.Count > 0)
+                {
+                    foreach (var err in errores)
+                        Notificaciones.Show(this, err, "advertencia");
+                    return;
+                }
+
+                // Empresa
+                var em = _services.Empresa.MostrarEmpresa(lblNombreEmpresa.Text);
+                if (em == null || em.Tables.Count == 0 || em.Tables[0].Rows.Count == 0)
+                {
+                    Notificaciones.Show(this, "Empresa no encontrada", "advertencia");
+                    return;
+                }
+
+                // Cliente
+                var cm = _services.Cliente.ConsultarCedula(txtCliente.Text);
+                if (cm == null || cm.Tables.Count == 0 || cm.Tables[0].Rows.Count == 0)
+                {
+                    Notificaciones.Show(
+                        this,
+                        "Cliente no encontrado. Proceda a registrarlo.",
+                        "advertencia"
+                    );
+
+                    Invoke(new Action(() =>
+                    {
+                        AbrirRegistroCliente(txtCliente.Text.Trim().ToUpper());
+                    }));
+                    return;
+                }
+
+                DataRow rowCliente = cm.Tables[0].Rows[0];
+
+                // =============================================================
+                // 2) RESPALDAR ANTES DE LIMPIAR
+                // =============================================================
+                DataTable copiaDetalle = TB_DETALLEFACTURA.Copy();
+
+                string clienteOriginal = txtCliente.Text.Trim();
+                string cedulaOriginal = txtCliente.Text.Trim();
+                string formaPagoOriginal = txtFormaPago.Text.Trim();
+                string totalOriginal = lblTotalVP.Text;
+                string comentarioOriginal = txtComentario.Text.Trim();
+                string fechaOriginal = lblFecha.Text;
+                string horaOriginal = lblHora.Text;
+
+                // =============================================================
+                // 3) LIMPIAR UI
+                // =============================================================
+                txtCliente.Text = "9999999999999";
+                txtComentario.Text = "Gracias por su compra!";
+                txtFormaPago.Text = "";
+                TB_DETALLEFACTURA.Clear();
+                lblTotalVP.Text = "TOTAL: 0.00";
+                btnProcesar.Visible = false;
+                btnLimpiar.Visible = false;
+
+                // =============================================================
+                // 4) PLASMAR INMEDIATAMENTE CON NÚMERO PROVISIONAL
+                // =============================================================
+                decimal tarifaIVAInmediata = ObtenerTarifaIVA();
+                PlasmarFacturaDesdeDetalle(
+                    copiaDetalle,
+                    fechaOriginal,
+                    horaOriginal,
+                    formaPagoOriginal,
+                    clienteOriginal,
+                    cedulaOriginal,
+                    "PENDIENTE",
+                    tarifaIVAInmediata
+                );
+
+                Notificaciones.Show(
+                    this,
+                    "Factura enviada a cola de procesamiento para cliente: " + clienteOriginal,
+                    "exito"
+                );
+
+                // =============================================================
+                // 5) ENCOLAR PROCESO
+                // =============================================================
+                _services.FacturacionQueue.Enqueue(async () =>
+                {
+                    try
+                    {
+                        var pfm = _services.ParamFactura
+                            .ConsultarNombre(lblNombreEmpresa.Text);
+
+                        var pm = _services.Param
+                            .ConsultarPorTipo("01");
+
+                        var resultado = await _services.ProcesosFacturacion
+                            .ProcesarFacturaElectronicaCompleta(
+                                em,
+                                pfm,
+                                pm,
+                                rowCliente,
+                                copiaDetalle,
+                                clienteOriginal,
+                                lblFactura.Text,
+                                fechaOriginal,
+                                totalOriginal,
+                                formaPagoOriginal,
+                                comentarioOriginal,
+                                UsuarioActual,
+                                IPActual
+                            );
+
+                        this.Invoke(new Action(() =>
+                        {
+                            // ==================================================
+                            // ACTUALIZAR EL NÚMERO DE FACTURA EN LA TABLA
+                            // ==================================================
+                            ActualizarNumeroFacturaEnTabla(horaOriginal, resultado.NumeroFactura);
+
+                            if (!resultado.Exito)
+                            {
+                                Notificaciones.Show(
+                                    this,
+                                    resultado.Mensaje,
+                                    "error",
+                                    UsuarioActual,
+                                    IPActual
+                                );
+
+                                CargarDatosEmpresa();
+                                return;
+                            }
+
+                            // ==================================================
+                            // PREVIEW + IMPRESIÓN (igual condición que la tabla)
+                            // ==================================================
+                            DataTable enc = new DataTable();
+                            enc.Columns.Add("NOMBRE");
+                            enc.Columns.Add("FECHA");
+                            enc.Columns.Add("HORA");
+                            enc.Columns.Add("CLIENTE");
+                            enc.Columns.Add("FORMAPAGO");
+                            enc.Rows.Add(
+                                lblNombreEmpresa.Text,
+                                fechaOriginal,
+                                horaOriginal,
+                                clienteOriginal,
+                                formaPagoOriginal
+                            );
+
+                            reportViewer1.LocalReport.DataSources.Clear();
+                            reportViewer1.LocalReport.DataSources.Add(new ReportDataSource("DataSet1", resultado.TB_Venta));
+                            reportViewer1.LocalReport.DataSources.Add(new ReportDataSource("DataSet2", enc));
+                            reportViewer1.RefreshReport();
+                            reportViewer1.Visible = true;
+
+                            if (lblImpresion.Text.Trim().ToUpper() == "SI")
+                            {
+                                LocalReport rdlc = new LocalReport();
+                                rdlc.ReportPath = @"rptRecibo.rdlc";
+                                rdlc.DataSources.Add(new ReportDataSource("DataSet1", resultado.TB_Venta));
+                                rdlc.DataSources.Add(new ReportDataSource("DataSet2", enc));
+                                var imp = new Impresora();
+                                try { imp.Imprime(rdlc); } finally { imp.Dispose(); }
+                            }
+
+                            // ==================================================
+                            // LUEGO MENSAJE SEGÚN EL RESULTADO
+                            // ==================================================
+                            if (!resultado.EsElectronica)
+                            {
+                                Notificaciones.Show(
+                                    this,
+                                    "Factura de CONSUMIDOR FINAL registrada correctamente.\n" +
+                                    "Número: " + resultado.NumeroFactura,
+                                    "exito"
+                                );
+
+                                CargarDatosEmpresa();
+                                return;
+                            }
+
+                            if (!resultado.Autorizado)
+                            {
+                                Notificaciones.Show(
+                                    this,
+                                    "⚠ FACTURACIÓN ELECTRÓNICA Nº: " + resultado.NumeroFactura + "\n\n" +
+                                    "Documento enviado al SRI.\n" +
+                                    "Estado: PENDIENTE DE AUTORIZACIÓN.\n\n" +
+                                    "Puede consultarlo más tarde desde Consultas.",
+                                    "advertencia"
+                                );
+
+                                _services.Log.CrearLog(
+                                    "FACTURA PENDIENTE AUTORIZACION",
+                                    UsuarioActual,
+                                    IPActual,
+                                    "ClaveAcceso: " + resultado.ClaveAcceso
+                                );
+
+                                CargarDatosEmpresa();
+                                return;
+                            }
+
+                            // ==================================================
+                            // AUTORIZADO
+                            // ==================================================
+                            if (!resultado.EnvioCorreoExitoso)
+                            {
+                                Notificaciones.Show(
+                                    this,
+                                    "⚠ FACTURA AUTORIZADA\n\n" +
+                                    "La factura fue autorizada correctamente,\n" +
+                                    "pero NO se pudo enviar el correo.\n\n" +
+                                    "Puede reenviarlo desde Consultas.",
+                                    "advertencia"
+                                );
+
+                                _services.Log.CrearLog(
+                                    "FACTURA AUTORIZADA SIN CORREO",
+                                    UsuarioActual,
+                                    IPActual,
+                                    "ClaveAcceso: " + resultado.ClaveAcceso
+                                );
+                            }
+                            else
+                            {
+                                Notificaciones.Show(
+                                    this,
+                                    "Factura electrónica AUTORIZADA: " + resultado.NumeroFactura +
+                                    "\nCliente: " + clienteOriginal,
+                                    "exito"
+                                );
+                            }
+
+                            CargarDatosEmpresa();
+                        }));
+                    }
+                    catch (Exception exHilo)
+                    {
+                        this.Invoke(new Action(() =>
+                        {
+                            Notificaciones.Show(
+                                this,
+                                "ERROR GENERAL (QUEUE): " + exHilo.Message,
+                                "error",
+                                UsuarioActual,
+                                IPActual
+                            );
+                        }));
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Notificaciones.Show(
+                    this,
+                    "ERROR GENERAL: " + ex.Message,
+                    "error",
+                    UsuarioActual,
+                    IPActual
+                );
+            }
+        }
+        private void ActualizarNumeroFacturaEnTabla(string hora, string numeroFactura)
+        {
+            try
+            {
+                foreach (DataRow row in TB_TRASFACTURADAS.Rows)
+                {
+                    if (row["HORA"].ToString() == hora &&
+                        row["NUMEROFACTURA"].ToString() == "PENDIENTE")
+                    {
+                        row["NUMEROFACTURA"] = numeroFactura;
+                    }
+                }
+
+                DataView dv = TB_TRASFACTURADAS.DefaultView;
+                dv.Sort = "HORA DESC, NUMEROFACTURA DESC";
+                gvTransacccionesFacturadas.DataSource = dv.ToTable();
+                gvTransacccionesFacturadas.Refresh();
+            }
+            catch { }
+        }
+
+        private void PlasmarFacturaDesdeDetalle(
+            DataTable detalleOriginal,
+            string fecha,
+            string hora,
+            string formaPago,
+            string nombreCliente,
+            string cedulaCliente,
+            string numeroFactura,
+            decimal tarifaIVA = 0m
+        )
+        {
+            try
+            {
+                if (detalleOriginal == null || detalleOriginal.Rows.Count == 0)
+                    return;
+
+                if (TB_TRASFACTURADAS == null)
+                    return;
+
+                foreach (DataRow filaDetalle in detalleOriginal.Rows)
+                {
+                    DataRow nuevaFila = TB_TRASFACTURADAS.NewRow();
+
+                    // Calcular TOTAL con ICE + IVA para esta fila
+                    double totalConImpuestos = CalcularTotalConImpuestos(filaDetalle, tarifaIVA);
+
+                    // COMPRAS se registran como débito (valor negativo)
+                    if (formaPago.Trim().ToUpper() == "COMPRAS")
+                        totalConImpuestos = totalConImpuestos * -1;
+
+                    foreach (DataColumn colDestino in TB_TRASFACTURADAS.Columns)
+                    {
+                        string nombreColumna = colDestino.ColumnName.ToUpper().Trim();
+
+                        // TOTAL se calcula con ICE+IVA, no se copia directo
+                        if (nombreColumna == "TOTAL")
+                        {
+                            nuevaFila[colDestino.ColumnName] = totalConImpuestos;
+                            continue;
+                        }
+
+                        if (detalleOriginal.Columns.Contains(colDestino.ColumnName))
+                        {
+                            nuevaFila[colDestino.ColumnName] = filaDetalle[colDestino.ColumnName];
+                            continue;
+                        }
+
+                        switch (nombreColumna)
+                        {
+                            case "FECHA":
+                                nuevaFila[colDestino.ColumnName] = fecha;
+                                break;
+
+                            case "HORA":
+                                nuevaFila[colDestino.ColumnName] = hora;
+                                break;
+
+                            case "FORMADEPAGO":
+                            case "FORMA DE PAGO":
+                                nuevaFila[colDestino.ColumnName] = formaPago;
+                                break;
+
+                            case "CLIENTE":
+                                nuevaFila[colDestino.ColumnName] = nombreCliente;
+                                break;
+
+                            case "CEDULA":
+                                nuevaFila[colDestino.ColumnName] = cedulaCliente;
+                                break;
+
+                            case "NUMEROFACTURA":
+                                nuevaFila[colDestino.ColumnName] = numeroFactura;
+                                break;
+
+                            default:
+                                nuevaFila[colDestino.ColumnName] = DBNull.Value;
+                                break;
+                        }
+                    }
+
+                    TB_TRASFACTURADAS.Rows.Add(nuevaFila);
+                }
+
+                DataView dv = TB_TRASFACTURADAS.DefaultView;
+                dv.Sort = "HORA DESC, NUMEROFACTURA DESC";
+                gvTransacccionesFacturadas.DataSource = dv.ToTable();
+                gvTransacccionesFacturadas.Refresh();
+            }
+            catch (Exception ex)
+            {
+                Notificaciones.Show(
+                    this,
+                    "No se pudo plasmar la factura en la tabla: " + ex.Message,
+                    "advertencia"
+                );
+            }
+        }
+
+        private void gvProductos_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            btnProcesar.Visible = true;
+            btnPDF.Visible = true;
+            btnLimpiar.Visible = true;
+            reportViewer1.Visible = false;
+
+            var row = gvProductos.CurrentRow;
+            string Cantidad = "1";
+            string Producto = row.Cells[0].Value.ToString();
+
+
+            // 1) LEER DATOS DEL PRODUCTO
+
+            decimal precioConIva = Convert.ToDecimal(row.Cells[1].Value); // precio con IVA (display)
+            string CodigoProd    = row.Cells[2].Value.ToString();
+            string ivaProducto   = row.Cells[3].Value.ToString().Trim().ToUpper();
+
+            // 2) Tarifa IVA pre-calculada al cargar la grilla
+            decimal tarifaDecimal = row.Cells["TARIFA_IVA"].Value != null
+                ? Convert.ToDecimal(row.Cells["TARIFA_IVA"].Value)
+                : 0m;
+
+            // 3) EXTRAER BASE REAL (sin IVA) y calcular IVA
+
+            decimal baseReal;
+            decimal ivaReal;
+
+            if (ivaProducto == "NO" || tarifaDecimal == 0m)
+            {
+                baseReal = precioConIva;
+                ivaReal  = 0m;
+            }
+            else
+            {
+                baseReal = Math.Round(precioConIva / (1 + tarifaDecimal), 4);
+                ivaReal  = Math.Round(baseReal * tarifaDecimal, 2);
+            }
+
+
+            // 6) CALCULAR ICE + TOTAL CON IMPUESTOS
+
+            decimal cantDec   = Convert.ToDecimal(Cantidad);
+            decimal baseTotal = Math.Round(baseReal * cantDec, 2);
+
+            // Reusar CalcularTotalConImpuestos vía fila temporal
+            DataRow filaTemp = TB_DETALLEFACTURA.NewRow();
+            filaTemp["CANTIDAD"]       = Cantidad;
+            filaTemp["VALOR"]          = (double)baseReal;
+            filaTemp["PRODUCTO"]       = Producto;
+            filaTemp["TOTAL"]          = (double)baseTotal;
+            filaTemp["IVA"]            = ivaProducto;
+            filaTemp["CODIGO"]         = CodigoProd;
+            filaTemp["APLICA_ICE"]     = row.Cells["APLICA_ICE"].Value?.ToString() ?? "";
+            filaTemp["ICE_TIPO"]       = row.Cells["ICE_TIPO"].Value?.ToString() ?? "";
+            filaTemp["ICE_PORCENTAJE"] = row.Cells["ICE_PORCENTAJE"].Value?.ToString() ?? "";
+            filaTemp["ICE_VALOR"]      = row.Cells["ICE_VALOR"].Value?.ToString() ?? "";
+            filaTemp["ICE_UNIDAD"]     = row.Cells["ICE_UNIDAD"].Value?.ToString() ?? "";
+            filaTemp["AZUCAR_GRAMOS"]  = row.Cells["AZUCAR_GRAMOS"].Value?.ToString() ?? "";
+            filaTemp["VOLUMEN"]        = row.Cells["VOLUMEN"].Value?.ToString() ?? "";
+            double totalConImp = (double)Math.Round(precioConIva * cantDec, 2);
+
+            string Valor = baseReal.ToString("0.00");
+            string Total = totalConImp.ToString("0.00");
+
+
+            // 7) AGREGAR A DETALLE Y ACTUALIZAR LA GRID
+
+            TB_DETALLEFACTURA.Rows.Add(
+                Cantidad, Valor, Producto, (double)baseTotal, ivaProducto, CodigoProd, totalConImp,
+                filaTemp["APLICA_ICE"], filaTemp["ICE_TIPO"], filaTemp["ICE_PORCENTAJE"],
+                filaTemp["ICE_VALOR"],  filaTemp["ICE_UNIDAD"], filaTemp["AZUCAR_GRAMOS"], filaTemp["VOLUMEN"]
+            );
+            gvDetalleFactura.DataSource = TB_DETALLEFACTURA;
+            ActualizarBotonProcesar();
+
+
+            // 8) CALCULAR TOTAL FINAL (suma de TOTAL_DISPLAY de cada fila)
+
+            lblTotalVP.Visible = true;
+
+            decimal sumaTotal = 0m;
+            foreach (DataRow r in TB_DETALLEFACTURA.Rows)
+                sumaTotal += Convert.ToDecimal(r["TOTAL_DISPLAY"]);
+
+            lblTotalVP.Text = "TOTAL: " + sumaTotal.ToString("0.00");
+        }
+        private void gvDetalleFactura_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0) return;
+            string colName = gvDetalleFactura.Columns[e.ColumnIndex].Name;
+            if (colName == "ELIMINAR")
+            {
+                gvDetalleFactura.Rows.RemoveAt(e.RowIndex);
+
+                decimal sumaTotal = 0m;
+                foreach (DataGridViewRow r in gvDetalleFactura.Rows)
+                    if (r.Cells["TOTAL"].Value != null)
+                        sumaTotal += Convert.ToDecimal(r.Cells["TOTAL"].Value);
+
+                lblTotalVP.Text = sumaTotal > 0m
+                    ? "TOTAL: " + sumaTotal.ToString("0.00")
+                    : "TOTAL: 0.00";
+
+                ActualizarBotonProcesar();
+            }
+        }
+        private void gvDetalleFactura_CellEndEdit(object sender, DataGridViewCellEventArgs e)
+        {
+            string nombrecolumna = gvDetalleFactura.Columns[e.ColumnIndex].Name;
+            if (nombrecolumna != "CANTIDAD" && nombrecolumna != "VALOR") return;
+
+            string cantStr  = gvDetalleFactura.Rows[e.RowIndex].Cells["CANTIDAD"].Value?.ToString() ?? "0";
+            string valorStr = gvDetalleFactura.Rows[e.RowIndex].Cells["VALOR"].Value?.ToString() ?? "0";
+
+            if (!decimal.TryParse(cantStr, out decimal cant) ||
+                !decimal.TryParse(valorStr, out decimal vlr)) return;
+
+            decimal nuevaBase = Math.Round(cant * vlr, 2);
+
+            // Actualizar base en DataTable (para XML)
+            TB_DETALLEFACTURA.Rows[e.RowIndex]["TOTAL"]    = (double)nuevaBase;
+            TB_DETALLEFACTURA.Rows[e.RowIndex]["CANTIDAD"] = cantStr;
+
+            // Recalcular con ICE + IVA
+            decimal tarifaIVA = ObtenerTarifaIVA();
+            double totalConImp = CalcularTotalConImpuestos(TB_DETALLEFACTURA.Rows[e.RowIndex], tarifaIVA);
+            TB_DETALLEFACTURA.Rows[e.RowIndex]["TOTAL_DISPLAY"] = totalConImp;
+
+            // Sumar todos los totales con ICE+IVA
+            double suma = 0;
+            foreach (DataRow r in TB_DETALLEFACTURA.Rows)
+                suma += Convert.ToDouble(r["TOTAL_DISPLAY"]);
+
+            lblTotalVP.Text = "TOTAL: " + suma.ToString("0.00");
+        }
+
+        private decimal ObtenerTarifaIVA() => _services.TarifaIva;
+        public List<string> Validar()
+        {
+            List<string> errores = new List<string>();
+
+            if (gvDetalleFactura.Rows.Count == 0)
+                errores.Add("Debe ingresar productos.");
+
+            if (string.IsNullOrWhiteSpace(txtCliente.Text))
+                errores.Add("Debe ingresar cliente.");
+
+            if (string.IsNullOrWhiteSpace(txtFormaPago.Text))
+                errores.Add("Debe seleccionar forma de pago.");
+
+            if (string.IsNullOrWhiteSpace(txtComentario.Text))
+                errores.Add("El comentario no puede estar vacío.");
+
+            return errores;
+        }
+        private void button1_Click(object sender, EventArgs e)
+        {
+            frmClaveTotales frmReporteT = new frmClaveTotales(_services);
+            frmReporteT.UsuarioActual = this.UsuarioActual;   //
+            frmReporteT.IPActual = this.IPActual;             //
+            frmReporteT.Show();
+        }
+        private void button2_Click(object sender, EventArgs e)
+        {
+            frmClaveConsulta frmReporteCF = new frmClaveConsulta(_services);
+            frmReporteCF.UsuarioActual = this.UsuarioActual;  //
+            frmReporteCF.IPActual = this.IPActual;            //
+            frmReporteCF.Show();
+        }
+        private void bntTablas_Click(object sender, EventArgs e)
+        {
+            frmClaveTabla frmReporteT = new frmClaveTabla(_services);
+            frmReporteT.UsuarioActual = this.UsuarioActual;   //
+            frmReporteT.IPActual = this.IPActual;             //
+            frmReporteT.Show();
+        }
+        private void btnLimpiarProducto_Click(object sender, EventArgs e)
+        {
+            txtBuscarProductos.Clear();
+            txtBuscarProductos.Focus();
+        }
+
+        private void txtBuscarProductos_TextChanged(object sender, EventArgs e)
+        {
+            string termino = txtBuscarProductos.Text.Trim();
+
+            if (string.IsNullOrEmpty(termino))
+            {
+                ConsultaProducto();
+                return;
+            }
+
+            DataSet ds = _services.Producto.BuscarPorNombre(termino);
+            if (ds.Tables[0].Rows.Count > 0)
+            {
+                AgregarColumnaTarifaIva(ds.Tables[0]);
+                gvProductos.DataSource = ds.Tables[0];
+                OcultarColumnasIce();
+                OrdenarColumnasProductos();
+            }
+            else
+            {
+                gvProductos.DataSource = null;
+            }
+        }
+
+        private void btnRefresh_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                _services.CargarTarifaIva(lblNombreEmpresa.Text);
+                ConsultaProducto();
+                CargarBotonesFormasPago();
+                Notificaciones.Show(this, "Formas de Pago y Productos refrescados correctamente.", "exito");
+            }
+            catch (Exception ex)
+            {
+                Notificaciones.Show(this, "No se pudo refrescar: " + ex.Message, "advertencia");
+            }
+        }
+
+        private void btnLimpiar_Click(object sender, EventArgs e)
+        {
+            TB_DETALLEFACTURA.Clear();
+            Contador = 0;
+            lblTotalVP.Text = "TOTAL: 0.00";
+            txtFormaPago.Text = "";
+            txtCliente.Text = "";
+            btnProcesar.Visible = false;
+            btnLimpiar.Visible = false;
+            ActualizarBotonProcesar();
+        }
+        private void btnClientes_Click(object sender, EventArgs e)
+        {
+            AbrirRegistroCliente(txtCliente.Text.Trim().ToUpper());
+            ActualizarBotonProcesar();
+
+        }
+
+        private void txtCliente_KeyDown(object sender, System.Windows.Forms.KeyEventArgs e)
+        {
+            if (e.KeyCode == System.Windows.Forms.Keys.Enter)
+            {
+                e.SuppressKeyPress = true;
+                btnClientes_Click(sender, EventArgs.Empty);
+            }
+        }
+        private void ActualizarBotonProcesar()
+        {
+
+            bool esFinal = txtCliente.Text.Trim().ToUpper() == "FINAL";
+
+            // Debe estar validado el cliente
+
+            // Debe haber productos en la factura
+            bool hayProductos = TB_DETALLEFACTURA.Rows.Count > 0;
+
+            // El botón solo aparece si AMBOS están OK
+            btnProcesar.Visible = (hayProductos);
+            btnPDF.Visible = (hayProductos);
+        }
+        private void btnConsumidor_Click(object sender, EventArgs e)
+        {
+            txtCliente.Text = "FINAL";
+            ActualizarBotonProcesar();
+        }
+        private void frmPrincipal_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (e.CloseReason == CloseReason.UserClosing &&
+                _services.FacturacionQueue.HayTrabajoPendiente)
+            {
+                e.Cancel = true;
+                MessageBox.Show(
+                    this,
+                    "No se puede cerrar mientras hay facturas en cola procesándose.\nEspere a que finalicen.",
+                    "Cola activa",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning
+                );
+                return;
+            }
+
+            try
+            {
+                _services.Log.CrearLog(
+                    "Salida del sistema",
+                    this.UsuarioActual,
+                    this.IPActual,
+                    "El usuario salió del sistema"
+                );
+            }
+            catch { }
+
+            Application.Exit();
+        }
+        private void CargarBotonesFormasPago()
+        {
+            DataSet ds = _services.FormaPago.MostrarFormaPago("");
+            DataTable dt = ds.Tables[0];
+
+            panelFormasPago.Controls.Clear();
+            panelFormasPago.AutoScroll = true;
+
+            int x = 10;
+            int y = 10;
+
+            foreach (DataRow row in dt.Rows)
+            {
+                string nombre = row["FORMAS"].ToString();
+                string img = row["IMAGEN"].ToString();
+                string codigo = row["CODIGO"].ToString();  // ← Nuevo
+
+                string ruta = Path.Combine(Application.StartupPath, "ImagenesFormas", img);
+
+                int ancho = 100;
+                int alto = 65;
+
+                // Crear botón
+                var btn = new System.Windows.Forms.Button();
+                btn.Width = ancho;
+                btn.Height = alto;
+                btn.Text = "";
+                btn.Tag = codigo + "|" + nombre;
+
+                if (File.Exists(ruta))
+                {
+                    System.Drawing.Image original = System.Drawing.Image.FromFile(ruta);
+                    System.Drawing.Image resized = new Bitmap(original, new Size(ancho, alto - 10));
+                    btn.Image = resized;
+                    btn.ImageAlign = ContentAlignment.MiddleCenter;
+                }
+
+                btn.Click += btnFormasPago_Click;
+
+                // Crear label debajo del botón
+                var lbl = new System.Windows.Forms.Label();
+                lbl.Text = nombre;
+                lbl.TextAlign = ContentAlignment.MiddleCenter;
+                lbl.Font = new Font("Segoe UI", 8, FontStyle.Bold);
+                lbl.Width = ancho;
+                lbl.Height = 20;
+                lbl.Location = new Point(x, y + alto);
+                lbl.ForeColor = Color.Black;
+
+                // Ubicación del botón
+                btn.Location = new Point(x, y);
+
+                // Agregar controles al panel
+                panelFormasPago.Controls.Add(btn);
+                panelFormasPago.Controls.Add(lbl);
+
+                // Mover posición horizontal
+                x += ancho + 10;
+            }
+        }
+        private void btnFormasPago_Click(object sender, EventArgs e)
+        {
+            System.Windows.Forms.Button btn = (System.Windows.Forms.Button)sender;
+
+            // "01|EFECTIVO"
+            string[] datos = btn.Tag.ToString().Split('|');
+            string codigo = datos[0];
+            string nombre = datos[1];
+
+            // ✔ Guardar el código REAL para toda la clase
+            FormaPagoCodigo = codigo;
+
+            // ✔ Mostrar el nombre al usuario
+            txtFormaPago.Text = nombre;
+
+            // COMPRAS usa catálogo especial (ORDEN >= 9001)
+            if (nombre.Trim().ToUpper() == "COMPRAS")
+                ConsultaProductoOrden();
+            else
+                ConsultaProducto();
+        }
+        private void button3_Click(object sender, EventArgs e)
+        {
+            AAAPrueba ventana = new AAAPrueba();
+            ventana.UsuarioActual = this.UsuarioActual;
+            ventana.IPActual = this.IPActual;
+            ventana.Show();
+
+        }
+        private void AbrirRegistroCliente(string cedula)
+        {
+            frmClientesDatos ventana = new frmClientesDatos(_services, true);
+            ventana.UsuarioActual = this.UsuarioActual;
+            ventana.IPActual = this.IPActual;
+
+            // Si la cédula es FINAL o consumidor final genérico → abrir vacío
+            if (cedula.Trim().ToUpper() == "FINAL" || cedula.Trim() == "9999999999999")
+            {
+                ventana.txtCedula.Text = "";
+                ventana.txtNombre.Text = "";
+                ventana.txtCorreo.Text = "";
+                ventana.txtDireccion.Text = "";
+                ventana.txtTelefono.Text = "";
+
+                ventana.btnGuardar.Visible = true;
+                ventana.btnModificar.Visible = false;
+                ventana.btnEliminar.Visible = false;
+            }
+            else
+            {
+                DataSet ds = _services.Cliente.ConsultarCedula(cedula);
+
+                if (ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
+                {
+                    // Ya existe → editar
+                    DataRow row = ds.Tables[0].Rows[0];
+
+                    ventana.txtCedula.Text = row["CEDULA"].ToString();
+                    ventana.txtNombre.Text = row["NOMBRE"].ToString();
+                    ventana.txtCorreo.Text = row["CORREO"].ToString();
+                    ventana.txtDireccion.Text = row["DIRECCION"].ToString();
+                    ventana.txtTelefono.Text = row["TELEFONO"].ToString();
+
+                    ventana.btnGuardar.Visible = false;
+                    ventana.btnModificar.Visible = true;
+                    ventana.btnEliminar.Visible = true;
+                }
+                else
+                {
+                    // NO existe → mostrar cédula y permitir crear
+                    ventana.txtCedula.Text = cedula;
+                    ventana.btnGuardar.Visible = true;
+                    ventana.btnModificar.Visible = false;
+                    ventana.btnEliminar.Visible = false;
+                }
+            }
+
+            // mostrar
+            if (ventana.ShowDialog() == DialogResult.OK && !string.IsNullOrEmpty(ventana.CedulaRegistrada))
+            {
+                txtCliente.Text = ventana.CedulaRegistrada;
+                ActualizarBotonProcesar();
+            }
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            frmNuevaNotaCredito ventana = new frmNuevaNotaCredito(_services);
+            ventana.UsuarioActual = this.UsuarioActual;
+            ventana.IPActual = this.IPActual;
+            ventana.Show();
+        }
+
+        private void btnRetenciones_Click(object sender, EventArgs e)
+        {
+            frmProveedorRetenciones ventana = new frmProveedorRetenciones(_services);
+            ventana.UsuarioActual = this.UsuarioActual;
+            ventana.IPActual = this.IPActual;
+            ventana.Show();
+        }
+
+        private async void btnPDF_Click(object sender, EventArgs e)
+        {
+            await VisualizarPDF();
+        }
+
+        private async Task VisualizarPDF()
+        {
+
+            try
+            {
+
+                // ==============================================================
+                // 1) VALIDACIONES UI (IGUAL QUE btnProcesar)
+                // ==============================================================
+
+
+                var errores = Validar();
+                if (errores.Count > 0)
+                {
+                    foreach (var err in errores)
+
+                        Notificaciones.Show(this, err, "advertencia");
+
+                    return;
+                }
+
+                var em = _services.Empresa.MostrarEmpresa(lblNombreEmpresa.Text);
+                if (em == null || em.Tables[0].Rows.Count == 0)
+                {
+                    Notificaciones.Show(this, "Empresa no encontrada", "advertencia");
+                    return;
+                }
+
+                var cm = _services.Cliente.ConsultarCedula(txtCliente.Text);
+                if (cm == null || cm.Tables[0].Rows.Count == 0)
+                {
+                    Notificaciones.Show(this, "Cliente no encontrado.", "advertencia");
+                    return;
+                }
+
+                DataRow rowCliente = cm.Tables[0].Rows[0];
+
+                DataTable copiaDetalle = TB_DETALLEFACTURA.Copy();
+
+                var pfm = _services.ParamFactura
+                    .ConsultarNombre(lblNombreEmpresa.Text);
+
+                var pm = _services.Param
+                    .ConsultarPorTipo("01");
+
+                // ==============================================================
+                // 2) PREVIEW CORE (SIN INSERTAR / SIN SRI / SIN FIRMAR)
+                // ==============================================================
+                Notificaciones.Show(
+                    this,
+                    "Generando vista previa del PDF...",
+                    "proceso",
+                    UsuarioActual,
+                    IPActual
+                    );
+
+                var resultado = await _services.ProcesosFacturacion.ProcesarFacturaPreview(
+                    em,
+                    pfm,
+                    pm,
+                    rowCliente,
+                    copiaDetalle,
+                    txtCliente.Text.Trim(),
+                    lblFactura.Text,
+                    lblFecha.Text,
+                    lblTotalVP.Text,
+                    txtFormaPago.Text.Trim(),
+                    txtComentario.Text.Trim()
+                );
+
+                Notificaciones.CerrarProceso(this);
+
+                if (!resultado.Exito)
+                {
+                    Notificaciones.Show(this, resultado.Mensaje, "error");
+                    return;
+                }
+
+                // ==============================================================
+                // 3) VISUALIZAR
+                // ==============================================================
+                Notificaciones.Show(this, "Visualizacion del PDF generada con éxito", "exito");
+
+                System.Diagnostics.Process.Start(resultado.RutaPdf);
+            }
+            catch (Exception ex)
+            {
+                Notificaciones.Show(this, ex.Message, "error");
+            }
+        }
+
+        private double CalcularTotalConImpuestos(DataRow filaDetalle, decimal tarifaIVA)
+        {
+            try
+            {
+                decimal baseTotal = Convert.ToDecimal(filaDetalle["TOTAL"]);
+                string ivaProducto = filaDetalle["IVA"].ToString().Trim().ToUpperInvariant();
+                string nombreProducto = filaDetalle["PRODUCTO"].ToString();
+                decimal cantidad = Convert.ToDecimal(filaDetalle["CANTIDAD"]);
+
+                decimal iceValor = 0m;
+
+                if (filaDetalle.Table.Columns.Contains("APLICA_ICE"))
+                {
+                    var vIce = filaDetalle["APLICA_ICE"];
+                    bool aplicaIce = false;
+                    if (vIce != null && vIce != DBNull.Value)
+                    {
+                        if (vIce is bool bv) aplicaIce = bv;
+                        else { string s = vIce.ToString().Trim().ToUpperInvariant(); aplicaIce = (s == "SI" || s == "1" || s == "TRUE" || s == "YES"); }
+                    }
+
+                    if (aplicaIce)
+                    {
+                        string iceTipo = filaDetalle["ICE_TIPO"]?.ToString().Trim().ToUpperInvariant() ?? "";
+                        decimal icePct = 0m, iceVlr = 0m, azucar = 0m, volumen = 0m;
+                        string iceUnidad = "";
+
+                        decimal.TryParse(NormFrm(filaDetalle["ICE_PORCENTAJE"]?.ToString()), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out icePct);
+                        decimal.TryParse(NormFrm(filaDetalle["ICE_VALOR"]?.ToString()),      System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out iceVlr);
+                        decimal.TryParse(NormFrm(filaDetalle["AZUCAR_GRAMOS"]?.ToString()),  System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out azucar);
+                        decimal.TryParse(NormFrm(filaDetalle["VOLUMEN"]?.ToString()),         System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out volumen);
+                        iceUnidad = filaDetalle["ICE_UNIDAD"]?.ToString().Trim().ToUpperInvariant() ?? "";
+
+                        if (iceTipo == "AD_VALOREM")
+                            iceValor = Math.Round(baseTotal * (icePct / 100m), 2);
+                        else if (iceTipo == "ESPECIFICO")
+                        {
+                            decimal unidades = (iceUnidad == "LITRO" && volumen > 0m) ? cantidad * volumen : cantidad;
+                            iceValor = Math.Round(unidades * iceVlr, 2);
+                        }
+                        else if (iceTipo == "AZUCAR")
+                            iceValor = Math.Round((azucar / 100m) * cantidad * iceVlr, 2);
+                        else if (iceTipo == "MIXTO")
+                        {
+                            decimal litros = volumen > 0m ? cantidad * volumen : cantidad;
+                            iceValor = Math.Round(baseTotal * (icePct / 100m), 2) + Math.Round(litros * iceVlr, 2);
+                        }
+                    }
+                }
+
+                decimal baseIVA = baseTotal + iceValor;
+                decimal ivaValor = (ivaProducto == "SI" && tarifaIVA > 0m) ? Math.Round(baseIVA * tarifaIVA, 2) : 0m;
+
+                return (double)Math.Round(baseTotal + iceValor + ivaValor, 2);
+            }
+            catch
+            {
+                return Convert.ToDouble(filaDetalle["TOTAL"]);
+            }
+        }
+
+        private static string NormFrm(string s)
+        {
+            s = (s ?? "").Trim();
+            if (s.Contains(",") && !s.Contains("."))
+                s = s.Replace(",", ".");
+            return s;
+        }
+
+        private void btnRefresh_Click_1(object sender, EventArgs e)
+        {
+            try
+            {
+                _services.CargarTarifaIva(lblNombreEmpresa.Text);
+                ConsultaProducto();
+                CargarBotonesFormasPago();
+                CargarDatosEmpresa();
+                Notificaciones.Show(this, "Productos, formas de pago y número de factura actualizados.", "exito");
+            }
+            catch (Exception ex)
+            {
+                Notificaciones.Show(this, "No se pudo recargar: " + ex.Message, "advertencia");
+            }
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            txtCliente.Text = "9999999999999";
+        }
+    }
+}

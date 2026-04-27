@@ -1,0 +1,35 @@
+# Secrets de aplicación
+secrets.config
+
+# Secretos y certificados
+*.p12
+*.pfx
+*.pem
+*.key
+ConexionSQL.dat
+**/App_Data/FACTURACION*/
+**/App_Data/FACTURACION/
+**/FACTURACION/
+
+# Bases de datos
+*.accdb
+*.mdf
+*.ldf
+
+# Artefactos de build
+bin/
+obj/
+.vs/
+packages/
+*.user
+*.suo
+*.cache
+
+# Instaladores
+Instaladores/
+
+# Archivos de Visual Studio
+*.ncb
+*.sdf
+*.opensdf
+*.userprefs

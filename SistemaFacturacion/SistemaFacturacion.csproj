@@ -1,0 +1,667 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\Microsoft.SourceLink.GitHub.8.0.0\build\Microsoft.SourceLink.GitHub.props" Condition="Exists('..\packages\Microsoft.SourceLink.GitHub.8.0.0\build\Microsoft.SourceLink.GitHub.props')" />
+  <Import Project="..\packages\Microsoft.SourceLink.Common.8.0.0\build\Microsoft.SourceLink.Common.props" Condition="Exists('..\packages\Microsoft.SourceLink.Common.8.0.0\build\Microsoft.SourceLink.Common.props')" />
+  <Import Project="..\packages\Microsoft.Build.Tasks.Git.8.0.0\build\Microsoft.Build.Tasks.Git.props" Condition="Exists('..\packages\Microsoft.Build.Tasks.Git.8.0.0\build\Microsoft.Build.Tasks.Git.props')" />
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{068DD747-62FD-40BD-B1D6-B850054F19E9}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>SistemaFacturacion</RootNamespace>
+    <AssemblyName>SistemaFacturacion</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>x64</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="GenerarXml, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>GenerarXml\bin\Debug\GenerarXml.dll</HintPath>
+    </Reference>
+    <Reference Include="IKVM.OpenJDK.Core, Version=0.42.0.6, Culture=neutral, PublicKeyToken=13235d27fcbfff58, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\IKVM.OpenJDK.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="IKVM.OpenJDK.Security, Version=0.42.0.6, Culture=neutral, PublicKeyToken=13235d27fcbfff58, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\IKVM.OpenJDK.Security.dll</HintPath>
+    </Reference>
+    <Reference Include="IKVM.OpenJDK.Text, Version=0.42.0.6, Culture=neutral, PublicKeyToken=13235d27fcbfff58, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\IKVM.OpenJDK.Text.dll</HintPath>
+    </Reference>
+    <Reference Include="IKVM.OpenJDK.Util, Version=0.42.0.6, Culture=neutral, PublicKeyToken=13235d27fcbfff58, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\IKVM.OpenJDK.Util.dll</HintPath>
+    </Reference>
+    <Reference Include="IKVM.OpenJDK.XML.API, Version=0.42.0.6, Culture=neutral, PublicKeyToken=13235d27fcbfff58, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\IKVM.OpenJDK.XML.API.dll</HintPath>
+    </Reference>
+    <Reference Include="IKVM.OpenJDK.XML.Parse, Version=0.42.0.6, Culture=neutral, PublicKeyToken=13235d27fcbfff58, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\IKVM.OpenJDK.XML.Parse.dll</HintPath>
+    </Reference>
+    <Reference Include="IKVM.Runtime, Version=0.42.0.6, Culture=neutral, PublicKeyToken=13235d27fcbfff58, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\IKVM.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Ionic.Utils.Zip, Version=1.3.0.0, Culture=neutral, PublicKeyToken=c551e179877da246, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\Ionic.Utils.Zip.dll</HintPath>
+    </Reference>
+    <Reference Include="itextsharp, Version=5.5.13.0, Culture=neutral, PublicKeyToken=8354ae6d2174ddca, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\itextsharp.dll</HintPath>
+    </Reference>
+    <Reference Include="jss-4.2.5, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\jss-4.2.5.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.ReportViewer.Common, Version=15.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.ReportingServices.ReportViewerControl.Winforms.150.1652.0\lib\net40\Microsoft.ReportViewer.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.ReportViewer.DataVisualization, Version=15.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.ReportingServices.ReportViewerControl.Winforms.150.1652.0\lib\net40\Microsoft.ReportViewer.DataVisualization.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.ReportViewer.Design, Version=15.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.ReportingServices.ReportViewerControl.Winforms.150.1652.0\lib\net40\Microsoft.ReportViewer.Design.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.ReportViewer.ProcessingObjectModel, Version=15.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.ReportingServices.ReportViewerControl.Winforms.150.1652.0\lib\net40\Microsoft.ReportViewer.ProcessingObjectModel.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.ReportViewer.WebDesign, Version=15.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.ReportingServices.ReportViewerControl.WebForms.150.1652.0\lib\net40\Microsoft.ReportViewer.WebDesign.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.ReportViewer.WebForms, Version=15.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.ReportingServices.ReportViewerControl.WebForms.150.1652.0\lib\net40\Microsoft.ReportViewer.WebForms.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.ReportViewer.WinForms, Version=15.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.ReportingServices.ReportViewerControl.Winforms.150.1652.0\lib\net40\Microsoft.ReportViewer.WinForms.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.SqlServer.Types, Version=14.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.SqlServer.Types.14.0.314.76\lib\net40\Microsoft.SqlServer.Types.dll</HintPath>
+    </Reference>
+    <Reference Include="MITyCLibAPI-1.0.4, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\MITyCLibAPI-1.0.4.dll</HintPath>
+    </Reference>
+    <Reference Include="MITyCLibCert-1.0.4, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\MITyCLibCert-1.0.4.dll</HintPath>
+    </Reference>
+    <Reference Include="MITyCLibOCSP-1.0.4, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\MITyCLibOCSP-1.0.4.dll</HintPath>
+    </Reference>
+    <Reference Include="MITyCLibPolicy-1.0.4, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\MITyCLibPolicy-1.0.4.dll</HintPath>
+    </Reference>
+    <Reference Include="MITyCLibTrust-1.0.4, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\MITyCLibTrust-1.0.4.dll</HintPath>
+    </Reference>
+    <Reference Include="MITyCLibTSA-1.0.4, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\MITyCLibTSA-1.0.4.dll</HintPath>
+    </Reference>
+    <Reference Include="MITyCLibXADES-1.0.4, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\MITyCLibXADES-1.0.4.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.DirectoryServices" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Services" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+    <Reference Include="WebGrease, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\WebGrease.dll</HintPath>
+    </Reference>
+    <Reference Include="xalan-2.7.1, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\xalan-2.7.1.dll</HintPath>
+    </Reference>
+    <Reference Include="xml-apis-1.3.04, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\xml-apis-1.3.04.dll</HintPath>
+    </Reference>
+    <Reference Include="xmlsec-1.4.2-ADSI-1.0, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\xmlsec-1.4.2-ADSI-1.0.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AAAPrueba.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="AAAPrueba.Designer.cs">
+      <DependentUpon>AAAPrueba.cs</DependentUpon>
+    </Compile>
+    <Compile Include="dsDatos.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>dsDatos.xsd</DependentUpon>
+    </Compile>
+    <Compile Include="dsVenta.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>dsVenta.xsd</DependentUpon>
+    </Compile>
+    <Compile Include="FormValidador.cs" />
+    <Compile Include="frmClientesDatos.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmClientesDatos.Designer.cs">
+      <DependentUpon>frmClientesDatos.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmConsultaLog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmConsultaLog.Designer.cs">
+      <DependentUpon>frmConsultaLog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmConsultarRetenciones.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmConsultarRetenciones.Designer.cs">
+      <DependentUpon>frmConsultarRetenciones.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmConsultas.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmConsultas.Designer.cs">
+      <DependentUpon>frmConsultas.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmNuevaNotaCredito.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmNuevaNotaCredito.Designer.cs">
+      <DependentUpon>frmNuevaNotaCredito.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmNuevaRetencion.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmNuevaRetencion.Designer.cs">
+      <DependentUpon>frmNuevaRetencion.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmParametrosSRI.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmParametrosSRI.Designer.cs">
+      <DependentUpon>frmParametrosSRI.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmParametrosFactura.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmParametrosFactura.Designer.cs">
+      <DependentUpon>frmParametrosFactura.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmClientes.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmClientes.Designer.cs">
+      <DependentUpon>frmClientes.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmClaveConsulta.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmClaveConsulta.Designer.cs">
+      <DependentUpon>frmClaveConsulta.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmClaveElimiar.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmClaveElimiar.Designer.cs">
+      <DependentUpon>frmClaveElimiar.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmClaveEliminarF.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmClaveEliminarF.Designer.cs">
+      <DependentUpon>frmClaveEliminarF.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmClaveTabla.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmClaveTabla.Designer.cs">
+      <DependentUpon>frmClaveTabla.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmClaveTotales.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmClaveTotales.Designer.cs">
+      <DependentUpon>frmClaveTotales.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmEmpresas.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmEmpresas.Designer.cs">
+      <DependentUpon>frmEmpresas.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmFormaPago.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmFormaPago.Designer.cs">
+      <DependentUpon>frmFormaPago.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmLogin.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmLogin.Designer.cs">
+      <DependentUpon>frmLogin.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmMantenimientoTablas.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmMantenimientoTablas.Designer.cs">
+      <DependentUpon>frmMantenimientoTablas.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmPopUpCedula.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmPopUpCedula.Designer.cs">
+      <DependentUpon>frmPopUpCedula.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmPrincipal.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmPrincipal.Designer.cs">
+      <DependentUpon>frmPrincipal.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmProductos.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmProductos.Designer.cs">
+      <DependentUpon>frmProductos.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmProveedorRetenciones.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmProveedorRetenciones.Designer.cs">
+      <DependentUpon>frmProveedorRetenciones.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmRecibo.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmRecibo.Designer.cs">
+      <DependentUpon>frmRecibo.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmNotaCredito.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmNotaCredito.Designer.cs">
+      <DependentUpon>frmNotaCredito.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmReportePorFechas.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmReportePorFechas.Designer.cs">
+      <DependentUpon>frmReportePorFechas.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmReporteTotales.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmReporteTotales.Designer.cs">
+      <DependentUpon>frmReporteTotales.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Impresora.cs" />
+    <Compile Include="Notificaciones.cs" />
+    <Compile Include="ProcesosGeneralesUI.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SqlServerTypes\Loader.cs" />
+    <EmbeddedResource Include="AAAPrueba.resx">
+      <DependentUpon>AAAPrueba.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmClaveConsulta.resx">
+      <DependentUpon>frmClaveConsulta.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmClaveElimiar.resx">
+      <DependentUpon>frmClaveElimiar.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmClaveEliminarF.resx">
+      <DependentUpon>frmClaveEliminarF.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmClaveTabla.resx">
+      <DependentUpon>frmClaveTabla.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmClaveTotales.resx">
+      <DependentUpon>frmClaveTotales.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmClientesDatos.resx">
+      <DependentUpon>frmClientesDatos.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmConsultaLog.resx">
+      <DependentUpon>frmConsultaLog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmConsultarRetenciones.resx">
+      <DependentUpon>frmConsultarRetenciones.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmConsultas.resx">
+      <DependentUpon>frmConsultas.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmNuevaNotaCredito.resx">
+      <DependentUpon>frmNuevaNotaCredito.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmNuevaRetencion.resx">
+      <DependentUpon>frmNuevaRetencion.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmParametrosSRI.resx">
+      <DependentUpon>frmParametrosSRI.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmParametrosFactura.resx">
+      <DependentUpon>frmParametrosFactura.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmClientes.resx">
+      <DependentUpon>frmClientes.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmEmpresas.resx">
+      <DependentUpon>frmEmpresas.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmFormaPago.resx">
+      <DependentUpon>frmFormaPago.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmLogin.resx">
+      <DependentUpon>frmLogin.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmMantenimientoTablas.resx">
+      <DependentUpon>frmMantenimientoTablas.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmPopUpCedula.resx">
+      <DependentUpon>frmPopUpCedula.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmPrincipal.resx">
+      <DependentUpon>frmPrincipal.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmProductos.resx">
+      <DependentUpon>frmProductos.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmProveedorRetenciones.resx">
+      <DependentUpon>frmProveedorRetenciones.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmRecibo.resx">
+      <DependentUpon>frmRecibo.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmNotaCredito.resx">
+      <DependentUpon>frmNotaCredito.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmReportePorFechas.resx">
+      <DependentUpon>frmReportePorFechas.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmReporteTotales.resx">
+      <DependentUpon>frmReporteTotales.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <EmbeddedResource Include="rptRecibo.rdlc" />
+    <None Include="bin\Debug\ConexionSQL.dat">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="bin\Debug\FIRMAELECTRONICA\PRESIDENTE JUAN CARLOS COLCHA BONIFAZ 0603053372-110624184301.p12" />
+    <None Include="ConexionSQL.dat">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Dll\Dll.rar" />
+    <None Include="Dll\FirmaElectronica.exe.config" />
+    <None Include="dsDatos.xsc">
+      <DependentUpon>dsDatos.xsd</DependentUpon>
+    </None>
+    <None Include="dsDatos.xsd">
+      <SubType>Designer</SubType>
+      <Generator>MSDataSetGenerator</Generator>
+      <LastGenOutput>dsDatos.Designer.cs</LastGenOutput>
+    </None>
+    <None Include="dsDatos.xss">
+      <DependentUpon>dsDatos.xsd</DependentUpon>
+    </None>
+    <None Include="dsVenta.xsc">
+      <DependentUpon>dsVenta.xsd</DependentUpon>
+    </None>
+    <None Include="dsVenta.xsd">
+      <SubType>Designer</SubType>
+      <Generator>MSDataSetGenerator</Generator>
+      <LastGenOutput>dsVenta.Designer.cs</LastGenOutput>
+    </None>
+    <None Include="dsVenta.xss">
+      <DependentUpon>dsVenta.xsd</DependentUpon>
+    </None>
+    <None Include="FACTURACION\FACTURAS\PDFPREVIEW\1604202601170529684400110010020000020881234567917.pdf" />
+    <None Include="FACTURACION\FACTURAS\PDF\1604202601170529684400110010020000020881234567917.pdf" />
+    <None Include="FACTURACION\FACTURAS\PDF\1604202601170529684400110010020000020891234567912.pdf" />
+    <None Include="FACTURACION\GENERAL\FIRMAELECTRONICA\_WASHINGTON RODOLFO HERNANDEZ HEREDIA 110923181049.p12">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="packages.config" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AccesoDatos\AccesoDatos.csproj">
+      <Project>{1a8a564d-a7ef-439d-8c97-f094708a844c}</Project>
+      <Name>AccesoDatos</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LogicaNegocios\LogicaNegocios.csproj">
+      <Project>{e12ab9f5-e0b7-4ae0-9354-8d4f9dd96650}</Project>
+      <Name>LogicaNegocios</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="bin\Debug\FACTURASELECTRONICAS\0603410663-20250519.xml" />
+    <Content Include="bin\Debug\FACTURASELECTRONICAS\0603410663-20250520.xml" />
+    <Content Include="bin\Debug\LOGOFACTURA\kids place.jpg" />
+    <Content Include="Dll\bcmail-jdk15-1.43.dll" />
+    <Content Include="Dll\bcprov-jdk15-1.43.dll" />
+    <Content Include="Dll\bctsp-jdk15-1.43.dll" />
+    <Content Include="Dll\commons-codec-1.2.dll" />
+    <Content Include="Dll\commons-httpclient-3.0.1.dll" />
+    <Content Include="Dll\commons-lang-2.4.dll" />
+    <Content Include="Dll\commons-logging-1.1.dll" />
+    <Content Include="Dll\facturaE_additional.dll" />
+    <Content Include="Dll\FirmaElectronica.exe" />
+    <Content Include="Dll\IKVM.OpenJDK.Core.dll" />
+    <Content Include="Dll\IKVM.OpenJDK.Security.dll" />
+    <Content Include="Dll\IKVM.OpenJDK.Text.dll" />
+    <Content Include="Dll\IKVM.OpenJDK.Util.dll" />
+    <Content Include="Dll\IKVM.OpenJDK.XML.API.dll" />
+    <Content Include="Dll\IKVM.OpenJDK.XML.Parse.dll" />
+    <Content Include="Dll\IKVM.Runtime.dll" />
+    <Content Include="Dll\Ionic.Utils.Zip.dll" />
+    <Content Include="Dll\itextsharp.dll" />
+    <Content Include="Dll\jss-4.2.5.dll" />
+    <Content Include="Dll\Microsoft.MSXML.dll" />
+    <Content Include="Dll\MITyCLibAPI-1.0.4.dll" />
+    <Content Include="Dll\MITyCLibCert-1.0.4.dll" />
+    <Content Include="Dll\MITyCLibOCSP-1.0.4.dll" />
+    <Content Include="Dll\MITyCLibPolicy-1.0.4.dll" />
+    <Content Include="Dll\MITyCLibTrust-1.0.4.dll" />
+    <Content Include="Dll\MITyCLibTSA-1.0.4.dll" />
+    <Content Include="Dll\MITyCLibXADES-1.0.4.dll" />
+    <Content Include="Dll\serializer-2.7.1.dll" />
+    <Content Include="Dll\xalan-2.7.1.dll" />
+    <Content Include="Dll\xml-apis-1.3.04.dll" />
+    <Content Include="Dll\xmlsec-1.4.2-ADSI-1.0.dll" />
+    <Content Include="FACTURACION\FACTURAS\XMLAUTORIZADOS\1604202601170529684400110010020000020881234567917.xml" />
+    <Content Include="FACTURACION\FACTURAS\XMLAUTORIZADOS\1604202601170529684400110010020000020891234567912.xml" />
+    <Content Include="FACTURACION\GENERAL\LOGOFACTURA\kids place.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="FACTURACION\GENERAL\LOGOFACTURA\kids place1.jpg" />
+    <Content Include="ImagenesFormas\COMPRAS.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ImagenesFormas\DEUNA.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ImagenesFormas\EFECTIVO.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ImagenesFormas\NOTA.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ImagenesFormas\TARJETA.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ImagenesFormas\TRANSFERENCIA.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="imagenes\kids place.jpg" />
+    <None Include="Resources\pdf.bmp" />
+    <None Include="Resources\xml.png" />
+    <None Include="Resources\pdf.png" />
+    <Content Include="SqlServerTypes\readme.htm" />
+    <Content Include="SqlServerTypes\x64\msvcr120.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="SqlServerTypes\x64\SqlServerSpatial140.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="SqlServerTypes\x86\msvcr120.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="SqlServerTypes\x86\SqlServerSpatial140.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Include="Resources\kids place.jpg" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="bin\Debug\DOCUMENTOSAUTORIZADOS\" />
+    <Folder Include="bin\Debug\FACTURAELECTRONICASFIRMADOS\" />
+    <Folder Include="bin\Debug\FACTURASPDF\" />
+    <Folder Include="bin\Debug\IMPRESIONRECIBO\" />
+    <Folder Include="FACTURACION\FACTURAS\XMLFIRMADOS\" />
+    <Folder Include="FACTURACION\FACTURAS\XML\" />
+    <Folder Include="FACTURACION\GENERAL\ELECTRONICA\" />
+    <Folder Include="FACTURACION\NOTASCREDITO\PDFPREVIEW\" />
+    <Folder Include="FACTURACION\NOTASCREDITO\PDF\" />
+    <Folder Include="FACTURACION\NOTASCREDITO\XMLAUTORIZADOS\" />
+    <Folder Include="FACTURACION\NOTASCREDITO\XMLFIRMADOS\" />
+    <Folder Include="FACTURACION\NOTASCREDITO\XML\" />
+    <Folder Include="FACTURACION\RETENCIONES\PDFPREVIEW\" />
+    <Folder Include="FACTURACION\RETENCIONES\PDF\" />
+    <Folder Include="FACTURACION\RETENCIONES\XMLAUTORIZADOS\" />
+    <Folder Include="FACTURACION\RETENCIONES\XMLFIRMADOS\" />
+    <Folder Include="FACTURACION\RETENCIONES\XML\" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.8">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4.8 %28x86 y x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>Este proyecto hace referencia a los paquetes NuGet que faltan en este equipo. Use la restauración de paquetes NuGet para descargarlos. Para obtener más información, consulte http://go.microsoft.com/fwlink/?LinkID=322105. El archivo que falta es {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\Microsoft.Build.Tasks.Git.8.0.0\build\Microsoft.Build.Tasks.Git.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Build.Tasks.Git.8.0.0\build\Microsoft.Build.Tasks.Git.props'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Build.Tasks.Git.8.0.0\build\Microsoft.Build.Tasks.Git.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Build.Tasks.Git.8.0.0\build\Microsoft.Build.Tasks.Git.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.SourceLink.Common.8.0.0\build\Microsoft.SourceLink.Common.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.SourceLink.Common.8.0.0\build\Microsoft.SourceLink.Common.props'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.SourceLink.Common.8.0.0\build\Microsoft.SourceLink.Common.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.SourceLink.Common.8.0.0\build\Microsoft.SourceLink.Common.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.SourceLink.GitHub.8.0.0\build\Microsoft.SourceLink.GitHub.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.SourceLink.GitHub.8.0.0\build\Microsoft.SourceLink.GitHub.props'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.SourceLink.GitHub.8.0.0\build\Microsoft.SourceLink.GitHub.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.SourceLink.GitHub.8.0.0\build\Microsoft.SourceLink.GitHub.targets'))" />
+  </Target>
+  <Import Project="..\packages\Microsoft.Build.Tasks.Git.8.0.0\build\Microsoft.Build.Tasks.Git.targets" Condition="Exists('..\packages\Microsoft.Build.Tasks.Git.8.0.0\build\Microsoft.Build.Tasks.Git.targets')" />
+  <Import Project="..\packages\Microsoft.SourceLink.Common.8.0.0\build\Microsoft.SourceLink.Common.targets" Condition="Exists('..\packages\Microsoft.SourceLink.Common.8.0.0\build\Microsoft.SourceLink.Common.targets')" />
+  <Import Project="..\packages\Microsoft.SourceLink.GitHub.8.0.0\build\Microsoft.SourceLink.GitHub.targets" Condition="Exists('..\packages\Microsoft.SourceLink.GitHub.8.0.0\build\Microsoft.SourceLink.GitHub.targets')" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

@@ -1,0 +1,659 @@
+2026-03-20 12:15:01.094 | ==================================================
+2026-03-20 12:15:01.098 | INICIO EnviarCorreoDocumento
+2026-03-20 12:15:01.103 | TIPO=FACTURA
+2026-03-20 12:15:01.103 | USUARIO=KID'S PLACE
+2026-03-20 12:15:01.112 | IP=181.199.59.160
+2026-03-20 12:15:01.114 | Solicitud.TipoDocumento=FACTURA
+2026-03-20 12:15:01.114 | Solicitud.NumeroDocumento=000000907
+2026-03-20 12:15:01.118 | Solicitud.RutaPdf=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION\FACTURAS\PDF/2003202601170529684400110010020000009072233445517.pdf
+2026-03-20 12:15:01.124 | Solicitud.RutaXmlAutorizado=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION\FACTURAS\XMLAUTORIZADOS\2003202601170529684400110010020000009072233445517.xml
+2026-03-20 12:15:01.133 | Validando rowCliente y campo CORREO...
+2026-03-20 12:15:01.133 | Correo cliente detectado: [supermsah@gmail.com]
+2026-03-20 12:15:01.133 | Validando existencia física de adjuntos...
+2026-03-20 12:15:01.133 | PDF y XML existen físicamente.
+2026-03-20 12:15:01.135 | Cargando XML autorizado...
+2026-03-20 12:15:01.135 | XML autorizado cargado correctamente.
+2026-03-20 12:15:01.135 | CDATA encontrada correctamente.
+2026-03-20 12:15:01.141 | XML interno parseado correctamente.
+2026-03-20 12:15:01.151 | Armando correo...
+2026-03-20 12:15:01.363 | Correo.CorreoCliente=supermsah@gmail.com
+2026-03-20 12:15:01.364 | Correo.CorreoEmpresa=wrhh2006@hotmail.com
+2026-03-20 12:15:01.364 | Correo.AsuntoCliente=Factura Electrónica 001-002-000000907
+2026-03-20 12:15:01.365 | Correo armado correctamente.
+2026-03-20 12:15:01.366 | Consultando parámetros SMTP...
+2026-03-20 12:15:01.567 | SMTP SERVER=relay-hosting.secureserver.net
+2026-03-20 12:15:01.569 | SMTP PORT=25
+2026-03-20 12:15:01.569 | SMTP USER=susistema@ssm.com.ec
+2026-03-20 12:15:01.570 | SMTP PASS VACIA=SI
+2026-03-20 12:15:01.684 | SmtpClient creado correctamente.
+2026-03-20 12:15:01.685 | CONFIG SMTP FINAL => HOST=relay-hosting.secureserver.net | PORT=25 | SSL=true
+2026-03-20 12:15:01.700 | Creando MailMessage cliente...
+2026-03-20 12:15:01.811 | MailMessage cliente creado correctamente.
+2026-03-20 12:15:01.813 | FROM=susistema@ssm.com.ec
+2026-03-20 12:15:01.816 | TO=supermsah@gmail.com
+2026-03-20 12:15:01.827 | SUBJECT=Factura Electrónica 001-002-000000907
+2026-03-20 12:15:01.829 | Enviando correo cliente...
+2026-03-20 12:15:23.398 | ERROR EnviarCorreoDocumento
+2026-03-20 12:15:23.412 | System.Net.Mail.SmtpException: Error al enviar correo. ---> System.Net.WebException: No es posible conectar con el servidor remoto ---> System.Net.Sockets.SocketException: Se produjo un error durante el intento de conexión ya que la parte conectada no respondió adecuadamente tras un periodo de tiempo, o bien se produjo un error en la conexión establecida ya que el host conectado no ha podido responder 132.148.124.47:25
+   en System.Net.Sockets.Socket.DoConnect(EndPoint endPointSnapshot, SocketAddress socketAddress)
+   en System.Net.ServicePoint.ConnectSocketInternal(Boolean connectFailure, Socket s4, Socket s6, Socket& socket, IPAddress& address, ConnectSocketState state, IAsyncResult asyncResult, Exception& exception)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.ServicePoint.GetConnection(PooledStream PooledStream, Object owner, Boolean async, IPAddress& address, Socket& abortSocket, Socket& abortSocket6)
+   en System.Net.PooledStream.Activate(Object owningObject, Boolean async, GeneralAsyncDelegate asyncCallback)
+   en System.Net.ConnectionPool.GetConnection(Object owningObject, GeneralAsyncDelegate asyncCallback, Int32 creationTimeout)
+   en System.Net.Mail.SmtpConnection.GetConnection(ServicePoint servicePoint)
+   en System.Net.Mail.SmtpClient.GetConnection()
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   en LogicaNegocios.Procesos.ProcesosGenerales.EnviarCorreoDocumento(SolicitudCorreoDocumento solicitud, DataRow rowCliente, String tipo, String usuario, String ip) en D:\Proyectos\SistemaFacturacion\LogicaNegocios\Procesos\ProcesosGenerales.cs:línea 215
+2026-03-20 12:15:23.412 | Intentando registrar pendiente de correo...
+2026-03-20 12:15:24.404 | Pendiente de correo registrado/actualizado correctamente.
+2026-03-20 12:15:24.404 | FIN ERROR EnviarCorreoDocumento
+2026-03-23 09:38:06.160 | ==================================================
+2026-03-23 09:38:06.166 | INICIO EnviarCorreoDocumento
+2026-03-23 09:38:06.170 | TIPO=FACTURA
+2026-03-23 09:38:06.174 | USUARIO=KID'S PLACE
+2026-03-23 09:38:06.176 | IP=181.199.59.160
+2026-03-23 09:38:06.178 | Solicitud.TipoDocumento=FACTURA
+2026-03-23 09:38:06.178 | Solicitud.NumeroDocumento=000000907
+2026-03-23 09:38:06.180 | Solicitud.RutaPdf=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION\FACTURAS\PDF/2003202601170529684400110010020000009072233445517.pdf
+2026-03-23 09:38:06.180 | Solicitud.RutaXmlAutorizado=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION\FACTURAS\XMLAUTORIZADOS\2003202601170529684400110010020000009072233445517.xml
+2026-03-23 09:38:06.180 | Validando rowCliente y campo CORREO...
+2026-03-23 09:38:06.182 | Correo cliente detectado: [supermsah@gmail.com]
+2026-03-23 09:38:06.182 | Validando existencia física de adjuntos...
+2026-03-23 09:38:06.184 | PDF y XML existen físicamente.
+2026-03-23 09:38:06.184 | Cargando XML autorizado...
+2026-03-23 09:38:06.186 | XML autorizado cargado correctamente.
+2026-03-23 09:38:06.188 | CDATA encontrada correctamente.
+2026-03-23 09:38:06.188 | XML interno parseado correctamente.
+2026-03-23 09:38:06.188 | Armando correo...
+2026-03-23 09:38:06.398 | Correo.CorreoCliente=supermsah@gmail.com
+2026-03-23 09:38:06.398 | Correo.CorreoEmpresa=wrhh2006@hotmail.com
+2026-03-23 09:38:06.399 | Correo.AsuntoCliente=Factura Electrónica 001-002-000000907
+2026-03-23 09:38:06.399 | Correo armado correctamente.
+2026-03-23 09:38:06.400 | Consultando parámetros SMTP...
+2026-03-23 09:38:06.603 | SMTP SERVER=relay-hosting.secureserver.net
+2026-03-23 09:38:06.604 | SMTP PORT=25
+2026-03-23 09:38:06.604 | SMTP USER=info@vivatelia.com
+2026-03-23 09:38:06.604 | SMTP PASS VACIA=NO
+2026-03-23 09:38:06.699 | SmtpClient creado correctamente.
+2026-03-23 09:38:06.700 | CONFIG SMTP FINAL => HOST=relay-hosting.secureserver.net | PORT=25 | SSL=true
+2026-03-23 09:38:06.701 | Creando MailMessage cliente...
+2026-03-23 09:38:06.744 | MailMessage cliente creado correctamente.
+2026-03-23 09:38:06.744 | FROM=info@vivatelia.com
+2026-03-23 09:38:06.744 | TO=supermsah@gmail.com
+2026-03-23 09:38:06.756 | SUBJECT=Factura Electrónica 001-002-000000907
+2026-03-23 09:38:06.756 | Enviando correo cliente...
+2026-03-23 09:38:28.214 | ERROR EnviarCorreoDocumento
+2026-03-23 09:38:29.961 | System.Net.Mail.SmtpException: Error al enviar correo. ---> System.Net.WebException: No es posible conectar con el servidor remoto ---> System.Net.Sockets.SocketException: Se produjo un error durante el intento de conexión ya que la parte conectada no respondió adecuadamente tras un periodo de tiempo, o bien se produjo un error en la conexión establecida ya que el host conectado no ha podido responder 132.148.124.47:25
+   en System.Net.Sockets.Socket.DoConnect(EndPoint endPointSnapshot, SocketAddress socketAddress)
+   en System.Net.ServicePoint.ConnectSocketInternal(Boolean connectFailure, Socket s4, Socket s6, Socket& socket, IPAddress& address, ConnectSocketState state, IAsyncResult asyncResult, Exception& exception)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.ServicePoint.GetConnection(PooledStream PooledStream, Object owner, Boolean async, IPAddress& address, Socket& abortSocket, Socket& abortSocket6)
+   en System.Net.PooledStream.Activate(Object owningObject, Boolean async, GeneralAsyncDelegate asyncCallback)
+   en System.Net.ConnectionPool.GetConnection(Object owningObject, GeneralAsyncDelegate asyncCallback, Int32 creationTimeout)
+   en System.Net.Mail.SmtpConnection.GetConnection(ServicePoint servicePoint)
+   en System.Net.Mail.SmtpClient.GetConnection()
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   en LogicaNegocios.Procesos.ProcesosGenerales.EnviarCorreoDocumento(SolicitudCorreoDocumento solicitud, DataRow rowCliente, String tipo, String usuario, String ip) en D:\Proyectos\SistemaFacturacion\LogicaNegocios\Procesos\ProcesosGenerales.cs:línea 215
+2026-03-23 09:38:29.967 | Intentando registrar pendiente de correo...
+2026-03-23 09:38:30.868 | Pendiente de correo registrado/actualizado correctamente.
+2026-03-23 09:38:30.868 | FIN ERROR EnviarCorreoDocumento
+2026-03-23 10:34:02.946 | ==================================================
+2026-03-23 10:34:02.949 | INICIO EnviarCorreoDocumento
+2026-03-23 10:34:02.949 | TIPO=FACTURA
+2026-03-23 10:34:02.951 | USUARIO=KID'S PLACE
+2026-03-23 10:34:02.957 | IP=181.199.59.160
+2026-03-23 10:34:02.978 | Solicitud.TipoDocumento=FACTURA
+2026-03-23 10:34:02.981 | Solicitud.NumeroDocumento=000000910
+2026-03-23 10:34:02.981 | Solicitud.RutaPdf=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION\FACTURAS\PDF/2303202601170529684400110010020000009102233445517.pdf
+2026-03-23 10:34:02.983 | Solicitud.RutaXmlAutorizado=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION\FACTURAS\XMLAUTORIZADOS\2303202601170529684400110010020000009102233445517.xml
+2026-03-23 10:34:02.983 | Validando rowCliente y campo CORREO...
+2026-03-23 10:34:02.984 | Correo cliente detectado: [supermsah@gmail.com]
+2026-03-23 10:34:02.984 | Validando existencia física de adjuntos...
+2026-03-23 10:34:02.985 | PDF y XML existen físicamente.
+2026-03-23 10:34:02.985 | Cargando XML autorizado...
+2026-03-23 10:34:02.986 | XML autorizado cargado correctamente.
+2026-03-23 10:34:02.986 | CDATA encontrada correctamente.
+2026-03-23 10:34:02.987 | XML interno parseado correctamente.
+2026-03-23 10:34:02.987 | Armando correo...
+2026-03-23 10:34:03.170 | Correo.CorreoCliente=supermsah@gmail.com
+2026-03-23 10:34:03.171 | Correo.CorreoEmpresa=wrhh2006@hotmail.com
+2026-03-23 10:34:03.171 | Correo.AsuntoCliente=Factura Electrónica 001-002-000000910
+2026-03-23 10:34:03.173 | Correo armado correctamente.
+2026-03-23 10:34:03.174 | Consultando parámetros SMTP...
+2026-03-23 10:34:03.356 | SMTP SERVER=relay-hosting.secureserver.net
+2026-03-23 10:34:03.358 | SMTP PORT=25
+2026-03-23 10:34:03.358 | SMTP USER=info@vivatelia.com
+2026-03-23 10:34:03.360 | SMTP PASS VACIA=NO
+2026-03-23 10:34:03.360 | SmtpClient creado correctamente.
+2026-03-23 10:34:03.361 | CONFIG SMTP FINAL => HOST=relay-hosting.secureserver.net | PORT=25 | SSL=true
+2026-03-23 10:34:03.361 | Creando MailMessage cliente...
+2026-03-23 10:34:03.365 | MailMessage cliente creado correctamente.
+2026-03-23 10:34:03.366 | FROM=info@vivatelia.com
+2026-03-23 10:34:03.367 | TO=supermsah@gmail.com
+2026-03-23 10:34:03.369 | SUBJECT=Factura Electrónica 001-002-000000910
+2026-03-23 10:34:03.379 | Enviando correo cliente...
+2026-03-23 10:34:24.720 | ERROR EnviarCorreoDocumento
+2026-03-23 10:34:24.722 | System.Net.Mail.SmtpException: Error al enviar correo. ---> System.Net.WebException: No es posible conectar con el servidor remoto ---> System.Net.Sockets.SocketException: Se produjo un error durante el intento de conexión ya que la parte conectada no respondió adecuadamente tras un periodo de tiempo, o bien se produjo un error en la conexión establecida ya que el host conectado no ha podido responder 132.148.124.47:25
+   en System.Net.Sockets.Socket.DoConnect(EndPoint endPointSnapshot, SocketAddress socketAddress)
+   en System.Net.ServicePoint.ConnectSocketInternal(Boolean connectFailure, Socket s4, Socket s6, Socket& socket, IPAddress& address, ConnectSocketState state, IAsyncResult asyncResult, Exception& exception)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.ServicePoint.GetConnection(PooledStream PooledStream, Object owner, Boolean async, IPAddress& address, Socket& abortSocket, Socket& abortSocket6)
+   en System.Net.PooledStream.Activate(Object owningObject, Boolean async, GeneralAsyncDelegate asyncCallback)
+   en System.Net.ConnectionPool.GetConnection(Object owningObject, GeneralAsyncDelegate asyncCallback, Int32 creationTimeout)
+   en System.Net.Mail.SmtpConnection.GetConnection(ServicePoint servicePoint)
+   en System.Net.Mail.SmtpClient.GetConnection()
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   en LogicaNegocios.Procesos.ProcesosGenerales.EnviarCorreoDocumento(SolicitudCorreoDocumento solicitud, DataRow rowCliente, String tipo, String usuario, String ip) en D:\Proyectos\SistemaFacturacion\LogicaNegocios\Procesos\ProcesosGenerales.cs:línea 215
+2026-03-23 10:34:24.722 | Intentando registrar pendiente de correo...
+2026-03-23 10:34:25.600 | Pendiente de correo registrado/actualizado correctamente.
+2026-03-23 10:34:25.601 | FIN ERROR EnviarCorreoDocumento
+2026-04-06 09:38:07.341 | ==================================================
+2026-04-06 09:38:07.348 | INICIO EnviarCorreoDocumento
+2026-04-06 09:38:07.349 | TIPO=FACTURA
+2026-04-06 09:38:07.349 | USUARIO=KID'S PLACE
+2026-04-06 09:38:07.349 | IP=181.199.59.160
+2026-04-06 09:38:07.358 | Solicitud.TipoDocumento=FACTURA
+2026-04-06 09:38:07.376 | Solicitud.NumeroDocumento=000000912
+2026-04-06 09:38:07.377 | Solicitud.RutaPdf=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION_KID_S_PLACE\FACTURAS\PDF/0604202601170529684400110010020000009122233445510.pdf
+2026-04-06 09:38:07.382 | Solicitud.RutaXmlAutorizado=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION_KID_S_PLACE\FACTURAS\XMLAUTORIZADOS\0604202601170529684400110010020000009122233445510.xml
+2026-04-06 09:38:07.386 | Validando rowCliente y campo CORREO...
+2026-04-06 09:38:07.390 | Correo cliente detectado: [supermsah@gmail.com]
+2026-04-06 09:38:07.394 | Validando existencia física de adjuntos...
+2026-04-06 09:38:07.395 | PDF y XML existen físicamente.
+2026-04-06 09:38:07.396 | Cargando XML autorizado...
+2026-04-06 09:38:07.399 | XML autorizado cargado correctamente.
+2026-04-06 09:38:07.400 | CDATA encontrada correctamente.
+2026-04-06 09:38:07.400 | XML interno parseado correctamente.
+2026-04-06 09:38:07.401 | Armando correo...
+2026-04-06 09:38:07.595 | Correo.CorreoCliente=supermsah@gmail.com
+2026-04-06 09:38:07.595 | Correo.CorreoEmpresa=wrhh2006@hotmail.com
+2026-04-06 09:38:07.596 | Correo.AsuntoCliente=Factura Electrónica 001-002-000000912
+2026-04-06 09:38:07.596 | Correo armado correctamente.
+2026-04-06 09:38:07.597 | Consultando parámetros SMTP...
+2026-04-06 09:38:07.790 | SMTP SERVER=relay-hosting.secureserver.net
+2026-04-06 09:38:07.790 | SMTP PORT=25
+2026-04-06 09:38:07.791 | SMTP USER=info@vivatelia.com
+2026-04-06 09:38:07.791 | SMTP PASS VACIA=NO
+2026-04-06 09:38:07.921 | SmtpClient creado correctamente.
+2026-04-06 09:38:07.927 | CONFIG SMTP FINAL => HOST=relay-hosting.secureserver.net | PORT=25 | SSL=true
+2026-04-06 09:38:07.928 | Creando MailMessage cliente...
+2026-04-06 09:38:08.051 | MailMessage cliente creado correctamente.
+2026-04-06 09:38:08.052 | FROM=info@vivatelia.com
+2026-04-06 09:38:08.052 | TO=supermsah@gmail.com
+2026-04-06 09:38:08.056 | SUBJECT=Factura Electrónica 001-002-000000912
+2026-04-06 09:38:08.057 | Enviando correo cliente...
+2026-04-06 09:38:29.570 | ERROR EnviarCorreoDocumento
+2026-04-06 09:38:29.585 | System.Net.Mail.SmtpException: Error al enviar correo. ---> System.Net.WebException: No es posible conectar con el servidor remoto ---> System.Net.Sockets.SocketException: Se produjo un error durante el intento de conexión ya que la parte conectada no respondió adecuadamente tras un periodo de tiempo, o bien se produjo un error en la conexión establecida ya que el host conectado no ha podido responder 132.148.124.47:25
+   en System.Net.Sockets.Socket.DoConnect(EndPoint endPointSnapshot, SocketAddress socketAddress)
+   en System.Net.ServicePoint.ConnectSocketInternal(Boolean connectFailure, Socket s4, Socket s6, Socket& socket, IPAddress& address, ConnectSocketState state, IAsyncResult asyncResult, Exception& exception)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.ServicePoint.GetConnection(PooledStream PooledStream, Object owner, Boolean async, IPAddress& address, Socket& abortSocket, Socket& abortSocket6)
+   en System.Net.PooledStream.Activate(Object owningObject, Boolean async, GeneralAsyncDelegate asyncCallback)
+   en System.Net.ConnectionPool.GetConnection(Object owningObject, GeneralAsyncDelegate asyncCallback, Int32 creationTimeout)
+   en System.Net.Mail.SmtpConnection.GetConnection(ServicePoint servicePoint)
+   en System.Net.Mail.SmtpClient.GetConnection()
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   en LogicaNegocios.Procesos.ProcesosGenerales.EnviarCorreoDocumento(SolicitudCorreoDocumento solicitud, DataRow rowCliente, String tipo, String usuario, String ip) en D:\Proyectos\SistemaFacturacion\LogicaNegocios\Procesos\ProcesosGenerales.cs:línea 215
+2026-04-06 09:38:29.587 | Intentando registrar pendiente de correo...
+2026-04-06 09:38:30.522 | Pendiente de correo registrado/actualizado correctamente.
+2026-04-06 09:38:30.523 | FIN ERROR EnviarCorreoDocumento
+2026-04-06 09:39:05.288 | ==================================================
+2026-04-06 09:39:05.288 | INICIO EnviarCorreoDocumento
+2026-04-06 09:39:05.289 | TIPO=FACTURA
+2026-04-06 09:39:05.310 | USUARIO=KID'S PLACE
+2026-04-06 09:39:05.381 | IP=181.199.59.160
+2026-04-06 09:39:05.382 | Solicitud.TipoDocumento=FACTURA
+2026-04-06 09:39:05.388 | Solicitud.NumeroDocumento=000000913
+2026-04-06 09:39:05.389 | Solicitud.RutaPdf=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION_KID_S_PLACE\FACTURAS\PDF/0604202601170529684400110010020000009132233445516.pdf
+2026-04-06 09:39:05.393 | Solicitud.RutaXmlAutorizado=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION_KID_S_PLACE\FACTURAS\XMLAUTORIZADOS\0604202601170529684400110010020000009132233445516.xml
+2026-04-06 09:39:05.397 | Validando rowCliente y campo CORREO...
+2026-04-06 09:39:05.401 | Correo cliente detectado: [supermsah@gmail.com]
+2026-04-06 09:39:05.402 | Validando existencia física de adjuntos...
+2026-04-06 09:39:05.403 | PDF y XML existen físicamente.
+2026-04-06 09:39:05.403 | Cargando XML autorizado...
+2026-04-06 09:39:05.407 | XML autorizado cargado correctamente.
+2026-04-06 09:39:05.408 | CDATA encontrada correctamente.
+2026-04-06 09:39:05.409 | XML interno parseado correctamente.
+2026-04-06 09:39:05.410 | Armando correo...
+2026-04-06 09:39:05.589 | Correo.CorreoCliente=supermsah@gmail.com
+2026-04-06 09:39:05.590 | Correo.CorreoEmpresa=wrhh2006@hotmail.com
+2026-04-06 09:39:05.590 | Correo.AsuntoCliente=Factura Electrónica 001-002-000000913
+2026-04-06 09:39:05.590 | Correo armado correctamente.
+2026-04-06 09:39:05.592 | Consultando parámetros SMTP...
+2026-04-06 09:39:05.771 | SMTP SERVER=relay-hosting.secureserver.net
+2026-04-06 09:39:05.772 | SMTP PORT=25
+2026-04-06 09:39:05.772 | SMTP USER=info@vivatelia.com
+2026-04-06 09:39:05.772 | SMTP PASS VACIA=NO
+2026-04-06 09:39:05.775 | SmtpClient creado correctamente.
+2026-04-06 09:39:05.775 | CONFIG SMTP FINAL => HOST=relay-hosting.secureserver.net | PORT=25 | SSL=true
+2026-04-06 09:39:05.776 | Creando MailMessage cliente...
+2026-04-06 09:39:05.776 | MailMessage cliente creado correctamente.
+2026-04-06 09:39:05.784 | FROM=info@vivatelia.com
+2026-04-06 09:39:05.785 | TO=supermsah@gmail.com
+2026-04-06 09:39:05.786 | SUBJECT=Factura Electrónica 001-002-000000913
+2026-04-06 09:39:05.787 | Enviando correo cliente...
+2026-04-06 09:39:26.872 | ERROR EnviarCorreoDocumento
+2026-04-06 09:39:26.873 | System.Net.Mail.SmtpException: Error al enviar correo. ---> System.Net.WebException: No es posible conectar con el servidor remoto ---> System.Net.Sockets.SocketException: Se produjo un error durante el intento de conexión ya que la parte conectada no respondió adecuadamente tras un periodo de tiempo, o bien se produjo un error en la conexión establecida ya que el host conectado no ha podido responder 132.148.124.47:25
+   en System.Net.Sockets.Socket.DoConnect(EndPoint endPointSnapshot, SocketAddress socketAddress)
+   en System.Net.ServicePoint.ConnectSocketInternal(Boolean connectFailure, Socket s4, Socket s6, Socket& socket, IPAddress& address, ConnectSocketState state, IAsyncResult asyncResult, Exception& exception)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.ServicePoint.GetConnection(PooledStream PooledStream, Object owner, Boolean async, IPAddress& address, Socket& abortSocket, Socket& abortSocket6)
+   en System.Net.PooledStream.Activate(Object owningObject, Boolean async, GeneralAsyncDelegate asyncCallback)
+   en System.Net.ConnectionPool.GetConnection(Object owningObject, GeneralAsyncDelegate asyncCallback, Int32 creationTimeout)
+   en System.Net.Mail.SmtpConnection.GetConnection(ServicePoint servicePoint)
+   en System.Net.Mail.SmtpClient.GetConnection()
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   en LogicaNegocios.Procesos.ProcesosGenerales.EnviarCorreoDocumento(SolicitudCorreoDocumento solicitud, DataRow rowCliente, String tipo, String usuario, String ip) en D:\Proyectos\SistemaFacturacion\LogicaNegocios\Procesos\ProcesosGenerales.cs:línea 215
+2026-04-06 09:39:26.874 | Intentando registrar pendiente de correo...
+2026-04-06 09:39:27.763 | Pendiente de correo registrado/actualizado correctamente.
+2026-04-06 09:39:27.764 | FIN ERROR EnviarCorreoDocumento
+2026-04-14 14:51:18.537 | ==================================================
+2026-04-14 14:51:18.546 | INICIO EnviarCorreoDocumento
+2026-04-14 14:51:18.546 | TIPO=FACTURA
+2026-04-14 14:51:18.546 | USUARIO=KID'S PLACE
+2026-04-14 14:51:18.548 | IP=181.199.59.160
+2026-04-14 14:51:18.548 | Solicitud.TipoDocumento=FACTURA
+2026-04-14 14:51:18.550 | Solicitud.NumeroDocumento=000000914
+2026-04-14 14:51:18.550 | Solicitud.RutaPdf=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION_KID_S_PLACE\FACTURAS\PDF/1404202601170529684400110010020000009142233445516.pdf
+2026-04-14 14:51:18.550 | Solicitud.RutaXmlAutorizado=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION_KID_S_PLACE\FACTURAS\XMLAUTORIZADOS\1404202601170529684400110010020000009142233445516.xml
+2026-04-14 14:51:18.550 | Validando rowCliente y campo CORREO...
+2026-04-14 14:51:18.550 | Correo cliente detectado: [supermsah@gmail.com]
+2026-04-14 14:51:18.574 | Validando existencia física de adjuntos...
+2026-04-14 14:51:18.582 | PDF y XML existen físicamente.
+2026-04-14 14:51:18.584 | Cargando XML autorizado...
+2026-04-14 14:51:18.594 | XML autorizado cargado correctamente.
+2026-04-14 14:51:18.604 | CDATA encontrada correctamente.
+2026-04-14 14:51:18.628 | XML interno parseado correctamente.
+2026-04-14 14:51:18.628 | Armando correo...
+2026-04-14 14:51:18.898 | Correo.CorreoCliente=supermsah@gmail.com
+2026-04-14 14:51:18.898 | Correo.CorreoEmpresa=wrhh2006@hotmail.com
+2026-04-14 14:51:18.900 | Correo.AsuntoCliente=Factura Electrónica 001-002-000000914
+2026-04-14 14:51:18.900 | Correo armado correctamente.
+2026-04-14 14:51:18.900 | Consultando datos de empresa para From/Reply-To...
+2026-04-14 14:51:19.203 | Nombre empresa para display: [KID'S PLACE]
+2026-04-14 14:51:19.203 | Reply-To empresa: [wrhh2006@hotmail.com]
+2026-04-14 14:51:19.207 | Consultando parámetros SMTP...
+2026-04-14 14:51:19.511 | SMTP SERVER=relay-hosting.secureserver.net
+2026-04-14 14:51:19.513 | SMTP PORT=25
+2026-04-14 14:51:19.513 | SMTP USER=info@vivatelia.com
+2026-04-14 14:51:19.517 | SMTP PASS VACIA=NO
+2026-04-14 14:51:19.586 | SmtpClient creado correctamente.
+2026-04-14 14:51:19.588 | CONFIG SMTP FINAL => HOST=relay-hosting.secureserver.net | PORT=25 | SSL=true
+2026-04-14 14:51:19.590 | Creando MailMessage cliente...
+2026-04-14 14:51:19.691 | MailMessage cliente creado correctamente.
+2026-04-14 14:51:19.699 | FROM REAL=info@vivatelia.com
+2026-04-14 14:51:19.701 | FROM DISPLAY=KID'S PLACE
+2026-04-14 14:51:19.701 | REPLY-TO=wrhh2006@hotmail.com
+2026-04-14 14:51:19.703 | TO=supermsah@gmail.com
+2026-04-14 14:51:19.705 | SUBJECT=Factura Electrónica 001-002-000000914
+2026-04-14 14:51:19.713 | Enviando correo cliente...
+2026-04-14 14:51:41.576 | ERROR EnviarCorreoDocumento
+2026-04-14 14:51:41.600 | System.Net.Mail.SmtpException: Error al enviar correo. ---> System.Net.WebException: No es posible conectar con el servidor remoto ---> System.Net.Sockets.SocketException: Se produjo un error durante el intento de conexión ya que la parte conectada no respondió adecuadamente tras un periodo de tiempo, o bien se produjo un error en la conexión establecida ya que el host conectado no ha podido responder 132.148.124.47:25
+   en System.Net.Sockets.Socket.DoConnect(EndPoint endPointSnapshot, SocketAddress socketAddress)
+   en System.Net.ServicePoint.ConnectSocketInternal(Boolean connectFailure, Socket s4, Socket s6, Socket& socket, IPAddress& address, ConnectSocketState state, IAsyncResult asyncResult, Exception& exception)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.ServicePoint.GetConnection(PooledStream PooledStream, Object owner, Boolean async, IPAddress& address, Socket& abortSocket, Socket& abortSocket6)
+   en System.Net.PooledStream.Activate(Object owningObject, Boolean async, GeneralAsyncDelegate asyncCallback)
+   en System.Net.ConnectionPool.GetConnection(Object owningObject, GeneralAsyncDelegate asyncCallback, Int32 creationTimeout)
+   en System.Net.Mail.SmtpConnection.GetConnection(ServicePoint servicePoint)
+   en System.Net.Mail.SmtpClient.GetConnection()
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   en LogicaNegocios.Procesos.ProcesosGenerales.EnviarCorreoDocumento(SolicitudCorreoDocumento solicitud, DataRow rowCliente, String tipo, String usuario, String ip) en D:\Proyectos\SistemaFacturacion\LogicaNegocios\Procesos\ProcesosGenerales.cs:línea 251
+2026-04-14 14:51:41.600 | Intentando registrar pendiente de correo...
+2026-04-14 14:51:42.859 | Pendiente de correo registrado/actualizado correctamente.
+2026-04-14 14:51:42.861 | FIN ERROR EnviarCorreoDocumento
+2026-04-14 15:28:15.486 | ==================================================
+2026-04-14 15:28:15.486 | INICIO EnviarCorreoDocumento
+2026-04-14 15:28:15.488 | TIPO=FACTURA
+2026-04-14 15:28:15.488 | USUARIO=KID'S PLACE
+2026-04-14 15:28:15.488 | IP=181.199.59.160
+2026-04-14 15:28:15.488 | Solicitud.TipoDocumento=FACTURA
+2026-04-14 15:28:15.488 | Solicitud.NumeroDocumento=000000915
+2026-04-14 15:28:15.490 | Solicitud.RutaPdf=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION_KID_S_PLACE\FACTURAS\PDF/1404202601170529684400110010020000009152233445511.pdf
+2026-04-14 15:28:15.490 | Solicitud.RutaXmlAutorizado=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION_KID_S_PLACE\FACTURAS\XMLAUTORIZADOS\1404202601170529684400110010020000009152233445511.xml
+2026-04-14 15:28:15.537 | Validando rowCliente y campo CORREO...
+2026-04-14 15:28:15.539 | Correo cliente detectado: [supermsah@gmail.com]
+2026-04-14 15:28:15.541 | Validando existencia física de adjuntos...
+2026-04-14 15:28:15.551 | PDF y XML existen físicamente.
+2026-04-14 15:28:15.553 | Cargando XML autorizado...
+2026-04-14 15:28:15.553 | XML autorizado cargado correctamente.
+2026-04-14 15:28:15.609 | CDATA encontrada correctamente.
+2026-04-14 15:28:15.622 | XML interno parseado correctamente.
+2026-04-14 15:28:15.624 | Armando correo...
+2026-04-14 15:28:15.959 | Correo.CorreoCliente=supermsah@gmail.com
+2026-04-14 15:28:15.961 | Correo.CorreoEmpresa=wrhh2006@hotmail.com
+2026-04-14 15:28:15.969 | Correo.AsuntoCliente=Factura Electrónica 001-002-000000915
+2026-04-14 15:28:15.969 | Correo armado correctamente.
+2026-04-14 15:28:15.971 | Consultando datos de empresa para From/Reply-To...
+2026-04-14 15:28:16.267 | Nombre empresa para display: [KID'S PLACE]
+2026-04-14 15:28:16.268 | Reply-To empresa: [wrhh2006@hotmail.com]
+2026-04-14 15:28:16.270 | Consultando parámetros SMTP...
+2026-04-14 15:28:16.574 | SMTP SERVER=relay-hosting.secureserver.net
+2026-04-14 15:28:16.580 | SMTP PORT=25
+2026-04-14 15:28:16.584 | SMTP USER=info@vivatelia.com
+2026-04-14 15:28:16.601 | SMTP PASS VACIA=NO
+2026-04-14 15:28:16.605 | SmtpClient creado correctamente.
+2026-04-14 15:28:16.605 | CONFIG SMTP FINAL => HOST=relay-hosting.secureserver.net | PORT=25 | SSL=true
+2026-04-14 15:28:16.605 | Creando MailMessage cliente...
+2026-04-14 15:28:16.607 | MailMessage cliente creado correctamente.
+2026-04-14 15:28:16.607 | FROM REAL=info@vivatelia.com
+2026-04-14 15:28:16.607 | FROM DISPLAY=KID'S PLACE
+2026-04-14 15:28:16.622 | REPLY-TO=wrhh2006@hotmail.com
+2026-04-14 15:28:16.655 | TO=supermsah@gmail.com
+2026-04-14 15:28:16.657 | SUBJECT=Factura Electrónica 001-002-000000915
+2026-04-14 15:28:16.658 | Enviando correo cliente...
+2026-04-14 15:28:38.087 | ERROR EnviarCorreoDocumento
+2026-04-14 15:28:38.089 | System.Net.Mail.SmtpException: Error al enviar correo. ---> System.Net.WebException: No es posible conectar con el servidor remoto ---> System.Net.Sockets.SocketException: Se produjo un error durante el intento de conexión ya que la parte conectada no respondió adecuadamente tras un periodo de tiempo, o bien se produjo un error en la conexión establecida ya que el host conectado no ha podido responder 132.148.124.47:25
+   en System.Net.Sockets.Socket.DoConnect(EndPoint endPointSnapshot, SocketAddress socketAddress)
+   en System.Net.ServicePoint.ConnectSocketInternal(Boolean connectFailure, Socket s4, Socket s6, Socket& socket, IPAddress& address, ConnectSocketState state, IAsyncResult asyncResult, Exception& exception)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.ServicePoint.GetConnection(PooledStream PooledStream, Object owner, Boolean async, IPAddress& address, Socket& abortSocket, Socket& abortSocket6)
+   en System.Net.PooledStream.Activate(Object owningObject, Boolean async, GeneralAsyncDelegate asyncCallback)
+   en System.Net.ConnectionPool.GetConnection(Object owningObject, GeneralAsyncDelegate asyncCallback, Int32 creationTimeout)
+   en System.Net.Mail.SmtpConnection.GetConnection(ServicePoint servicePoint)
+   en System.Net.Mail.SmtpClient.GetConnection()
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   en LogicaNegocios.Procesos.ProcesosGenerales.EnviarCorreoDocumento(SolicitudCorreoDocumento solicitud, DataRow rowCliente, String tipo, String usuario, String ip) en D:\Proyectos\SistemaFacturacion\LogicaNegocios\Procesos\ProcesosGenerales.cs:línea 251
+2026-04-14 15:28:38.089 | Intentando registrar pendiente de correo...
+2026-04-14 15:28:39.278 | Pendiente de correo registrado/actualizado correctamente.
+2026-04-14 15:28:39.279 | FIN ERROR EnviarCorreoDocumento
+2026-04-14 15:31:17.929 | ==================================================
+2026-04-14 15:31:17.929 | INICIO EnviarCorreoDocumento
+2026-04-14 15:31:17.956 | TIPO=FACTURA
+2026-04-14 15:31:17.994 | USUARIO=KID'S PLACE
+2026-04-14 15:31:17.994 | IP=181.199.59.160
+2026-04-14 15:31:18.012 | Solicitud.TipoDocumento=FACTURA
+2026-04-14 15:31:18.023 | Solicitud.NumeroDocumento=000000915
+2026-04-14 15:31:18.037 | Solicitud.RutaPdf=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION_KID_S_PLACE\FACTURAS\PDF/1404202601170529684400110010020000009152233445511.pdf
+2026-04-14 15:31:18.039 | Solicitud.RutaXmlAutorizado=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION_KID_S_PLACE\FACTURAS\XMLAUTORIZADOS\1404202601170529684400110010020000009152233445511.xml
+2026-04-14 15:31:18.039 | Validando rowCliente y campo CORREO...
+2026-04-14 15:31:18.047 | Correo cliente detectado: [supermsah@gmail.com]
+2026-04-14 15:31:18.057 | Validando existencia física de adjuntos...
+2026-04-14 15:31:18.059 | PDF y XML existen físicamente.
+2026-04-14 15:31:18.063 | Cargando XML autorizado...
+2026-04-14 15:31:18.079 | XML autorizado cargado correctamente.
+2026-04-14 15:31:18.107 | CDATA encontrada correctamente.
+2026-04-14 15:31:18.140 | XML interno parseado correctamente.
+2026-04-14 15:31:18.144 | Armando correo...
+2026-04-14 15:31:18.453 | Correo.CorreoCliente=supermsah@gmail.com
+2026-04-14 15:31:18.453 | Correo.CorreoEmpresa=wrhh2006@hotmail.com
+2026-04-14 15:31:18.455 | Correo.AsuntoCliente=Factura Electrónica 001-002-000000915
+2026-04-14 15:31:18.457 | Correo armado correctamente.
+2026-04-14 15:31:18.457 | Consultando datos de empresa para From/Reply-To...
+2026-04-14 15:31:18.722 | Nombre empresa para display: [KID'S PLACE]
+2026-04-14 15:31:18.728 | Reply-To empresa: [wrhh2006@hotmail.com]
+2026-04-14 15:31:18.730 | Consultando parámetros SMTP...
+2026-04-14 15:31:19.008 | SMTP SERVER=relay-hosting.secureserver.net
+2026-04-14 15:31:19.008 | SMTP PORT=25
+2026-04-14 15:31:19.008 | SMTP USER=info@vivatelia.com
+2026-04-14 15:31:19.008 | SMTP PASS VACIA=NO
+2026-04-14 15:31:19.031 | SmtpClient creado correctamente.
+2026-04-14 15:31:19.035 | CONFIG SMTP FINAL => HOST=relay-hosting.secureserver.net | PORT=25 | SSL=true
+2026-04-14 15:31:19.037 | Creando MailMessage cliente...
+2026-04-14 15:31:19.037 | MailMessage cliente creado correctamente.
+2026-04-14 15:31:19.064 | FROM REAL=info@vivatelia.com
+2026-04-14 15:31:19.072 | FROM DISPLAY=KID'S PLACE
+2026-04-14 15:31:19.108 | REPLY-TO=wrhh2006@hotmail.com
+2026-04-14 15:31:19.108 | TO=supermsah@gmail.com
+2026-04-14 15:31:19.155 | SUBJECT=Factura Electrónica 001-002-000000915
+2026-04-14 15:31:19.158 | Enviando correo cliente...
+2026-04-14 15:31:40.484 | ERROR EnviarCorreoDocumento
+2026-04-14 15:31:40.488 | System.Net.Mail.SmtpException: Error al enviar correo. ---> System.Net.WebException: No es posible conectar con el servidor remoto ---> System.Net.Sockets.SocketException: Se produjo un error durante el intento de conexión ya que la parte conectada no respondió adecuadamente tras un periodo de tiempo, o bien se produjo un error en la conexión establecida ya que el host conectado no ha podido responder 132.148.124.47:25
+   en System.Net.Sockets.Socket.DoConnect(EndPoint endPointSnapshot, SocketAddress socketAddress)
+   en System.Net.ServicePoint.ConnectSocketInternal(Boolean connectFailure, Socket s4, Socket s6, Socket& socket, IPAddress& address, ConnectSocketState state, IAsyncResult asyncResult, Exception& exception)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.ServicePoint.GetConnection(PooledStream PooledStream, Object owner, Boolean async, IPAddress& address, Socket& abortSocket, Socket& abortSocket6)
+   en System.Net.PooledStream.Activate(Object owningObject, Boolean async, GeneralAsyncDelegate asyncCallback)
+   en System.Net.ConnectionPool.GetConnection(Object owningObject, GeneralAsyncDelegate asyncCallback, Int32 creationTimeout)
+   en System.Net.Mail.SmtpConnection.GetConnection(ServicePoint servicePoint)
+   en System.Net.Mail.SmtpClient.GetConnection()
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   en LogicaNegocios.Procesos.ProcesosGenerales.EnviarCorreoDocumento(SolicitudCorreoDocumento solicitud, DataRow rowCliente, String tipo, String usuario, String ip) en D:\Proyectos\SistemaFacturacion\LogicaNegocios\Procesos\ProcesosGenerales.cs:línea 251
+2026-04-14 15:31:40.488 | Intentando registrar pendiente de correo...
+2026-04-14 15:31:41.858 | Pendiente de correo registrado/actualizado correctamente.
+2026-04-14 15:31:41.860 | FIN ERROR EnviarCorreoDocumento
+2026-04-14 15:57:28.052 | ==================================================
+2026-04-14 15:57:28.066 | INICIO EnviarCorreoDocumento
+2026-04-14 15:57:28.069 | TIPO=NOTADECREDITO
+2026-04-14 15:57:28.098 | USUARIO=KID'S PLACE
+2026-04-14 15:57:28.116 | IP=181.199.59.160
+2026-04-14 15:57:28.129 | Solicitud.TipoDocumento=NOTADECREDITO
+2026-04-14 15:57:28.129 | Solicitud.NumeroDocumento=000000109
+2026-04-14 15:57:28.164 | Solicitud.RutaPdf=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION_KID_S_PLACE\NOTASCREDITO\PDF/1404202604170529684400110010020000001091234567816.pdf
+2026-04-14 15:57:28.164 | Solicitud.RutaXmlAutorizado=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION_KID_S_PLACE\NOTASCREDITO\XMLAUTORIZADOS\1404202604170529684400110010020000001091234567816.xml
+2026-04-14 15:57:28.166 | Validando rowCliente y campo CORREO...
+2026-04-14 15:57:28.166 | Correo cliente detectado: [supermsah@gmail.com]
+2026-04-14 15:57:28.166 | Validando existencia física de adjuntos...
+2026-04-14 15:57:28.166 | PDF y XML existen físicamente.
+2026-04-14 15:57:28.166 | Cargando XML autorizado...
+2026-04-14 15:57:28.171 | XML autorizado cargado correctamente.
+2026-04-14 15:57:28.172 | CDATA encontrada correctamente.
+2026-04-14 15:57:28.175 | XML interno parseado correctamente.
+2026-04-14 15:57:28.183 | Armando correo...
+2026-04-14 15:57:28.606 | Correo.CorreoCliente=supermsah@gmail.com
+2026-04-14 15:57:28.607 | Correo.CorreoEmpresa=wrhh2006@hotmail.com
+2026-04-14 15:57:28.607 | Correo.AsuntoCliente=Nota de Crédito Electrónica 001-002-000000109
+2026-04-14 15:57:28.608 | Correo armado correctamente.
+2026-04-14 15:57:28.608 | Consultando datos de empresa para From/Reply-To...
+2026-04-14 15:57:28.945 | Nombre empresa para display: [KID'S PLACE]
+2026-04-14 15:57:28.946 | Reply-To empresa: [wrhh2006@hotmail.com]
+2026-04-14 15:57:28.949 | Consultando parámetros SMTP...
+2026-04-14 15:57:29.354 | SMTP SERVER=relay-hosting.secureserver.net
+2026-04-14 15:57:29.354 | SMTP PORT=25
+2026-04-14 15:57:29.355 | SMTP USER=info@vivatelia.com
+2026-04-14 15:57:29.355 | SMTP PASS VACIA=NO
+2026-04-14 15:57:29.864 | SmtpClient creado correctamente.
+2026-04-14 15:57:29.875 | CONFIG SMTP FINAL => HOST=relay-hosting.secureserver.net | PORT=25 | SSL=true
+2026-04-14 15:57:29.878 | Creando MailMessage cliente...
+2026-04-14 15:57:30.243 | MailMessage cliente creado correctamente.
+2026-04-14 15:57:30.464 | FROM REAL=info@vivatelia.com
+2026-04-14 15:57:30.650 | FROM DISPLAY=KID'S PLACE
+2026-04-14 15:57:30.764 | REPLY-TO=wrhh2006@hotmail.com
+2026-04-14 15:57:30.810 | TO=supermsah@gmail.com
+2026-04-14 15:57:30.810 | SUBJECT=Nota de Crédito Electrónica 001-002-000000109
+2026-04-14 15:57:30.812 | Enviando correo cliente...
+2026-04-14 15:57:53.543 | ERROR EnviarCorreoDocumento
+2026-04-14 15:57:53.694 | System.Net.Mail.SmtpException: Error al enviar correo. ---> System.Net.WebException: No es posible conectar con el servidor remoto ---> System.Net.Sockets.SocketException: Se produjo un error durante el intento de conexión ya que la parte conectada no respondió adecuadamente tras un periodo de tiempo, o bien se produjo un error en la conexión establecida ya que el host conectado no ha podido responder 132.148.124.47:25
+   en System.Net.Sockets.Socket.DoConnect(EndPoint endPointSnapshot, SocketAddress socketAddress)
+   en System.Net.ServicePoint.ConnectSocketInternal(Boolean connectFailure, Socket s4, Socket s6, Socket& socket, IPAddress& address, ConnectSocketState state, IAsyncResult asyncResult, Exception& exception)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.ServicePoint.GetConnection(PooledStream PooledStream, Object owner, Boolean async, IPAddress& address, Socket& abortSocket, Socket& abortSocket6)
+   en System.Net.PooledStream.Activate(Object owningObject, Boolean async, GeneralAsyncDelegate asyncCallback)
+   en System.Net.ConnectionPool.GetConnection(Object owningObject, GeneralAsyncDelegate asyncCallback, Int32 creationTimeout)
+   en System.Net.Mail.SmtpConnection.GetConnection(ServicePoint servicePoint)
+   en System.Net.Mail.SmtpClient.GetConnection()
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   en LogicaNegocios.Procesos.ProcesosGenerales.EnviarCorreoDocumento(SolicitudCorreoDocumento solicitud, DataRow rowCliente, String tipo, String usuario, String ip) en D:\Proyectos\SistemaFacturacion\LogicaNegocios\Procesos\ProcesosGenerales.cs:línea 251
+2026-04-14 15:57:53.694 | Intentando registrar pendiente de correo...
+2026-04-14 15:57:55.380 | Pendiente de correo registrado/actualizado correctamente.
+2026-04-14 15:57:55.382 | FIN ERROR EnviarCorreoDocumento
+2026-04-15 09:33:41.671 | ==================================================
+2026-04-15 09:33:41.676 | INICIO EnviarCorreoDocumento
+2026-04-15 09:33:41.676 | TIPO=FACTURA
+2026-04-15 09:33:41.678 | USUARIO=KID'S PLACE
+2026-04-15 09:33:41.680 | IP=181.199.59.160
+2026-04-15 09:33:41.682 | Solicitud.TipoDocumento=FACTURA
+2026-04-15 09:33:41.684 | Solicitud.NumeroDocumento=000000916
+2026-04-15 09:33:41.684 | Solicitud.RutaPdf=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION_KID_S_PLACE\FACTURAS\PDF/1504202601170529684400110010020000009162233445511.pdf
+2026-04-15 09:33:41.686 | Solicitud.RutaXmlAutorizado=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION_KID_S_PLACE\FACTURAS\XMLAUTORIZADOS\1504202601170529684400110010020000009162233445511.xml
+2026-04-15 09:33:41.688 | Validando rowCliente y campo CORREO...
+2026-04-15 09:33:41.690 | Correo cliente detectado: [supermsah@gmail.com]
+2026-04-15 09:33:41.691 | Validando existencia física de adjuntos...
+2026-04-15 09:33:41.699 | PDF y XML existen físicamente.
+2026-04-15 09:33:41.699 | Cargando XML autorizado...
+2026-04-15 09:33:41.701 | XML autorizado cargado correctamente.
+2026-04-15 09:33:41.703 | CDATA encontrada correctamente.
+2026-04-15 09:33:41.707 | XML interno parseado correctamente.
+2026-04-15 09:33:41.717 | Armando correo...
+2026-04-15 09:33:41.917 | Correo.CorreoCliente=supermsah@gmail.com
+2026-04-15 09:33:41.917 | Correo.CorreoEmpresa=wrhh2006@hotmail.com
+2026-04-15 09:33:41.919 | Correo.AsuntoCliente=Factura Electrónica 001-002-000000916
+2026-04-15 09:33:41.919 | Correo armado correctamente.
+2026-04-15 09:33:41.922 | Consultando datos de empresa para From/Reply-To...
+2026-04-15 09:33:42.113 | Nombre empresa para display: [KID'S PLACE]
+2026-04-15 09:33:42.113 | Reply-To empresa: [wrhh2006@hotmail.com]
+2026-04-15 09:33:42.113 | Consultando parámetros SMTP...
+2026-04-15 09:33:42.307 | SMTP SERVER=relay-hosting.secureserver.net
+2026-04-15 09:33:42.307 | SMTP PORT=25
+2026-04-15 09:33:42.309 | SMTP USER=info@vivatelia.com
+2026-04-15 09:33:42.311 | SMTP PASS VACIA=NO
+2026-04-15 09:33:42.415 | SmtpClient creado correctamente.
+2026-04-15 09:33:42.417 | CONFIG SMTP FINAL => HOST=relay-hosting.secureserver.net | PORT=25 | SSL=true
+2026-04-15 09:33:42.417 | Creando MailMessage cliente...
+2026-04-15 09:33:42.496 | MailMessage cliente creado correctamente.
+2026-04-15 09:33:42.496 | FROM REAL=info@vivatelia.com
+2026-04-15 09:33:42.498 | FROM DISPLAY=KID'S PLACE
+2026-04-15 09:33:42.500 | REPLY-TO=wrhh2006@hotmail.com
+2026-04-15 09:33:42.500 | TO=supermsah@gmail.com
+2026-04-15 09:33:42.502 | SUBJECT=Factura Electrónica 001-002-000000916
+2026-04-15 09:33:42.502 | Enviando correo cliente...
+2026-04-15 09:34:04.151 | ERROR EnviarCorreoDocumento
+2026-04-15 09:34:04.336 | System.Net.Mail.SmtpException: Error al enviar correo. ---> System.Net.WebException: No es posible conectar con el servidor remoto ---> System.Net.Sockets.SocketException: Se produjo un error durante el intento de conexión ya que la parte conectada no respondió adecuadamente tras un periodo de tiempo, o bien se produjo un error en la conexión establecida ya que el host conectado no ha podido responder 132.148.124.47:25
+   en System.Net.Sockets.Socket.DoConnect(EndPoint endPointSnapshot, SocketAddress socketAddress)
+   en System.Net.ServicePoint.ConnectSocketInternal(Boolean connectFailure, Socket s4, Socket s6, Socket& socket, IPAddress& address, ConnectSocketState state, IAsyncResult asyncResult, Exception& exception)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.ServicePoint.GetConnection(PooledStream PooledStream, Object owner, Boolean async, IPAddress& address, Socket& abortSocket, Socket& abortSocket6)
+   en System.Net.PooledStream.Activate(Object owningObject, Boolean async, GeneralAsyncDelegate asyncCallback)
+   en System.Net.ConnectionPool.GetConnection(Object owningObject, GeneralAsyncDelegate asyncCallback, Int32 creationTimeout)
+   en System.Net.Mail.SmtpConnection.GetConnection(ServicePoint servicePoint)
+   en System.Net.Mail.SmtpClient.GetConnection()
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   en LogicaNegocios.Procesos.ProcesosGenerales.EnviarCorreoDocumento(SolicitudCorreoDocumento solicitud, DataRow rowCliente, String tipo, String usuario, String ip) en D:\Proyectos\SistemaFacturacion\LogicaNegocios\Procesos\ProcesosGenerales.cs:línea 251
+2026-04-15 09:34:04.364 | Intentando registrar pendiente de correo...
+2026-04-15 09:34:05.211 | Pendiente de correo registrado/actualizado correctamente.
+2026-04-15 09:34:05.211 | FIN ERROR EnviarCorreoDocumento
+2026-04-22 13:55:02.337 | ==================================================
+2026-04-22 13:55:02.346 | INICIO EnviarCorreoDocumento
+2026-04-22 13:55:02.346 | TIPO=FACTURA
+2026-04-22 13:55:02.346 | USUARIO=KID'S PLACE
+2026-04-22 13:55:02.348 | IP=181.199.59.160
+2026-04-22 13:55:02.366 | Solicitud.TipoDocumento=FACTURA
+2026-04-22 13:55:02.370 | Solicitud.NumeroDocumento=000000917
+2026-04-22 13:55:02.370 | Solicitud.RutaPdf=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION_KID_S_PLACE\FACTURAS\PDF\2204202601170529684400110010020000009172233445517.pdf
+2026-04-22 13:55:02.374 | Solicitud.RutaXmlAutorizado=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION_KID_S_PLACE\FACTURAS\XMLAUTORIZADOS\2204202601170529684400110010020000009172233445517.xml
+2026-04-22 13:55:02.380 | Validando rowCliente y campo CORREO...
+2026-04-22 13:55:02.384 | Correo cliente detectado: [supermsah@gmail.com]
+2026-04-22 13:55:02.384 | Validando existencia física de adjuntos...
+2026-04-22 13:55:02.387 | PDF y XML existen físicamente.
+2026-04-22 13:55:02.387 | Cargando XML autorizado...
+2026-04-22 13:55:02.391 | XML autorizado cargado correctamente.
+2026-04-22 13:55:02.395 | CDATA encontrada correctamente.
+2026-04-22 13:55:02.397 | XML interno parseado correctamente.
+2026-04-22 13:55:02.397 | Armando correo...
+2026-04-22 13:55:02.587 | Correo.CorreoCliente=supermsah@gmail.com
+2026-04-22 13:55:02.587 | Correo.CorreoEmpresa=wrhh2006@hotmail.com
+2026-04-22 13:55:02.587 | Correo.AsuntoCliente=Factura Electrónica 001-002-000000917
+2026-04-22 13:55:02.589 | Correo armado correctamente.
+2026-04-22 13:55:02.589 | Consultando datos de empresa para From/Reply-To...
+2026-04-22 13:55:02.779 | Nombre empresa para display: [KID'S PLACE]
+2026-04-22 13:55:02.779 | Reply-To empresa: [wrhh2006@hotmail.com]
+2026-04-22 13:55:02.779 | Consultando parámetros SMTP...
+2026-04-22 13:55:02.965 | SMTP SERVER=relay-hosting.secureserver.net
+2026-04-22 13:55:02.965 | SMTP PORT=25
+2026-04-22 13:55:02.965 | SMTP USER=info@vivatelia.com
+2026-04-22 13:55:02.965 | SMTP PASS VACIA=NO
+2026-04-22 13:55:03.017 | SmtpClient creado correctamente.
+2026-04-22 13:55:03.017 | CONFIG SMTP FINAL => HOST=relay-hosting.secureserver.net | PORT=25 | SSL=true
+2026-04-22 13:55:03.019 | Creando MailMessage cliente...
+2026-04-22 13:55:03.092 | MailMessage cliente creado correctamente.
+2026-04-22 13:55:03.094 | FROM REAL=info@vivatelia.com
+2026-04-22 13:55:03.096 | FROM DISPLAY=KID'S PLACE
+2026-04-22 13:55:03.096 | REPLY-TO=wrhh2006@hotmail.com
+2026-04-22 13:55:03.100 | TO=supermsah@gmail.com
+2026-04-22 13:55:03.100 | SUBJECT=Factura Electrónica 001-002-000000917
+2026-04-22 13:55:03.102 | Enviando correo cliente...
+2026-04-22 13:55:24.555 | ERROR EnviarCorreoDocumento
+2026-04-22 13:55:24.627 | System.Net.Mail.SmtpException: Error al enviar correo. ---> System.Net.WebException: No es posible conectar con el servidor remoto ---> System.Net.Sockets.SocketException: Se produjo un error durante el intento de conexión ya que la parte conectada no respondió adecuadamente tras un periodo de tiempo, o bien se produjo un error en la conexión establecida ya que el host conectado no ha podido responder 132.148.124.47:25
+   en System.Net.Sockets.Socket.DoConnect(EndPoint endPointSnapshot, SocketAddress socketAddress)
+   en System.Net.ServicePoint.ConnectSocketInternal(Boolean connectFailure, Socket s4, Socket s6, Socket& socket, IPAddress& address, ConnectSocketState state, IAsyncResult asyncResult, Exception& exception)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.ServicePoint.GetConnection(PooledStream PooledStream, Object owner, Boolean async, IPAddress& address, Socket& abortSocket, Socket& abortSocket6)
+   en System.Net.PooledStream.Activate(Object owningObject, Boolean async, GeneralAsyncDelegate asyncCallback)
+   en System.Net.ConnectionPool.GetConnection(Object owningObject, GeneralAsyncDelegate asyncCallback, Int32 creationTimeout)
+   en System.Net.Mail.SmtpConnection.GetConnection(ServicePoint servicePoint)
+   en System.Net.Mail.SmtpClient.GetConnection()
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   en LogicaNegocios.Procesos.ProcesosGenerales.EnviarCorreoDocumento(SolicitudCorreoDocumento solicitud, DataRow rowCliente, String tipo, String usuario, String ip) en D:\Proyectos\SistemaFacturacion\LogicaNegocios\Procesos\ProcesosGenerales.cs:línea 251
+2026-04-22 13:55:24.627 | Intentando registrar pendiente de correo...
+2026-04-22 13:55:25.467 | Pendiente de correo registrado/actualizado correctamente.
+2026-04-22 13:55:25.469 | FIN ERROR EnviarCorreoDocumento
+2026-04-24 16:17:25.200 | ==================================================
+2026-04-24 16:17:25.234 | INICIO EnviarCorreoDocumento
+2026-04-24 16:17:25.235 | TIPO=FACTURA
+2026-04-24 16:17:25.241 | USUARIO=KID'S PLACE
+2026-04-24 16:17:25.242 | IP=181.199.59.160
+2026-04-24 16:17:25.242 | Solicitud.TipoDocumento=FACTURA
+2026-04-24 16:17:25.242 | Solicitud.NumeroDocumento=000000918
+2026-04-24 16:17:25.243 | Solicitud.RutaPdf=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION_KID_S_PLACE\FACTURAS\PDF\2404202601170529684400110010020000009182233445511.pdf
+2026-04-24 16:17:25.243 | Solicitud.RutaXmlAutorizado=D:\Proyectos\SistemaFacturacion\Facturacion.api\App_Data\FACTURACION_KID_S_PLACE\FACTURAS\XMLAUTORIZADOS\2404202601170529684400110010020000009182233445511.xml
+2026-04-24 16:17:25.243 | Validando rowCliente y campo CORREO...
+2026-04-24 16:17:25.244 | Correo cliente detectado: [supermsah@gmail.com]
+2026-04-24 16:17:25.244 | Validando existencia física de adjuntos...
+2026-04-24 16:17:25.245 | PDF y XML existen físicamente.
+2026-04-24 16:17:25.245 | Cargando XML autorizado...
+2026-04-24 16:17:25.247 | XML autorizado cargado correctamente.
+2026-04-24 16:17:25.248 | CDATA encontrada correctamente.
+2026-04-24 16:17:25.249 | XML interno parseado correctamente.
+2026-04-24 16:17:25.250 | Armando correo...
+2026-04-24 16:17:25.454 | Correo.CorreoCliente=supermsah@gmail.com
+2026-04-24 16:17:25.455 | Correo.CorreoEmpresa=wrhh2006@hotmail.com
+2026-04-24 16:17:25.458 | Correo.AsuntoCliente=Factura Electrónica 001-002-000000918
+2026-04-24 16:17:25.460 | Correo armado correctamente.
+2026-04-24 16:17:25.460 | Consultando datos de empresa para From/Reply-To...
+2026-04-24 16:17:25.650 | Nombre empresa para display: [KID'S PLACE]
+2026-04-24 16:17:25.650 | Reply-To empresa: [wrhh2006@hotmail.com]
+2026-04-24 16:17:25.651 | Consultando parámetros SMTP...
+2026-04-24 16:17:25.842 | SMTP SERVER=relay-hosting.secureserver.net
+2026-04-24 16:17:25.844 | SMTP PORT=25
+2026-04-24 16:17:25.844 | SMTP USER=info@vivatelia.com
+2026-04-24 16:17:25.844 | SMTP PASS VACIA=NO
+2026-04-24 16:17:25.911 | SmtpClient creado correctamente.
+2026-04-24 16:17:25.911 | CONFIG SMTP FINAL => HOST=relay-hosting.secureserver.net | PORT=25 | SSL=true
+2026-04-24 16:17:25.911 | Creando MailMessage cliente...
+2026-04-24 16:17:26.141 | MailMessage cliente creado correctamente.
+2026-04-24 16:17:26.188 | FROM REAL=info@vivatelia.com
+2026-04-24 16:17:26.194 | FROM DISPLAY=KID'S PLACE
+2026-04-24 16:17:26.194 | REPLY-TO=wrhh2006@hotmail.com
+2026-04-24 16:17:26.195 | TO=supermsah@gmail.com
+2026-04-24 16:17:26.196 | SUBJECT=Factura Electrónica 001-002-000000918
+2026-04-24 16:17:26.197 | Enviando correo cliente...
+2026-04-24 16:17:48.246 | ERROR EnviarCorreoDocumento
+2026-04-24 16:17:48.290 | System.Net.Mail.SmtpException: Error al enviar correo. ---> System.Net.WebException: No es posible conectar con el servidor remoto ---> System.Net.Sockets.SocketException: Se produjo un error durante el intento de conexión ya que la parte conectada no respondió adecuadamente tras un periodo de tiempo, o bien se produjo un error en la conexión establecida ya que el host conectado no ha podido responder 132.148.124.47:25
+   en System.Net.Sockets.Socket.DoConnect(EndPoint endPointSnapshot, SocketAddress socketAddress)
+   en System.Net.ServicePoint.ConnectSocketInternal(Boolean connectFailure, Socket s4, Socket s6, Socket& socket, IPAddress& address, ConnectSocketState state, IAsyncResult asyncResult, Exception& exception)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.ServicePoint.GetConnection(PooledStream PooledStream, Object owner, Boolean async, IPAddress& address, Socket& abortSocket, Socket& abortSocket6)
+   en System.Net.PooledStream.Activate(Object owningObject, Boolean async, GeneralAsyncDelegate asyncCallback)
+   en System.Net.ConnectionPool.GetConnection(Object owningObject, GeneralAsyncDelegate asyncCallback, Int32 creationTimeout)
+   en System.Net.Mail.SmtpConnection.GetConnection(ServicePoint servicePoint)
+   en System.Net.Mail.SmtpClient.GetConnection()
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   --- Fin del seguimiento de la pila de la excepción interna ---
+   en System.Net.Mail.SmtpClient.Send(MailMessage message)
+   en LogicaNegocios.Procesos.ProcesosGenerales.EnviarCorreoDocumento(SolicitudCorreoDocumento solicitud, DataRow rowCliente, String tipo, String usuario, String ip) en D:\Proyectos\SistemaFacturacion\LogicaNegocios\Procesos\ProcesosGenerales.cs:línea 251
+2026-04-24 16:17:48.290 | Intentando registrar pendiente de correo...
+2026-04-24 16:17:49.227 | Pendiente de correo registrado/actualizado correctamente.
+2026-04-24 16:17:49.227 | FIN ERROR EnviarCorreoDocumento

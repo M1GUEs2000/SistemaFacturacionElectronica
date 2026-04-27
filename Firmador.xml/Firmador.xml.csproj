@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{8682071F-4299-45B1-A1F2-968517E338D8}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Firmador.xml</RootNamespace>
+    <AssemblyName>Firmador.xml</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="bcmail-jdk15-1.43, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\bcmail-jdk15-1.43.dll</HintPath>
+    </Reference>
+    <Reference Include="bcprov-jdk15-1.43, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\bcprov-jdk15-1.43.dll</HintPath>
+    </Reference>
+    <Reference Include="bctsp-jdk15-1.43, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\bctsp-jdk15-1.43.dll</HintPath>
+    </Reference>
+    <Reference Include="commons-codec-1.2, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\commons-codec-1.2.dll</HintPath>
+    </Reference>
+    <Reference Include="commons-httpclient-3.0.1, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\commons-httpclient-3.0.1.dll</HintPath>
+    </Reference>
+    <Reference Include="commons-lang-2.4, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\commons-lang-2.4.dll</HintPath>
+    </Reference>
+    <Reference Include="commons-logging-1.1, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\commons-logging-1.1.dll</HintPath>
+    </Reference>
+    <Reference Include="facturaE_additional, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\facturaE_additional.dll</HintPath>
+    </Reference>
+    <Reference Include="FirmaElectronica, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\FirmaElectronica.exe</HintPath>
+    </Reference>
+    <Reference Include="IKVM.OpenJDK.Core, Version=0.42.0.6, Culture=neutral, PublicKeyToken=13235d27fcbfff58, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\IKVM.OpenJDK.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="IKVM.OpenJDK.Security, Version=0.42.0.6, Culture=neutral, PublicKeyToken=13235d27fcbfff58, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\IKVM.OpenJDK.Security.dll</HintPath>
+    </Reference>
+    <Reference Include="IKVM.OpenJDK.Text, Version=0.42.0.6, Culture=neutral, PublicKeyToken=13235d27fcbfff58, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\IKVM.OpenJDK.Text.dll</HintPath>
+    </Reference>
+    <Reference Include="IKVM.OpenJDK.Util, Version=0.42.0.6, Culture=neutral, PublicKeyToken=13235d27fcbfff58, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\IKVM.OpenJDK.Util.dll</HintPath>
+    </Reference>
+    <Reference Include="IKVM.OpenJDK.XML.API, Version=0.42.0.6, Culture=neutral, PublicKeyToken=13235d27fcbfff58, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\IKVM.OpenJDK.XML.API.dll</HintPath>
+    </Reference>
+    <Reference Include="IKVM.OpenJDK.XML.Parse, Version=0.42.0.6, Culture=neutral, PublicKeyToken=13235d27fcbfff58, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\IKVM.OpenJDK.XML.Parse.dll</HintPath>
+    </Reference>
+    <Reference Include="IKVM.Runtime, Version=0.42.0.6, Culture=neutral, PublicKeyToken=13235d27fcbfff58, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\IKVM.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Ionic.Utils.Zip, Version=1.3.0.0, Culture=neutral, PublicKeyToken=c551e179877da246, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\Ionic.Utils.Zip.dll</HintPath>
+    </Reference>
+    <Reference Include="itextsharp, Version=5.5.13.0, Culture=neutral, PublicKeyToken=8354ae6d2174ddca, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\itextsharp.dll</HintPath>
+    </Reference>
+    <Reference Include="jss-4.2.5, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\jss-4.2.5.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.MSXML, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+      <HintPath>Dll\Microsoft.MSXML.dll</HintPath>
+    </Reference>
+    <Reference Include="MITyCLibAPI-1.0.4, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\MITyCLibAPI-1.0.4.dll</HintPath>
+    </Reference>
+    <Reference Include="MITyCLibCert-1.0.4, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\MITyCLibCert-1.0.4.dll</HintPath>
+    </Reference>
+    <Reference Include="MITyCLibOCSP-1.0.4, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\MITyCLibOCSP-1.0.4.dll</HintPath>
+    </Reference>
+    <Reference Include="MITyCLibPolicy-1.0.4, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\MITyCLibPolicy-1.0.4.dll</HintPath>
+    </Reference>
+    <Reference Include="MITyCLibTrust-1.0.4, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\MITyCLibTrust-1.0.4.dll</HintPath>
+    </Reference>
+    <Reference Include="MITyCLibTSA-1.0.4, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\MITyCLibTSA-1.0.4.dll</HintPath>
+    </Reference>
+    <Reference Include="MITyCLibXADES-1.0.4, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\MITyCLibXADES-1.0.4.dll</HintPath>
+    </Reference>
+    <Reference Include="serializer-2.7.1, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\serializer-2.7.1.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+    <Reference Include="xalan-2.7.1, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\xalan-2.7.1.dll</HintPath>
+    </Reference>
+    <Reference Include="xml-apis-1.3.04, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\xml-apis-1.3.04.dll</HintPath>
+    </Reference>
+    <Reference Include="xmlsec-1.4.2-ADSI-1.0, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dll\xmlsec-1.4.2-ADSI-1.0.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="PassStoreKS12.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Dll\bcmail-jdk15-1.43.dll" />
+    <Content Include="Dll\bcprov-jdk15-1.43.dll" />
+    <Content Include="Dll\bctsp-jdk15-1.43.dll" />
+    <Content Include="Dll\commons-codec-1.2.dll" />
+    <Content Include="Dll\commons-httpclient-3.0.1.dll" />
+    <Content Include="Dll\commons-lang-2.4.dll" />
+    <Content Include="Dll\commons-logging-1.1.dll" />
+    <Content Include="Dll\facturaE_additional.dll" />
+    <Content Include="Dll\FirmaElectronica.exe" />
+    <Content Include="Dll\IKVM.OpenJDK.Core.dll" />
+    <Content Include="Dll\IKVM.OpenJDK.Security.dll" />
+    <Content Include="Dll\IKVM.OpenJDK.Text.dll" />
+    <Content Include="Dll\IKVM.OpenJDK.Util.dll" />
+    <Content Include="Dll\IKVM.OpenJDK.XML.API.dll" />
+    <Content Include="Dll\IKVM.OpenJDK.XML.Parse.dll" />
+    <Content Include="Dll\IKVM.Runtime.dll" />
+    <Content Include="Dll\Ionic.Utils.Zip.dll" />
+    <Content Include="Dll\itextsharp.dll" />
+    <Content Include="Dll\jss-4.2.5.dll" />
+    <Content Include="Dll\Microsoft.MSXML.dll" />
+    <Content Include="Dll\MITyCLibAPI-1.0.4.dll" />
+    <Content Include="Dll\MITyCLibCert-1.0.4.dll" />
+    <Content Include="Dll\MITyCLibOCSP-1.0.4.dll" />
+    <Content Include="Dll\MITyCLibPolicy-1.0.4.dll" />
+    <Content Include="Dll\MITyCLibTrust-1.0.4.dll" />
+    <Content Include="Dll\MITyCLibTSA-1.0.4.dll" />
+    <Content Include="Dll\MITyCLibXADES-1.0.4.dll" />
+    <Content Include="Dll\serializer-2.7.1.dll" />
+    <Content Include="Dll\xalan-2.7.1.dll" />
+    <Content Include="Dll\xml-apis-1.3.04.dll" />
+    <Content Include="Dll\xmlsec-1.4.2-ADSI-1.0.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Dll\Dll.rar" />
+    <None Include="Dll\FirmaElectronica.exe.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
