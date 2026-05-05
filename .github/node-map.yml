@@ -1,0 +1,125 @@
+# Mapeo de archivos fuente → nodos del vault de Obsidian
+# Vault: D:\Obsidian\Bovedá\proyectos\sistema-facturacion\nodos\
+#
+# Actualizar cuando se agreguen archivos significativos a un módulo.
+# Patrones usan fnmatch. El primer match gana — ordenar de más específico a más general.
+
+mappings:
+  # --- Facturas ---
+  - pattern: "SistemaFacturacion/frmPrincipal.cs"
+    node: "facturas"
+    vault_path: "proyectos/sistema-facturacion/nodos/facturas.md"
+  - pattern: "SistemaFacturacion/frmReportePorFechas.cs"
+    node: "facturas"
+    vault_path: "proyectos/sistema-facturacion/nodos/facturas.md"
+  - pattern: "LogicaNegocios/Procesos/ProcesosFacturacion.cs"
+    node: "facturas"
+    vault_path: "proyectos/sistema-facturacion/nodos/facturas.md"
+  - pattern: "src/modulos/Facturas/**"
+    node: "facturas"
+    vault_path: "proyectos/sistema-facturacion/nodos/facturas.md"
+
+  # --- Notas de Crédito ---
+  - pattern: "SistemaFacturacion/frmNuevaNotaCredito.cs"
+    node: "notas-credito"
+    vault_path: "proyectos/sistema-facturacion/nodos/notas-credito.md"
+  - pattern: "SistemaFacturacion/frmNotaCredito.cs"
+    node: "notas-credito"
+    vault_path: "proyectos/sistema-facturacion/nodos/notas-credito.md"
+  - pattern: "LogicaNegocios/Procesos/ProcesosNotaCredito.cs"
+    node: "notas-credito"
+    vault_path: "proyectos/sistema-facturacion/nodos/notas-credito.md"
+  - pattern: "src/modulos/NotasCredito/**"
+    node: "notas-credito"
+    vault_path: "proyectos/sistema-facturacion/nodos/notas-credito.md"
+
+  # --- Retenciones ---
+  - pattern: "SistemaFacturacion/frmProveedorRetenciones.cs"
+    node: "retenciones"
+    vault_path: "proyectos/sistema-facturacion/nodos/retenciones.md"
+  - pattern: "SistemaFacturacion/frmConsultarRetenciones.cs"
+    node: "retenciones"
+    vault_path: "proyectos/sistema-facturacion/nodos/retenciones.md"
+  - pattern: "LogicaNegocios/Procesos/ProcesosRetenciones.cs"
+    node: "retenciones"
+    vault_path: "proyectos/sistema-facturacion/nodos/retenciones.md"
+  - pattern: "src/modulos/Retenciones/**"
+    node: "retenciones"
+    vault_path: "proyectos/sistema-facturacion/nodos/retenciones.md"
+
+  # --- RIDE (PDF) ---
+  - pattern: "LogicaNegocios/Services/CGenerarRide.cs"
+    node: "ride"
+    vault_path: "proyectos/sistema-facturacion/nodos/ride.md"
+
+  # --- Lote (batch) ---
+  - pattern: "LogicaNegocios/Procesos/ProcesosLote.cs"
+    node: "lote"
+    vault_path: "proyectos/sistema-facturacion/nodos/lote.md"
+
+  # --- Funcionamiento SRI ---
+  - pattern: "LogicaNegocios/Services/CSriws.cs"
+    node: "funcionamiento-sri"
+    vault_path: "proyectos/sistema-facturacion/nodos/funcionamiento-sri.md"
+  - pattern: "LogicaNegocios/Services/CFuncionesComprobantesElectronicos.cs"
+    node: "funcionamiento-sri"
+    vault_path: "proyectos/sistema-facturacion/nodos/funcionamiento-sri.md"
+  - pattern: "LogicaNegocios/Services/Consultas.cs"
+    node: "funcionamiento-sri"
+    vault_path: "proyectos/sistema-facturacion/nodos/funcionamiento-sri.md"
+  - pattern: "LogicaNegocios/FacturacionPendientesManejador.cs"
+    node: "funcionamiento-sri"
+    vault_path: "proyectos/sistema-facturacion/nodos/funcionamiento-sri.md"
+
+  # --- Procesos Generales ---
+  - pattern: "LogicaNegocios/Procesos/ProcesosGenerales.cs"
+    node: "procesos-generales"
+    vault_path: "proyectos/sistema-facturacion/nodos/procesos-generales.md"
+
+  # --- Manejadores BD ---
+  - pattern: "LogicaNegocios/*Manejador.cs"
+    node: "manejadores"
+    vault_path: "proyectos/sistema-facturacion/nodos/manejadores.md"
+  - pattern: "LogicaNegocios/ManejadorBase.cs"
+    node: "manejadores"
+    vault_path: "proyectos/sistema-facturacion/nodos/manejadores.md"
+
+  # --- API Multitenant / Auth ---
+  - pattern: "Facturacion.api/Auth/**"
+    node: "api-multitenant"
+    vault_path: "proyectos/sistema-facturacion/nodos/api-multitenant.md"
+  - pattern: "Facturacion.api/Controllers/**"
+    node: "api-multitenant"
+    vault_path: "proyectos/sistema-facturacion/nodos/api-multitenant.md"
+  - pattern: "Facturacion.api/Servicios/**"
+    node: "api-multitenant"
+    vault_path: "proyectos/sistema-facturacion/nodos/api-multitenant.md"
+  - pattern: "LogicaNegocios/EmpresaManejador.cs"
+    node: "api-multitenant"
+    vault_path: "proyectos/sistema-facturacion/nodos/api-multitenant.md"
+  - pattern: "src/modulos/Login/**"
+    node: "api-multitenant"
+    vault_path: "proyectos/sistema-facturacion/nodos/api-multitenant.md"
+  - pattern: "src/modulos/login/**"
+    node: "api-multitenant"
+    vault_path: "proyectos/sistema-facturacion/nodos/api-multitenant.md"
+
+  # --- Frontend componentes reutilizables ---
+  - pattern: "src/components/**"
+    node: "frontend-componentes-reutilizables"
+    vault_path: "proyectos/sistema-facturacion/nodos/frontend-componentes-reutilizables.md"
+  - pattern: "src/hooks/**"
+    node: "frontend-componentes-reutilizables"
+    vault_path: "proyectos/sistema-facturacion/nodos/frontend-componentes-reutilizables.md"
+  - pattern: "src/api/http.ts"
+    node: "frontend-componentes-reutilizables"
+    vault_path: "proyectos/sistema-facturacion/nodos/frontend-componentes-reutilizables.md"
+  - pattern: "src/styles/**"
+    node: "frontend-componentes-reutilizables"
+    vault_path: "proyectos/sistema-facturacion/nodos/frontend-componentes-reutilizables.md"
+  - pattern: "src/helpers/**"
+    node: "frontend-componentes-reutilizables"
+    vault_path: "proyectos/sistema-facturacion/nodos/frontend-componentes-reutilizables.md"
+  - pattern: "src/procesos/helperImpuestos.ts"
+    node: "frontend-componentes-reutilizables"
+    vault_path: "proyectos/sistema-facturacion/nodos/frontend-componentes-reutilizables.md"

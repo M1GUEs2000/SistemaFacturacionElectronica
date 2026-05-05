@@ -84,30 +84,27 @@ Controllers mirror the desktop managers: `FacturasController`, `ClientesControll
 
 ## Cerebro del proyecto
 
-> ⚠️ **OBLIGATORIO:** Todo lo que no sea código técnico vive en el vault de Obsidian. Esto incluye: pendientes, vulnerabilidades, decisiones de arquitectura, estado actual, próximos pasos, análisis, contexto de negocio y conocimiento del dominio. **No buscar nada de eso aquí.**
-
-### Vault
-
-**Ruta:** `d:\Obsidian\Bovedá\`
-
-**Nombre del proyecto en el vault:** `Sistema de Facturación Electrónica`
+> ⚠️ **OBLIGATORIO leer el vault PRIMERO.** Todo lo que no sea código técnico vive ahí: estado actual, pendientes, vulnerabilidades, decisiones de arquitectura, análisis y contexto de negocio. **No re-derivar esa información leyendo código — es un gasto de tokens innecesario.**
 
 ### Archivos de entrada obligatorios (leer en este orden)
 
 | Archivo | Qué contiene |
 |---|---|
-| `d:\Obsidian\Bovedá\proyectos\sistema-facturacion.md` | Estado actual, pendientes (`P-XXX`, `CN-XXX`), próximos pasos, decisiones clave |
-| `d:\Obsidian\Bovedá\proyectos\sistema-facturacion-arquitectura.md` | Mapa de módulos, estado de nodos de research, qué está documentado |
-| `d:\Obsidian\Bovedá\CLAUDE.md` | Convenciones del vault, estructura de carpetas, estrategia de navegación |
+| `d:\Obsidian\Bovedá\proyectos\sistema-facturacion\README.md` | Estado actual, decisiones clave, stack |
+| `d:\Obsidian\Bovedá\proyectos\sistema-facturacion\arquitectura-sistema-facturacion.md` | Mapa de módulos y qué nodos están ✅ vs ⚠️ |
+| `d:\Obsidian\Bovedá\proyectos\sistema-facturacion\tareas.md` | Tareas pendientes (P-XXX / CU-XXXXX) |
+| `d:\Obsidian\Bovedá\CLAUDE.md` | Convenciones del vault — leer solo si hay dudas de estructura |
 
 **Flujo de sesión:**
-1. Leer `sistema-facturacion.md` → estado actual y próximos pasos
-2. Leer `sistema-facturacion-arquitectura.md` → qué módulos están documentados
-3. Ir al nodo de research del módulo relevante si está ✅ completo
-4. Si el nodo está ⚠️ pendiente → leer código fuente
-5. Al cerrar sesión → actualizar `sistema-facturacion.md` en el vault
+1. Leer `README.md` → estado actual
+2. Leer `arquitectura-sistema-facturacion.md` → qué nodos están ✅ completo vs ⚠️ pendiente
+3. Ir al nodo `nodos/[modulo].md` si está ✅ — confiar en él, no leer código fuente
+4. Si el nodo está ⚠️ → leer código fuente y documentar el nodo al terminar
+5. Al cerrar sesión → actualizar `## 📌 Estado actual` en README
 
-**NUNCA asumir la carpeta de un nodo** — listar `d:\Obsidian\Bovedá\research\` si no se sabe dónde está.
+### Post-commit — mantener nodos sincronizados
+
+Después de cada `git push`, GitHub Actions postea un comentario en el commit listando qué nodos del vault pueden estar desactualizados. **Revisar ese comentario y actualizar los nodos afectados en Obsidian antes de cerrar la sesión.** Ver `.github/node-map.yml` para el mapeo completo de archivos → nodos.
 
 ## Reglas de código (OBLIGATORIAS)
 
