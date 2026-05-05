@@ -28,7 +28,7 @@ namespace SistemaFacturacion
         private DataTable _dtOriginal;
         private DataTable _dtNota;
 
-        private bool _cargandoCombo = false;
+        private bool _suppressSearch = false;
 
         private void frmNuevaNotaCredito_Load(object sender, EventArgs e)
         {
@@ -40,10 +40,10 @@ namespace SistemaFacturacion
 
         private void VincularEventos()
         {
-            cmbFactura.SelectedIndexChanged += cmbFactura_SelectedIndexChanged;
-            cmbFactura.TextChanged += cmbFactura_TextChanged;
+            txtNota.TextChanged += txtNota_TextChanged_Buscar;
+            txtNota.KeyDown += txtNota_KeyDown;
+            lstNotas.Click += lstNotas_Click;
 
-            // 1 CLICK (no doble)
             dgvOriginal.CellClick += dgvOriginal_CellClick;
             dgvNota.CellClick += dgvNota_CellClick;
 
@@ -57,87 +57,83 @@ namespace SistemaFacturacion
         }
 
         // ======================================================
-        // COMBO FACTURAS
+        // BUSQUEDA DE FACTURAS
         // ======================================================
         private void CargarComboFacturas()
         {
+            txtMotivo.Text = "DEVOLUCION";
+            lstNotas.Visible = false;
+            LimpiarVistaFactura();
+        }
+
+        private void txtNota_TextChanged_Buscar(object sender, EventArgs e)
+        {
+            if (_suppressSearch) return;
+
+            string termino = txtNota.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(termino))
+            {
+                lstNotas.Items.Clear();
+                lstNotas.Visible = false;
+                return;
+            }
+
+            var ds = _services.NotaCredito.BuscarFacturasPorNumero(termino);
+            lstNotas.Items.Clear();
+
+            if (ds != null && ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
+            {
+                foreach (DataRow row in ds.Tables[0].Rows)
+                    lstNotas.Items.Add(row["NUMEROFACTURA"].ToString().Trim());
+
+                lstNotas.Visible = true;
+            }
+            else
+            {
+                lstNotas.Visible = false;
+            }
+        }
+
+        private void lstNotas_Click(object sender, EventArgs e)
+        {
+            if (lstNotas.SelectedItem == null) return;
+
+            string numeroFactura = lstNotas.SelectedItem.ToString().Trim();
+
+            _suppressSearch = true;
+            txtNota.Text = numeroFactura;
+            lstNotas.Visible = false;
+            _suppressSearch = false;
+
             try
             {
-                txtMotivo.Text = "DEVOLUCION";
-                _cargandoCombo = true;
-
-                DataSet ds = _services.NotaCredito.ListarFacturasUnicas();
-                if (ds == null || ds.Tables.Count == 0)
-                    throw new Exception("ListarFacturasUnicas no devolvió tablas.");
-
-                var dt = ds.Tables[0];
-                if (!dt.Columns.Contains("NUMEROFACTURA"))
-                {
-                    // Si tu SQL devuelve otro nombre, aquí te enteras de una:
-                    string cols = string.Join(", ", dt.Columns.Cast<DataColumn>().Select(c => c.ColumnName));
-                    throw new Exception("La tabla no contiene la columna NUMEROFACTURA. Columnas: " + cols);
-                }
-
-                cmbFactura.DataSource = null;
-                cmbFactura.DisplayMember = "NUMEROFACTURA";
-                cmbFactura.ValueMember = "NUMEROFACTURA";
-                cmbFactura.DataSource = dt;
-
-                cmbFactura.DropDownStyle = ComboBoxStyle.DropDown;
-                cmbFactura.SelectedIndex = -1;
-
-                LimpiarVistaFactura();
+                CargarFacturaSeleccionada(numeroFactura);
+                _dtNota.Clear();
+                RecalcularTotales();
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error cargando facturas: " + ex.Message);
+                MessageBox.Show("Error seleccionando factura: " + ex.Message);
             }
-            finally
-            {
-                _cargandoCombo = false;
-            }
+
+            txtNota.Focus();
         }
 
-        private void cmbFactura_TextChanged(object sender, EventArgs e)
+        private void txtNota_KeyDown(object sender, KeyEventArgs e)
         {
-            if (_cargandoCombo) return;
-
-            string termino = cmbFactura.Text;
-            _cargandoCombo = true;
-
-            try
+            if (e.KeyCode == Keys.Down && lstNotas.Visible && lstNotas.Items.Count > 0)
             {
-                DataSet ds = string.IsNullOrWhiteSpace(termino)
-                    ? _services.NotaCredito.ListarFacturasUnicas()
-                    : _services.NotaCredito.BuscarFacturasPorNumero(termino);
-
-                var dt = (ds != null && ds.Tables.Count > 0) ? ds.Tables[0] : new System.Data.DataTable();
-
-                cmbFactura.DataSource = null;
-                cmbFactura.DisplayMember = "NUMEROFACTURA";
-                cmbFactura.ValueMember = "NUMEROFACTURA";
-                cmbFactura.DataSource = dt;
-
-                cmbFactura.Text = termino;
-                cmbFactura.SelectionStart = termino.Length;
-
-                if (dt.Rows.Count > 0)
-                    cmbFactura.DroppedDown = true;
+                lstNotas.Focus();
+                lstNotas.SelectedIndex = 0;
+                return;
             }
-            catch { }
-            finally
+
+            if (e.KeyCode == Keys.Escape)
             {
-                _cargandoCombo = false;
+                lstNotas.Visible = false;
+                return;
             }
-        }
-
-        private string GetNumeroFacturaSeleccionada()
-        {
-            if (cmbFactura.SelectedItem == null) return "";
-
-            // Esto es lo más seguro cuando el DataSource es DataTable
-            string txt = cmbFactura.GetItemText(cmbFactura.SelectedItem);
-            return (txt ?? "").Trim();
         }
 
         private void LimpiarVistaFactura()
@@ -205,30 +201,6 @@ namespace SistemaFacturacion
         // ======================================================
         // 1) Selección de factura -> Labels + dgvOriginal
         // ======================================================
-        private void cmbFactura_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (_cargandoCombo) return;
-
-            try
-            {
-                string numeroFactura = GetNumeroFacturaSeleccionada();
-                if (string.IsNullOrWhiteSpace(numeroFactura))
-                {
-                    LimpiarVistaFactura();
-                    return;
-                }
-
-                CargarFacturaSeleccionada(numeroFactura);
-
-                // limpiar Nota al cambiar factura
-                _dtNota.Clear();
-                RecalcularTotales();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error seleccionando factura: " + ex.Message);
-            }
-        }
 
         private void CargarFacturaSeleccionada(string numeroFactura)
         {

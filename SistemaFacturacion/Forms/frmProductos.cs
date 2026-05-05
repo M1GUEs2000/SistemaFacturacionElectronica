@@ -105,7 +105,7 @@ namespace SistemaFacturacion
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error: " + ex.Message, "Mensaje");
+                Notificaciones.Show(this, "Error: " + ex.Message, "error");
             }
         }
 
@@ -170,7 +170,7 @@ namespace SistemaFacturacion
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error: " + ex.Message, "Mensaje");
+                Notificaciones.Show(this, "Error: " + ex.Message, "error");
             }
         }
 
@@ -266,14 +266,16 @@ namespace SistemaFacturacion
 
                 if (fila == 1)
                 {
-                    MostrarProductos(txtNombre.Text.Trim());
+                    string nombreGuardado = txtNombre.Text.Trim();
+                    MostrarProductos("");
+                    SeleccionarFila(nombreGuardado);
                     Limpiar();
-                    MessageBox.Show("Registrado correctamente.", "Mensaje");
+                    Notificaciones.Show(this, "Registrado correctamente.", "exito");
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error: " + ex.Message, "Mensaje");
+                Notificaciones.Show(this, "Error: " + ex.Message, "error");
             }
         }
 
@@ -317,12 +319,12 @@ namespace SistemaFacturacion
                 {
                     MostrarProductos("");
                     Limpiar();
-                    MessageBox.Show("Eliminado correctamente.", "Mensaje");
+                    Notificaciones.Show(this, "Eliminado correctamente.", "exito");
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error: " + ex.Message, "Mensaje");
+                Notificaciones.Show(this, "Error: " + ex.Message, "error");
             }
         }
 
@@ -355,14 +357,15 @@ namespace SistemaFacturacion
 
                 if (fila == 1)
                 {
-                    MostrarProductos(txtNombre.Text.Trim());
-                    Limpiar();
-                    MessageBox.Show("Actualizado correctamente.", "Mensaje");
+                    string nombreGuardado = txtNombre.Text.Trim();
+                    MostrarProductos("");
+                    SeleccionarFila(nombreGuardado);
+                    Notificaciones.Show(this, "Actualizado correctamente.", "exito");
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error: " + ex.Message, "Mensaje");
+                Notificaciones.Show(this, "Error: " + ex.Message, "error");
             }
         }
 
@@ -526,6 +529,25 @@ namespace SistemaFacturacion
             txtAzucarICE.BackColor = fondo;
             txtVolumenICE.BackColor = fondo;
             txtPVPICE.BackColor = fondo;
+        }
+
+        private void SeleccionarFila(string nombre)
+        {
+            foreach (DataGridViewRow row in gvProductos.Rows)
+            {
+                foreach (DataGridViewColumn col in gvProductos.Columns)
+                {
+                    if (!string.Equals(col.DataPropertyName, "NOMBRE", StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    if (string.Equals(row.Cells[col.Index].Value?.ToString().Trim(), nombre, StringComparison.OrdinalIgnoreCase))
+                    {
+                        gvProductos.ClearSelection();
+                        gvProductos.Rows[row.Index].Selected = true;
+                        gvProductos.FirstDisplayedScrollingRowIndex = row.Index;
+                        return;
+                    }
+                }
+            }
         }
 
         private void BloquearCamposICE(bool bloquear)

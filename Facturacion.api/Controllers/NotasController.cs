@@ -1,35 +1,21 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Net;
+﻿using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web.Http;
-using System.Web.Http.Controllers;
-using Facturacion.api.App_Start;
 using Facturacion.api.Factories;
-using Facturacion.api.Models.Respuestas;
 using Facturacion.api.Models.Solicitudes;
 using Facturacion.api.Servicios.Interfaces;
-using LogicaNegocios;
 
 namespace Facturacion.api.Controllers
 {
     [RoutePrefix("api/notas")]
-    public class NotasController : ApiController
+    public class NotasController : BaseController
     {
         private IServicioNota _servicio;
 
-        protected override void Initialize(HttpControllerContext controllerContext)
+        protected override void InicializarServicios()
         {
-            base.Initialize(controllerContext);
-
-            string empresa = null;
-            IEnumerable<string> valores;
-            if (controllerContext.Request.Headers.TryGetValues("X-Empresa", out valores))
-                empresa = valores.FirstOrDefault();
-
-            var appServices = AppServicesFactory.Create(empresa);
-            _servicio = ServiciosFactory.CreateServicioNota(appServices);
+            _servicio = ServiciosFactory.CreateServicioNota(AppServices);
         }
 
 

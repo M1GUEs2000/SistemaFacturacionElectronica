@@ -1,14 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using System.Web.Http;
-using System.Web.Http.Controllers;
 using Facturacion.api.App_Start;
 using Facturacion.api.Factories;
 using Facturacion.api.Models.Solicitudes;
@@ -17,29 +14,15 @@ using LogicaNegocios;
 namespace Facturacion.api.Controllers
 {
     [RoutePrefix("api/facturas")]
-    public class FacturasController : ApiController
+    public class FacturasController : BaseController
     {
         private IServicioFactura _servicioFactura;
         private FacturacionPaths _paths;
 
-        protected override void Initialize(HttpControllerContext controllerContext)
+        protected override void InicializarServicios()
         {
-            base.Initialize(controllerContext);
-
-            string empresa = null;
-            IEnumerable<string> valores;
-            if (controllerContext.Request.Headers.TryGetValues("X-Empresa", out valores))
-                empresa = valores.FirstOrDefault();
-
-            if (string.IsNullOrWhiteSpace(empresa))
-            {
-                var query = controllerContext.Request.RequestUri.ParseQueryString();
-                empresa = query["empresa"];
-            }
-
-            var appServices = AppServicesFactory.Create(empresa);
-            _servicioFactura = ServiciosFactory.CreateServicioFactura(appServices);
-            _paths = FacturacionConfig.GetFacturacionPaths(empresa);
+            _servicioFactura = ServiciosFactory.CreateServicioFactura(AppServices);
+            _paths = FacturacionConfig.GetFacturacionPaths(EmpresaActual);
         }
 
 

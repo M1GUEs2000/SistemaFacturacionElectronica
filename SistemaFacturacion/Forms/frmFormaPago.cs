@@ -41,7 +41,7 @@ namespace SistemaFacturacion
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error" + ex.Message.ToString(), "Mensaje ");
+                Notificaciones.Show(this, "Error: " + ex.Message, "error");
             }
         }
 
@@ -82,7 +82,9 @@ namespace SistemaFacturacion
                 int fila = _services.FormaPago.Insertar(txtFormas.Text, txtImagen.Text, codigo, UsuarioActual, IPActual);
                 if (fila == 1)
                 {
-                    MostrarFormaPago(txtFormas.Text.Trim());
+                    string formaGuardada = txtFormas.Text.Trim();
+                    MostrarFormaPago("");
+                    SeleccionarFila(formaGuardada);
                     Limpiar();
                     Notificaciones.Show(this, "Forma de pago registrada correctamente.", "exito");
                 }
@@ -110,7 +112,9 @@ namespace SistemaFacturacion
                 int fila = _services.FormaPago.Actualizar(txtFormas.Text, txtImagen.Text, codigo, UsuarioActual, IPActual);
                 if (fila == 1)
                 {
-                    MostrarFormaPago(txtFormas.Text.Trim());
+                    string formaGuardada = txtFormas.Text.Trim();
+                    MostrarFormaPago("");
+                    SeleccionarFila(formaGuardada);
                     Limpiar();
                     Notificaciones.Show(this, "Forma de pago actualizada correctamente.", "exito");
                 }
@@ -136,13 +140,13 @@ namespace SistemaFacturacion
 
                         MostrarFormaPago("");
                         Limpiar();
-                        MessageBox.Show("Eliminado Correctamente", "Mensaje");
+                        Notificaciones.Show(this, "Eliminado correctamente.", "exito");
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error: " + ex.Message.ToString(), "Mensaje");
+                Notificaciones.Show(this, "Error: " + ex.Message, "error");
             }
         }
 
@@ -166,7 +170,7 @@ namespace SistemaFacturacion
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error" + ex.Message.ToString(), "Mensaje");
+                Notificaciones.Show(this, "Error: " + ex.Message, "error");
             }
         }
 
@@ -196,6 +200,20 @@ namespace SistemaFacturacion
             cmbCodigo.Items.Add(new ComboItem("ENDOSO DE TÍTULOS", "21"));
         }
 
+
+        private void SeleccionarFila(string forma)
+        {
+            foreach (DataGridViewRow row in gvFormaPago.Rows)
+            {
+                if (string.Equals(row.Cells[0].Value?.ToString().Trim(), forma, StringComparison.OrdinalIgnoreCase))
+                {
+                    gvFormaPago.ClearSelection();
+                    gvFormaPago.Rows[row.Index].Selected = true;
+                    gvFormaPago.FirstDisplayedScrollingRowIndex = row.Index;
+                    return;
+                }
+            }
+        }
 
         private class ComboItem
         {

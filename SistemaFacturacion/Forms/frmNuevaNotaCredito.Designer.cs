@@ -29,6 +29,8 @@
         private void InitializeComponent()
         {
             this.panel1 = new System.Windows.Forms.Panel();
+            this.lstNotas = new System.Windows.Forms.ListBox();
+            this.txtNota = new System.Windows.Forms.TextBox();
             this.lblNumeroNota = new System.Windows.Forms.Label();
             this.label18 = new System.Windows.Forms.Label();
             this.label17 = new System.Windows.Forms.Label();
@@ -42,7 +44,6 @@
             this.label6 = new System.Windows.Forms.Label();
             this.label10 = new System.Windows.Forms.Label();
             this.label7 = new System.Windows.Forms.Label();
-            this.cmbFactura = new System.Windows.Forms.ComboBox();
             this.btnGenerar = new System.Windows.Forms.Button();
             this.panel3 = new System.Windows.Forms.Panel();
             this.lblTotalOriginal = new System.Windows.Forms.Label();
@@ -69,6 +70,8 @@
             // panel1
             // 
             this.panel1.BackColor = System.Drawing.SystemColors.Control;
+            this.panel1.Controls.Add(this.lstNotas);
+            this.panel1.Controls.Add(this.txtNota);
             this.panel1.Controls.Add(this.lblNumeroNota);
             this.panel1.Controls.Add(this.label18);
             this.panel1.Controls.Add(this.label17);
@@ -82,11 +85,28 @@
             this.panel1.Controls.Add(this.label6);
             this.panel1.Controls.Add(this.label10);
             this.panel1.Controls.Add(this.label7);
-            this.panel1.Controls.Add(this.cmbFactura);
             this.panel1.Location = new System.Drawing.Point(13, 13);
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(888, 180);
             this.panel1.TabIndex = 0;
+            // 
+            // lstNotas
+            // 
+            this.lstNotas.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lstNotas.FormattingEnabled = true;
+            this.lstNotas.ItemHeight = 16;
+            this.lstNotas.Location = new System.Drawing.Point(201, 55);
+            this.lstNotas.Name = "lstNotas";
+            this.lstNotas.Size = new System.Drawing.Size(499, 116);
+            this.lstNotas.TabIndex = 29;
+            // 
+            // txtNota
+            // 
+            this.txtNota.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtNota.Location = new System.Drawing.Point(200, 31);
+            this.txtNota.Name = "txtNota";
+            this.txtNota.Size = new System.Drawing.Size(499, 24);
+            this.txtNota.TabIndex = 28;
             // 
             // lblNumeroNota
             // 
@@ -214,15 +234,6 @@
             this.label7.Size = new System.Drawing.Size(153, 18);
             this.label7.TabIndex = 4;
             this.label7.Text = "Número de Factura";
-            // 
-            // cmbFactura
-            // 
-            this.cmbFactura.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.cmbFactura.FormattingEnabled = true;
-            this.cmbFactura.Location = new System.Drawing.Point(200, 31);
-            this.cmbFactura.Name = "cmbFactura";
-            this.cmbFactura.Size = new System.Drawing.Size(499, 26);
-            this.cmbFactura.TabIndex = 2;
             // 
             // btnGenerar
             // 
@@ -446,7 +457,6 @@
         private System.Windows.Forms.Button btnVerConsumidor;
         private System.Windows.Forms.Panel panel1;
         private System.Windows.Forms.Label label7;
-        private System.Windows.Forms.ComboBox cmbFactura;
         private System.Windows.Forms.Label lblFactura;
         private System.Windows.Forms.Label label12;
         private System.Windows.Forms.Label lblCedula;
@@ -475,5 +485,7 @@
         private System.Windows.Forms.Label lblNumeroNota;
         private System.Windows.Forms.Label label18;
         private System.Windows.Forms.Button btnPDF;
+        private System.Windows.Forms.TextBox txtNota;
+        private System.Windows.Forms.ListBox lstNotas;
     }
 }

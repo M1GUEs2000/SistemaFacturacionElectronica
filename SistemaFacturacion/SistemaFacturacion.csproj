@@ -218,160 +218,160 @@
       <DependentUpon>dsVenta.xsd</DependentUpon>
     </Compile>
     <Compile Include="FormValidador.cs" />
-    <Compile Include="frmClientesDatos.cs">
+    <Compile Include="Forms\frmClientesDatos.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmClientesDatos.Designer.cs">
+    <Compile Include="Forms\frmClientesDatos.Designer.cs">
       <DependentUpon>frmClientesDatos.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmConsultaLog.cs">
+    <Compile Include="Forms\frmConsultaLog.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmConsultaLog.Designer.cs">
+    <Compile Include="Forms\frmConsultaLog.Designer.cs">
       <DependentUpon>frmConsultaLog.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmConsultarRetenciones.cs">
+    <Compile Include="Forms\frmConsultarRetenciones.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmConsultarRetenciones.Designer.cs">
+    <Compile Include="Forms\frmConsultarRetenciones.Designer.cs">
       <DependentUpon>frmConsultarRetenciones.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmConsultas.cs">
+    <Compile Include="Forms\frmConsultas.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmConsultas.Designer.cs">
+    <Compile Include="Forms\frmConsultas.Designer.cs">
       <DependentUpon>frmConsultas.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmNuevaNotaCredito.cs">
+    <Compile Include="Forms\frmNuevaNotaCredito.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmNuevaNotaCredito.Designer.cs">
+    <Compile Include="Forms\frmNuevaNotaCredito.Designer.cs">
       <DependentUpon>frmNuevaNotaCredito.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmNuevaRetencion.cs">
+    <Compile Include="Forms\frmNuevaRetencion.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmNuevaRetencion.Designer.cs">
+    <Compile Include="Forms\frmNuevaRetencion.Designer.cs">
       <DependentUpon>frmNuevaRetencion.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmParametrosSRI.cs">
+    <Compile Include="Forms\frmParametrosSRI.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmParametrosSRI.Designer.cs">
+    <Compile Include="Forms\frmParametrosSRI.Designer.cs">
       <DependentUpon>frmParametrosSRI.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmParametrosFactura.cs">
+    <Compile Include="Forms\frmParametrosFactura.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmParametrosFactura.Designer.cs">
+    <Compile Include="Forms\frmParametrosFactura.Designer.cs">
       <DependentUpon>frmParametrosFactura.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmClientes.cs">
+    <Compile Include="Forms\frmClientes.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmClientes.Designer.cs">
+    <Compile Include="Forms\frmClientes.Designer.cs">
       <DependentUpon>frmClientes.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmClaveConsulta.cs">
+    <Compile Include="Forms\frmClaveConsulta.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmClaveConsulta.Designer.cs">
+    <Compile Include="Forms\frmClaveConsulta.Designer.cs">
       <DependentUpon>frmClaveConsulta.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmClaveElimiar.cs">
+    <Compile Include="Forms\frmClaveElimiar.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmClaveElimiar.Designer.cs">
+    <Compile Include="Forms\frmClaveElimiar.Designer.cs">
       <DependentUpon>frmClaveElimiar.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmClaveEliminarF.cs">
+    <Compile Include="Forms\frmClaveEliminarF.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmClaveEliminarF.Designer.cs">
+    <Compile Include="Forms\frmClaveEliminarF.Designer.cs">
       <DependentUpon>frmClaveEliminarF.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmClaveTabla.cs">
+    <Compile Include="Forms\frmClaveTabla.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmClaveTabla.Designer.cs">
+    <Compile Include="Forms\frmClaveTabla.Designer.cs">
       <DependentUpon>frmClaveTabla.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmClaveTotales.cs">
+    <Compile Include="Forms\frmClaveTotales.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmClaveTotales.Designer.cs">
+    <Compile Include="Forms\frmClaveTotales.Designer.cs">
       <DependentUpon>frmClaveTotales.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmEmpresas.cs">
+    <Compile Include="Forms\frmEmpresas.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmEmpresas.Designer.cs">
+    <Compile Include="Forms\frmEmpresas.Designer.cs">
       <DependentUpon>frmEmpresas.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmFormaPago.cs">
+    <Compile Include="Forms\frmFormaPago.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmFormaPago.Designer.cs">
+    <Compile Include="Forms\frmFormaPago.Designer.cs">
       <DependentUpon>frmFormaPago.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmLogin.cs">
+    <Compile Include="Forms\frmLogin.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmLogin.Designer.cs">
+    <Compile Include="Forms\frmLogin.Designer.cs">
       <DependentUpon>frmLogin.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmMantenimientoTablas.cs">
+    <Compile Include="Forms\frmMantenimientoTablas.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmMantenimientoTablas.Designer.cs">
+    <Compile Include="Forms\frmMantenimientoTablas.Designer.cs">
       <DependentUpon>frmMantenimientoTablas.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmPopUpCedula.cs">
+    <Compile Include="Forms\frmPopUpCedula.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmPopUpCedula.Designer.cs">
+    <Compile Include="Forms\frmPopUpCedula.Designer.cs">
       <DependentUpon>frmPopUpCedula.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmPrincipal.cs">
+    <Compile Include="Forms\frmPrincipal.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmPrincipal.Designer.cs">
+    <Compile Include="Forms\frmPrincipal.Designer.cs">
       <DependentUpon>frmPrincipal.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmProductos.cs">
+    <Compile Include="Forms\frmProductos.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmProductos.Designer.cs">
+    <Compile Include="Forms\frmProductos.Designer.cs">
       <DependentUpon>frmProductos.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmProveedorRetenciones.cs">
+    <Compile Include="Forms\frmProveedorRetenciones.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmProveedorRetenciones.Designer.cs">
+    <Compile Include="Forms\frmProveedorRetenciones.Designer.cs">
       <DependentUpon>frmProveedorRetenciones.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmRecibo.cs">
+    <Compile Include="Forms\frmRecibo.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmRecibo.Designer.cs">
+    <Compile Include="Forms\frmRecibo.Designer.cs">
       <DependentUpon>frmRecibo.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmNotaCredito.cs">
+    <Compile Include="Forms\frmNotaCredito.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmNotaCredito.Designer.cs">
+    <Compile Include="Forms\frmNotaCredito.Designer.cs">
       <DependentUpon>frmNotaCredito.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmReportePorFechas.cs">
+    <Compile Include="Forms\frmReportePorFechas.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmReportePorFechas.Designer.cs">
+    <Compile Include="Forms\frmReportePorFechas.Designer.cs">
       <DependentUpon>frmReportePorFechas.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmReporteTotales.cs">
+    <Compile Include="Forms\frmReporteTotales.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmReporteTotales.Designer.cs">
+    <Compile Include="Forms\frmReporteTotales.Designer.cs">
       <DependentUpon>frmReporteTotales.cs</DependentUpon>
     </Compile>
     <Compile Include="Impresora.cs" />
@@ -383,82 +383,82 @@
     <EmbeddedResource Include="AAAPrueba.resx">
       <DependentUpon>AAAPrueba.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmClaveConsulta.resx">
+    <EmbeddedResource Include="Forms\frmClaveConsulta.resx">
       <DependentUpon>frmClaveConsulta.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmClaveElimiar.resx">
+    <EmbeddedResource Include="Forms\frmClaveElimiar.resx">
       <DependentUpon>frmClaveElimiar.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmClaveEliminarF.resx">
+    <EmbeddedResource Include="Forms\frmClaveEliminarF.resx">
       <DependentUpon>frmClaveEliminarF.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmClaveTabla.resx">
+    <EmbeddedResource Include="Forms\frmClaveTabla.resx">
       <DependentUpon>frmClaveTabla.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmClaveTotales.resx">
+    <EmbeddedResource Include="Forms\frmClaveTotales.resx">
       <DependentUpon>frmClaveTotales.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmClientesDatos.resx">
+    <EmbeddedResource Include="Forms\frmClientesDatos.resx">
       <DependentUpon>frmClientesDatos.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmConsultaLog.resx">
+    <EmbeddedResource Include="Forms\frmConsultaLog.resx">
       <DependentUpon>frmConsultaLog.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmConsultarRetenciones.resx">
+    <EmbeddedResource Include="Forms\frmConsultarRetenciones.resx">
       <DependentUpon>frmConsultarRetenciones.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmConsultas.resx">
+    <EmbeddedResource Include="Forms\frmConsultas.resx">
       <DependentUpon>frmConsultas.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmNuevaNotaCredito.resx">
+    <EmbeddedResource Include="Forms\frmNuevaNotaCredito.resx">
       <DependentUpon>frmNuevaNotaCredito.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmNuevaRetencion.resx">
+    <EmbeddedResource Include="Forms\frmNuevaRetencion.resx">
       <DependentUpon>frmNuevaRetencion.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmParametrosSRI.resx">
+    <EmbeddedResource Include="Forms\frmParametrosSRI.resx">
       <DependentUpon>frmParametrosSRI.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmParametrosFactura.resx">
+    <EmbeddedResource Include="Forms\frmParametrosFactura.resx">
       <DependentUpon>frmParametrosFactura.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmClientes.resx">
+    <EmbeddedResource Include="Forms\frmClientes.resx">
       <DependentUpon>frmClientes.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmEmpresas.resx">
+    <EmbeddedResource Include="Forms\frmEmpresas.resx">
       <DependentUpon>frmEmpresas.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmFormaPago.resx">
+    <EmbeddedResource Include="Forms\frmFormaPago.resx">
       <DependentUpon>frmFormaPago.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmLogin.resx">
+    <EmbeddedResource Include="Forms\frmLogin.resx">
       <DependentUpon>frmLogin.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmMantenimientoTablas.resx">
+    <EmbeddedResource Include="Forms\frmMantenimientoTablas.resx">
       <DependentUpon>frmMantenimientoTablas.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmPopUpCedula.resx">
+    <EmbeddedResource Include="Forms\frmPopUpCedula.resx">
       <DependentUpon>frmPopUpCedula.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmPrincipal.resx">
+    <EmbeddedResource Include="Forms\frmPrincipal.resx">
       <DependentUpon>frmPrincipal.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmProductos.resx">
+    <EmbeddedResource Include="Forms\frmProductos.resx">
       <DependentUpon>frmProductos.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmProveedorRetenciones.resx">
+    <EmbeddedResource Include="Forms\frmProveedorRetenciones.resx">
       <DependentUpon>frmProveedorRetenciones.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmRecibo.resx">
+    <EmbeddedResource Include="Forms\frmRecibo.resx">
       <DependentUpon>frmRecibo.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmNotaCredito.resx">
+    <EmbeddedResource Include="Forms\frmNotaCredito.resx">
       <DependentUpon>frmNotaCredito.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmReportePorFechas.resx">
+    <EmbeddedResource Include="Forms\frmReportePorFechas.resx">
       <DependentUpon>frmReportePorFechas.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmReporteTotales.resx">
+    <EmbeddedResource Include="Forms\frmReporteTotales.resx">
       <DependentUpon>frmReporteTotales.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">

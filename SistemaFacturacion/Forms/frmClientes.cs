@@ -75,7 +75,7 @@ namespace SistemaFacturacion
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error al cargar clientes: " + ex.Message);
+                Notificaciones.Show(this, "Error al cargar clientes: " + ex.Message, "error");
             }
         }
 
@@ -91,6 +91,7 @@ namespace SistemaFacturacion
             btnEliminar.Click += BtnEliminar_Click;
             btnLimpiar.Click += BtnLimpiar_Click;
             dataGridView1.CellClick += DataGridView1_CellClick;
+            dataGridView1.DataBindingComplete += (s, e) => AjustarAnchos();
         }
 
         private void ConfigurarValidaciones()
@@ -142,7 +143,7 @@ namespace SistemaFacturacion
             if (FormValidador.EsVacio(this, txtCedula.Text, "Cédula", txtCedula)) return false;
             if (txtCedula.Text.Trim().Length < 10 || txtCedula.Text.Trim().Length > 13)
             {
-                MessageBox.Show("La identificación debe tener entre 10 y 13 dígitos.");
+                Notificaciones.Show(this, "La identificación debe tener entre 10 y 13 dígitos.", "advertencia");
                 txtCedula.Focus();
                 return false;
             }
@@ -194,7 +195,7 @@ namespace SistemaFacturacion
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error en la búsqueda: " + ex.Message);
+                Notificaciones.Show(this, "Error en la búsqueda: " + ex.Message, "error");
             }
         }
 
@@ -231,7 +232,7 @@ namespace SistemaFacturacion
 
                 if (dsExiste != null && dsExiste.Tables.Count > 0 && dsExiste.Tables[0].Rows.Count > 0)
                 {
-                    MessageBox.Show("El cliente ya existe ❌");
+                    Notificaciones.Show(this, "El cliente ya existe.", "advertencia");
                     return;
                 }
 
@@ -248,9 +249,8 @@ namespace SistemaFacturacion
 
                 if (filas > 0)
                 {
-                    MessageBox.Show("Cliente guardado correctamente ✅");
-
-                    CedulaRegistrada = txtCedula.Text.Trim();
+                    string cedulaGuardada = txtCedula.Text.Trim();
+                    CedulaRegistrada = cedulaGuardada;
 
                     if (modoDesdePrincipal)
                     {
@@ -259,17 +259,20 @@ namespace SistemaFacturacion
                         return;
                     }
 
-                    LimpiarCampos();
                     CargarClientes();
+                    SeleccionarFila(cedulaGuardada);
+                    LimpiarCampos();
+                    InicializarBotones();
+                    Notificaciones.Show(this, "Cliente guardado correctamente.", "exito");
                 }
                 else
                 {
-                    MessageBox.Show("No se pudo guardar el cliente ❌");
+                    Notificaciones.Show(this, "No se pudo guardar el cliente.", "error");
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error al guardar cliente: " + ex.Message);
+                Notificaciones.Show(this, "Error al guardar cliente: " + ex.Message, "error");
             }
         }
 
@@ -293,14 +296,16 @@ namespace SistemaFacturacion
 
             if (filas > 0)
             {
-                MessageBox.Show("Cliente modificado correctamente ✅");
-                LimpiarCampos();
+                string cedulaGuardada = txtCedula.Text.Trim();
                 CargarClientes();
+                SeleccionarFila(cedulaGuardada);
+                LimpiarCampos();
                 InicializarBotones();
+                Notificaciones.Show(this, "Cliente modificado correctamente.", "exito");
             }
             else
             {
-                MessageBox.Show("No se pudo modificar el cliente ❌");
+                Notificaciones.Show(this, "No se pudo modificar el cliente.", "error");
             }
         }
 
@@ -311,7 +316,7 @@ namespace SistemaFacturacion
         {
             if (string.IsNullOrWhiteSpace(txtCedula.Text))
             {
-                MessageBox.Show("Seleccione un cliente para eliminar.");
+                Notificaciones.Show(this, "Seleccione un cliente para eliminar.", "advertencia");
                 return;
             }
 
@@ -333,14 +338,14 @@ namespace SistemaFacturacion
 
                 if (filas > 0)
                 {
-                    MessageBox.Show("Cliente eliminado correctamente ✅");
                     LimpiarCampos();
                     CargarClientes();
                     InicializarBotones();
+                    Notificaciones.Show(this, "Cliente eliminado correctamente.", "exito");
                 }
                 else
                 {
-                    MessageBox.Show("No se pudo eliminar el cliente ❌");
+                    Notificaciones.Show(this, "No se pudo eliminar el cliente.", "error");
                 }
             }
         }
@@ -369,6 +374,35 @@ namespace SistemaFacturacion
 
 
         // 🧹 Utilidades
+
+        private void AjustarAnchos()
+        {
+            void Ajustar(string col, int extra)
+            {
+                if (!dataGridView1.Columns.Contains(col)) return;
+                var c = dataGridView1.Columns[col];
+                c.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
+                c.Width += extra;
+            }
+            Ajustar("NOMBRE",    30);
+            Ajustar("CORREO",    60);
+            Ajustar("DIRECCION", 20);
+            Ajustar("TELEFONO",  -10);
+        }
+
+        private void SeleccionarFila(string cedula)
+        {
+            foreach (DataGridViewRow row in dataGridView1.Rows)
+            {
+                if (string.Equals(row.Cells["CEDULA"].Value?.ToString().Trim(), cedula, StringComparison.OrdinalIgnoreCase))
+                {
+                    dataGridView1.ClearSelection();
+                    dataGridView1.Rows[row.Index].Selected = true;
+                    dataGridView1.FirstDisplayedScrollingRowIndex = row.Index;
+                    return;
+                }
+            }
+        }
 
         private bool CamposVacios()
         {

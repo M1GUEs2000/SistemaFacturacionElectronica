@@ -619,13 +619,13 @@ namespace LogicaNegocios.Procesos
                 // INFO ADICIONAL (guardamos bases para el “patch” XML)
                 // ===================================================
                 InfoAdicional infoAd = new InfoAdicional();
-                infoAd.CampoAdicional = new List<CampoAdicional>
-        {
-            new CampoAdicional { Nombre = "MAIL", Text = correoCliente },
-            new CampoAdicional { Nombre = "COMENTARIO", Text = comentario },
-
-
-        };
+                var campos = new List<CampoAdicional>
+                {
+                    new CampoAdicional { Nombre = "MAIL", Text = correoCliente },
+                };
+                if (!string.IsNullOrWhiteSpace(comentario))
+                    campos.Add(new CampoAdicional { Nombre = "COMENTARIO", Text = comentario });
+                infoAd.CampoAdicional = campos;
 
                 factura.InfoFactura = infoFactura;
                 factura.DetallesFactura = detalles;

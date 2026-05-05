@@ -237,7 +237,7 @@ namespace LogicaNegocios
                     [NUMEROFACTURA] IS NOT NULL
                     AND Trim([NUMEROFACTURA]) <> ''
                     AND Left(Trim([NUMEROFACTURA]), 1) BETWEEN '0' AND '9'
-
+                    AND Trim([CLIENTE]) <> '9999999999999'
                     AND NOT EXISTS (
                         SELECT *
                         FROM FACTURAS_PENDIENTES
@@ -264,6 +264,7 @@ namespace LogicaNegocios
                     [NUMEROFACTURA] IS NOT NULL
                     AND Trim([NUMEROFACTURA]) <> ''
                     AND Left(Trim([NUMEROFACTURA]), 1) BETWEEN '0' AND '9'
+                    AND Trim([CLIENTE]) <> '9999999999999'
                     AND NOT EXISTS (
                         SELECT *
                         FROM FACTURAS_PENDIENTES

@@ -63,6 +63,17 @@ namespace LogicaNegocios
             return _conexion.Seleccionar(sql);
         }
 
+        // Buscar por cédula O nombre (para autocompletar) — top 10, excluye consumidor final
+        public DataSet BuscarLike(string termino)
+        {
+            string like = "%" + termino + "%";
+            string sql = @"SELECT TOP 10 CEDULA, NOMBRE FROM CLIENTE
+                           WHERE (CEDULA LIKE @t OR NOMBRE LIKE @t2)
+                             AND CEDULA <> @cf
+                           ORDER BY NOMBRE";
+            return _conexion.Seleccionar(sql, ("t", like), ("t2", like), ("cf", "9999999999999"));
+        }
+
         // Insertar
         public int Insertar(
             string Cedula,

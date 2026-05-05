@@ -37,8 +37,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="BouncyCastle.Crypto, Version=1.7.4137.9688, Culture=neutral, PublicKeyToken=a4292a325f69b123, processorArchitecture=MSIL">
-      <HintPath>..\packages\BouncyCastle.1.7.0\lib\Net40-Client\BouncyCastle.Crypto.dll</HintPath>
+    <Reference Include="BouncyCastle.Crypto, Version=1.8.9.0, Culture=neutral, PublicKeyToken=0e99375e54769942">
+      <HintPath>..\packages\BouncyCastle.1.8.9\lib\BouncyCastle.Crypto.dll</HintPath>
     </Reference>
     <Reference Include="BouncyCastle.Cryptography, Version=2.0.0.0, Culture=neutral, PublicKeyToken=072edcf4a5328938, processorArchitecture=MSIL">
       <HintPath>..\packages\BouncyCastle.Cryptography.2.6.2\lib\net461\BouncyCastle.Cryptography.dll</HintPath>
@@ -138,28 +138,28 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ClienteManejador.cs" />
-    <Compile Include="EmpresaManejador.cs" />
-    <Compile Include="FacturacionManejador.cs" />
-    <Compile Include="FacturacionPaths.cs" />
-    <Compile Include="FacturacionPendientesManejador.cs" />
-    <Compile Include="FormaPagoManejador.cs" />
-    <Compile Include="LoginManejador.cs.cs" />
-    <Compile Include="LogManejador.cs" />
-    <Compile Include="ManejadorBase.cs" />
-    <Compile Include="NotasCreditoManejador.cs" />
-    <Compile Include="ParametrosFacturaManejador.cs" />
-    <Compile Include="ParametrosManejador.cs" />
+    <Compile Include="Manejadores\ClienteManejador.cs" />
+    <Compile Include="Manejadores\EmpresaManejador.cs" />
+    <Compile Include="Manejadores\FacturacionManejador.cs" />
+    <Compile Include="Manejadores\FacturacionPaths.cs" />
+    <Compile Include="Manejadores\FacturacionPendientesManejador.cs" />
+    <Compile Include="Manejadores\FormaPagoManejador.cs" />
+    <Compile Include="Manejadores\LoginManejador.cs.cs" />
+    <Compile Include="Manejadores\LogManejador.cs" />
+    <Compile Include="Manejadores\ManejadorBase.cs" />
+    <Compile Include="Manejadores\NotasCreditoManejador.cs" />
+    <Compile Include="Manejadores\ParametrosFacturaManejador.cs" />
+    <Compile Include="Manejadores\ParametrosManejador.cs" />
     <Compile Include="Procesos\ProcesosFacturacion.cs" />
     <Compile Include="Procesos\ProcesosICE.cs" />
     <Compile Include="Procesos\ProcesosLote.cs" />
     <Compile Include="Procesos\ProcesosGenerales.cs" />
     <Compile Include="Procesos\ProcesosNotaCredito.cs" />
     <Compile Include="Procesos\ProcesosRetenciones.cs" />
-    <Compile Include="ProductoManejador.cs" />
+    <Compile Include="Manejadores\ProductoManejador.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ProveedoresManejador.cs" />
-    <Compile Include="RetencionesManejador.cs" />
+    <Compile Include="Manejadores\ProveedoresManejador.cs" />
+    <Compile Include="Manejadores\RetencionesManejador.cs" />
     <Compile Include="Services\AppServices.cs" />
     <Compile Include="Services\CFuncionesComprobantesElectronicos.cs" />
     <Compile Include="Services\CGenerarRide.cs" />

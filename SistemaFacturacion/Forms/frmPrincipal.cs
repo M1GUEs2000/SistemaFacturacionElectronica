@@ -29,8 +29,15 @@ namespace SistemaFacturacion
             lblNombreEmpresa.Text = Nombre.ToUpper();
             UsuarioActual = Nombre;
             IPActual = IP;
+
             txtCliente.MaxLength = 13;
             txtCliente.Text = "9999999999999";
+            txtCliente.TextChanged += txtCliente_TextChanged_Buscar;
+            txtCliente.KeyDown += txtCliente_KeyDown;
+
+            lstClientes.Visible = false;
+            lstClientes.Click += lstClientes_Click;
+
             this.FormClosing += frmPrincipal_FormClosing;
             button3.Hide();
         }
@@ -40,6 +47,7 @@ namespace SistemaFacturacion
         int Contador = 0;
         public string UsuarioActual { get; set; }
         public string IPActual { get; set; }
+        private bool _suppressSearch = false;
 
 
         private void Timer1_Tick(object sender, EventArgs e)
@@ -57,7 +65,7 @@ namespace SistemaFacturacion
             lblTotalVP.Visible = false;
             btnLimpiar.Visible = false;
             CargarDatosEmpresa();
-            txtComentario.Text = "Gracias por su compra!";
+            txtComentario.Text = "";
             lblHora.Text = DateTime.Now.ToString("hh:mm:ss");
             lblFecha.Text = DateTime.Now.ToString("yyyy/MM/dd");
             CargarBotonesFormasPago();
@@ -131,8 +139,22 @@ namespace SistemaFacturacion
 
         private void OrdenarColumnasProductos()
         {
-            // Orden deseado por DataPropertyName: NOMBRE, VALOR, IVA, APLICA_ICE, CODIGO
-            string[] orden = { "NOMBRE", "VALOR", "IVA", "APLICA_ICE", "CODIGO" };
+            foreach (DataGridViewColumn col in gvProductos.Columns)
+            {
+                if (col.DataPropertyName == "NOMBRE")
+                    col.Width = 350;
+                else if (col.DataPropertyName == "VALOR")
+                    col.Width = 115;
+            }
+
+            if (gvProductos.Columns["VALOR_SIN_IMPUESTOS"] != null)
+                gvProductos.Columns["VALOR_SIN_IMPUESTOS"].HeaderText = "VALOR";
+            foreach (DataGridViewColumn col in gvProductos.Columns)
+                if (col.DataPropertyName == "VALOR")
+                    col.HeaderText = "VALOR CON IVA";
+
+            // Orden deseado por DataPropertyName: NOMBRE, VALOR_SIN_IMPUESTOS, VALOR, IVA, APLICA_ICE, CODIGO
+            string[] orden = { "NOMBRE", "VALOR_SIN_IMPUESTOS", "VALOR", "IVA", "APLICA_ICE", "CODIGO" };
             int idx = 0;
             foreach (string prop in orden)
             {
@@ -151,13 +173,18 @@ namespace SistemaFacturacion
         {
             if (dt.Columns.Contains("TARIFA_IVA")) return;
             dt.Columns.Add("TARIFA_IVA", typeof(decimal));
+            if (!dt.Columns.Contains("VALOR_SIN_IMPUESTOS"))
+                dt.Columns.Add("VALOR_SIN_IMPUESTOS", typeof(decimal));
+
             foreach (DataRow row in dt.Rows)
             {
+                decimal valorSinImpuestos = Math.Round(Convert.ToDecimal(row["VALOR"]), 2);
                 string iva = row["IVA"]?.ToString().Trim().ToUpper();
                 decimal tarifa = iva == "SI" ? _services.TarifaIva : 0m;
                 row["TARIFA_IVA"] = tarifa;
+                row["VALOR_SIN_IMPUESTOS"] = valorSinImpuestos;
                 if (tarifa > 0m)
-                    row["VALOR"] = Math.Round(Convert.ToDecimal(row["VALOR"]) * (1 + tarifa), 2);
+                    row["VALOR"] = Math.Round(valorSinImpuestos * (1 + tarifa), 2);
             }
         }
 
@@ -196,7 +223,7 @@ namespace SistemaFacturacion
                 // 0) VALIDAR AMBIENTE (PRUEBAS / PRODUCCIÓN)
                 //    SOLO SI NO ES CONSUMIDOR FINAL
                 // =============================================================
-                bool esConsumidorFinal = txtCliente.Text.Trim().ToUpper() == "FINAL";
+                bool esConsumidorFinal = GetCedulaActual().ToUpper() == "FINAL";
 
                 if (!esConsumidorFinal)
                 {
@@ -259,7 +286,7 @@ namespace SistemaFacturacion
                 }
 
                 // Cliente
-                var cm = _services.Cliente.ConsultarCedula(txtCliente.Text);
+                var cm = _services.Cliente.ConsultarCedula(GetCedulaActual());
                 if (cm == null || cm.Tables.Count == 0 || cm.Tables[0].Rows.Count == 0)
                 {
                     Notificaciones.Show(
@@ -270,7 +297,7 @@ namespace SistemaFacturacion
 
                     Invoke(new Action(() =>
                     {
-                        AbrirRegistroCliente(txtCliente.Text.Trim().ToUpper());
+                        AbrirRegistroCliente(GetCedulaActual().ToUpper());
                     }));
                     return;
                 }
@@ -282,8 +309,8 @@ namespace SistemaFacturacion
                 // =============================================================
                 DataTable copiaDetalle = TB_DETALLEFACTURA.Copy();
 
-                string clienteOriginal = txtCliente.Text.Trim();
-                string cedulaOriginal = txtCliente.Text.Trim();
+                string clienteOriginal = GetCedulaActual();
+                string cedulaOriginal = GetCedulaActual();
                 string formaPagoOriginal = txtFormaPago.Text.Trim();
                 string totalOriginal = lblTotalVP.Text;
                 string comentarioOriginal = txtComentario.Text.Trim();
@@ -293,8 +320,8 @@ namespace SistemaFacturacion
                 // =============================================================
                 // 3) LIMPIAR UI
                 // =============================================================
-                txtCliente.Text = "9999999999999";
-                txtComentario.Text = "Gracias por su compra!";
+                SetCedulaCliente("9999999999999");
+                txtComentario.Text = "";
                 txtFormaPago.Text = "";
                 TB_DETALLEFACTURA.Clear();
                 lblTotalVP.Text = "TOTAL: 0.00";
@@ -768,14 +795,11 @@ namespace SistemaFacturacion
             if (gvDetalleFactura.Rows.Count == 0)
                 errores.Add("Debe ingresar productos.");
 
-            if (string.IsNullOrWhiteSpace(txtCliente.Text))
+            if (string.IsNullOrWhiteSpace(GetCedulaActual()))
                 errores.Add("Debe ingresar cliente.");
 
             if (string.IsNullOrWhiteSpace(txtFormaPago.Text))
                 errores.Add("Debe seleccionar forma de pago.");
-
-            if (string.IsNullOrWhiteSpace(txtComentario.Text))
-                errores.Add("El comentario no puede estar vacío.");
 
             return errores;
         }
@@ -851,30 +875,93 @@ namespace SistemaFacturacion
             Contador = 0;
             lblTotalVP.Text = "TOTAL: 0.00";
             txtFormaPago.Text = "";
-            txtCliente.Text = "";
+            SetCedulaCliente("");
             btnProcesar.Visible = false;
             btnLimpiar.Visible = false;
             ActualizarBotonProcesar();
         }
         private void btnClientes_Click(object sender, EventArgs e)
         {
-            AbrirRegistroCliente(txtCliente.Text.Trim().ToUpper());
+            AbrirRegistroCliente(GetCedulaActual().ToUpper());
             ActualizarBotonProcesar();
+        }
 
+        private string GetCedulaActual() => txtCliente.Text.Trim();
+
+        private void SetCedulaCliente(string valor)
+        {
+            _suppressSearch = true;
+            txtCliente.Text = valor;
+            lstClientes.Visible = false;
+            _suppressSearch = false;
+        }
+
+        private void txtCliente_TextChanged_Buscar(object sender, EventArgs e)
+        {
+            if (_suppressSearch) return;
+
+            string termino = txtCliente.Text.Trim();
+
+            if (termino.Length < 2)
+            {
+                lstClientes.Items.Clear();
+                lstClientes.Visible = false;
+                return;
+            }
+
+            var ds = _services.Cliente.BuscarLike(termino);
+            lstClientes.Items.Clear();
+
+            if (ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
+            {
+                foreach (DataRow row in ds.Tables[0].Rows)
+                    lstClientes.Items.Add(row["CEDULA"] + " — " + row["NOMBRE"]);
+
+                lstClientes.Visible = true;
+            }
+            else
+            {
+                lstClientes.Visible = false;
+            }
+        }
+
+        private void lstClientes_Click(object sender, EventArgs e)
+        {
+            if (lstClientes.SelectedItem == null) return;
+
+            string item = lstClientes.SelectedItem.ToString();
+            string cedula = item.Split(new[] { " — " }, StringSplitOptions.None)[0].Trim();
+
+            SetCedulaCliente(cedula);
+            ActualizarBotonProcesar();
+            txtCliente.Focus();
         }
 
         private void txtCliente_KeyDown(object sender, System.Windows.Forms.KeyEventArgs e)
         {
-            if (e.KeyCode == System.Windows.Forms.Keys.Enter)
+            if (e.KeyCode == Keys.Down && lstClientes.Visible && lstClientes.Items.Count > 0)
+            {
+                lstClientes.Focus();
+                lstClientes.SelectedIndex = 0;
+                return;
+            }
+
+            if (e.KeyCode == Keys.Escape)
+            {
+                lstClientes.Visible = false;
+                return;
+            }
+
+            if (e.KeyCode == Keys.Enter)
             {
                 e.SuppressKeyPress = true;
+                lstClientes.Visible = false;
                 btnClientes_Click(sender, EventArgs.Empty);
             }
         }
         private void ActualizarBotonProcesar()
         {
-
-            bool esFinal = txtCliente.Text.Trim().ToUpper() == "FINAL";
+            bool esFinal = GetCedulaActual().ToUpper() == "FINAL";
 
             // Debe estar validado el cliente
 
@@ -887,7 +974,7 @@ namespace SistemaFacturacion
         }
         private void btnConsumidor_Click(object sender, EventArgs e)
         {
-            txtCliente.Text = "FINAL";
+            SetCedulaCliente("FINAL");
             ActualizarBotonProcesar();
         }
         private void frmPrincipal_FormClosing(object sender, FormClosingEventArgs e)
@@ -1059,7 +1146,7 @@ namespace SistemaFacturacion
             // mostrar
             if (ventana.ShowDialog() == DialogResult.OK && !string.IsNullOrEmpty(ventana.CedulaRegistrada))
             {
-                txtCliente.Text = ventana.CedulaRegistrada;
+                SetCedulaCliente(ventana.CedulaRegistrada);
                 ActualizarBotonProcesar();
             }
         }
@@ -1113,7 +1200,7 @@ namespace SistemaFacturacion
                     return;
                 }
 
-                var cm = _services.Cliente.ConsultarCedula(txtCliente.Text);
+                var cm = _services.Cliente.ConsultarCedula(GetCedulaActual());
                 if (cm == null || cm.Tables[0].Rows.Count == 0)
                 {
                     Notificaciones.Show(this, "Cliente no encontrado.", "advertencia");
@@ -1147,7 +1234,7 @@ namespace SistemaFacturacion
                     pm,
                     rowCliente,
                     copiaDetalle,
-                    txtCliente.Text.Trim(),
+                    GetCedulaActual(),
                     lblFactura.Text,
                     lblFecha.Text,
                     lblTotalVP.Text,
@@ -1263,7 +1350,7 @@ namespace SistemaFacturacion
 
         private void button5_Click(object sender, EventArgs e)
         {
-            txtCliente.Text = "9999999999999";
+            SetCedulaCliente("9999999999999");
         }
     }
 }
