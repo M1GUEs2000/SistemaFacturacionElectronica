@@ -110,6 +110,46 @@ namespace AccesoDatos
             return dsDatos;
         }
 
+        public int Ejecutar(string sql, params (string nombre, object valor)[] parametros)
+        {
+            if (parametros == null || parametros.Length == 0)
+                return Ejecutar(sql);
+
+            int filas = 0;
+            string cadena = ObtenerCadenaConexion();
+            string provider = ObtenerProveedor();
+
+            if (provider == "SQL")
+            {
+                using (SqlConnection con = new SqlConnection(cadena))
+                {
+                    con.Open();
+                    using (SqlCommand cmd = new SqlCommand(sql, con))
+                    {
+                        foreach (var (nombre, valor) in parametros)
+                            cmd.Parameters.AddWithValue("@" + nombre.TrimStart('@'), valor ?? DBNull.Value);
+                        filas = cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+            else
+            {
+                string oleDbSql = System.Text.RegularExpressions.Regex.Replace(sql, @"@\w+", "?");
+                using (OleDbConnection con = new OleDbConnection(cadena))
+                {
+                    con.Open();
+                    using (OleDbCommand cmd = new OleDbCommand(oleDbSql, con))
+                    {
+                        foreach (var (nombre, valor) in parametros)
+                            cmd.Parameters.AddWithValue(nombre, valor ?? DBNull.Value);
+                        filas = cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+
+            return filas;
+        }
+
         public DataSet Seleccionar(string SQL, params (string nombre, object valor)[] parametros)
         {
             if (parametros == null || parametros.Length == 0)

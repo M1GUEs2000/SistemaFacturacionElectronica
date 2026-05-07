@@ -15,7 +15,7 @@ namespace Facturacion.api.Servicios
 
         // CONSULTAS
         Task<RespuestaGeneral<DtoNotaCredito>> ConsultarPorNumeroAsync(string numeroNota);
-        Task<RespuestaGeneral<List<DtoNotaCredito>>> ListarAsync(int top, string filtro);
+        Task<RespuestaGeneral<List<DtoNotaCredito>>> ListarAsync(int top);
 
         // CONSULTAS TABLA
         Task<RespuestaGeneral<List<DtoNotaCreditoListado>>> ConsultarPorFechasAsync(string fechaDesde, string fechaHasta);

@@ -56,9 +56,9 @@ namespace Facturacion.api.Controllers
 
         [HttpGet]
         [Route("")]
-        public async Task<IHttpActionResult> Listar([FromUri] int top = 20, [FromUri] string filtro = "")
+        public async Task<IHttpActionResult> Listar([FromUri] int top = 20)
         {
-            return Ok(await _servicio.ListarAsync(top, filtro));
+            return Ok(await _servicio.ListarAsync(top));
         }
 
         [HttpGet]

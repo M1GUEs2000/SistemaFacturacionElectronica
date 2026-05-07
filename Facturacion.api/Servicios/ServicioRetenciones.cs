@@ -180,12 +180,12 @@ namespace Facturacion.api.Servicios
         // ======================================================
         // LISTAR
         // ======================================================
-        public async Task<RespuestaGeneral<List<DtoRetencion>>> ListarAsync(int top, string filtro)
+        public async Task<RespuestaGeneral<List<DtoRetencion>>> ListarAsync(int top)
         {
             try
             {
                 var ds = await Task.Run(() =>
-                    _services.Retencion.Listar(top, filtro));
+                    _services.Retencion.Listar(top));
 
                 var lista = new List<DtoRetencion>();
 

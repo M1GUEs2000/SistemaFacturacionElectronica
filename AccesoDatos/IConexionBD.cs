@@ -8,5 +8,6 @@ namespace AccesoDatos.Abstractions
         DataSet Seleccionar(string sql);
         DataSet Seleccionar(string sql, params (string nombre, object valor)[] parametros);
         int Ejecutar(string sql);
+        int Ejecutar(string sql, params (string nombre, object valor)[] parametros);
     }
 }

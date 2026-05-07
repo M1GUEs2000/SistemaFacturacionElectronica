@@ -19,7 +19,7 @@ namespace Facturacion.api.Servicios
 
         Task<RespuestaGeneral<DtoRetencion>> ConsultarAsync(string numeroRetencion);
 
-        Task<RespuestaGeneral<List<DtoRetencion>>> ListarAsync(int top, string filtro);
+        Task<RespuestaGeneral<List<DtoRetencion>>> ListarAsync(int top);
 
         Task<RespuestaGeneral<List<DtoRetencionConsulta>>> ConsultarAvanzadoAsync(
             string fechaDesde,

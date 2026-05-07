@@ -140,12 +140,12 @@ namespace Facturacion.api.Servicios
             }
         }
 
-        public async Task<RespuestaGeneral<List<DtoNotaCredito>>> ListarAsync(int top, string filtro)
+        public async Task<RespuestaGeneral<List<DtoNotaCredito>>> ListarAsync(int top)
         {
             try
             {
                 var ds = await Task.Run(() =>
-                    _services.NotaCredito.Listar(top, filtro ?? ""));
+                    _services.NotaCredito.Listar(top));
 
                 var lista = MapperNotaCredito.ToList(ds.Tables[0]);
 
