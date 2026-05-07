@@ -205,11 +205,30 @@ namespace SistemaFacturacion
 
                 lblImpresion.Text = row["IMPRESION"].ToString();
                 lblFactura.Text = row["FACTURACION"].ToString();
+                lblNombreEmpresa.Text = row["NOMBRE"].ToString();
+                AjustarTextoLabel(lblNombreEmpresa);
             }
             else
             {
                 lblImpresion.Text = "Impresión: ---";
                 lblFactura.Text = "Facturación: ---";
+                lblNombreEmpresa.Text = "";
+            }
+        }
+
+        private void AjustarTextoLabel(Label label)
+        {
+            if (label.Parent == null) return;
+            label.AutoSize = false;
+            label.Width = label.Parent.ClientSize.Width;
+            label.TextAlign = ContentAlignment.MiddleCenter;
+            float tamano = label.Font.Size;
+            while (tamano > 4)
+            {
+                label.Font = new Font(label.Font.FontFamily, tamano, label.Font.Style);
+                if (label.PreferredWidth <= label.Parent.ClientSize.Width)
+                    break;
+                tamano *= 0.75f;
             }
         }
 
