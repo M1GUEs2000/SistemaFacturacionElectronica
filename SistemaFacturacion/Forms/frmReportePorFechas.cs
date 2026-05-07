@@ -977,6 +977,9 @@ namespace SistemaFacturacion
                 // 2) CONVERTIR FILAS → SolicitudItemLote
                 // ========================================
                 var solicitudes = filasPendientes
+                    .GroupBy(f => f.Cells["NUMEROFACTURA"].Value?.ToString()?.Trim() ?? "")
+                    .Where(g => !string.IsNullOrWhiteSpace(g.Key))
+                    .Select(g => g.First())
                     .Select(f => new SolicitudItemLote
                     {
                         NumeroViejo = f.Cells["NUMEROFACTURA"].Value?.ToString()?.Trim() ?? "",

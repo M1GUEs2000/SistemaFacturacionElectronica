@@ -85,6 +85,8 @@ namespace GenerarXml.Dto
 
         public string Error { get; set; }
         public string RespuestaRecepcion { get; set; }
+        public string EstadoSri { get; set; }
+        public List<SriMensajeDto> MensajesSri { get; set; } = new List<SriMensajeDto>();
 
     }
 
@@ -93,6 +95,18 @@ namespace GenerarXml.Dto
         public string RespuestaAutorizacion { get; set; }
         public string Error { get; set; }
         public string Estado { get; set; }
+        public string EstadoSri { get; set; }
+        public string ClaveAccesoConsultada { get; set; }
+        public int NumeroComprobantes { get; set; }
+        public List<SriMensajeDto> MensajesSri { get; set; } = new List<SriMensajeDto>();
+    }
+
+    public class SriMensajeDto
+    {
+        public string Identificador { get; set; }
+        public string Mensaje { get; set; }
+        public string InformacionAdicional { get; set; }
+        public string Tipo { get; set; }
     }
 
 }

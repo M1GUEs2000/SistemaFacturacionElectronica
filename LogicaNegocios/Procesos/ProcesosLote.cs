@@ -89,6 +89,12 @@ namespace LogicaNegocios.Procesos
             Action<string> onProgreso = null
         )
         {
+            solicitudes = (solicitudes ?? new List<SolicitudItemLote>())
+                .Where(s => s != null && !string.IsNullOrWhiteSpace(s.NumeroViejo))
+                .GroupBy(s => s.NumeroViejo.Trim(), StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.First())
+                .ToList();
+
             ResultadoLote resultado = new ResultadoLote { Total = solicitudes.Count };
 
             // ─── Cargar parámetros una sola vez para todo el lote ────────

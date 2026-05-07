@@ -84,7 +84,9 @@ namespace LogicaNegocios.Services
             {
                 return new RespuestaRecepcionSri
                 {
-                    RespuestaRecepcion = recepcion.Estado
+                    RespuestaRecepcion = recepcion.Estado,
+                    EstadoSri = recepcion.Estado,
+                    MensajesSri = ConvertirErroresSri(recepcion.Errores)
                 };
             }
 
@@ -94,27 +96,14 @@ namespace LogicaNegocios.Services
             // ==========================================
             string mensajeError = "";
 
-            if (recepcion.Errores != null && recepcion.Errores.Count > 0)
-            {
-                var err = recepcion.Errores.First();
-
-                mensajeError =
-                    "Estado: " + (recepcion.Estado ?? "SIN ESTADO") + Environment.NewLine +
-                    "Mensaje: " + err.Mensaje + Environment.NewLine +
-                    "Detalle: " + err.InformacionAdicional + Environment.NewLine +
-                    "Tipo: " + err.Tipo;
-            }
-            else
-            {
-                // Si no se pudieron extraer errores detallados
-                mensajeError =
-                    "Estado: " + (recepcion.Estado ?? "SIN ESTADO") +
-                    " (No existen mensajes detallados del SRI)";
-            }
+            var mensajesRecepcion = ConvertirErroresSri(recepcion.Errores);
+            mensajeError = FormatearMensajesSri(recepcion.Estado, mensajesRecepcion);
 
             return new RespuestaRecepcionSri
             {
-                Error = mensajeError
+                Error = mensajeError,
+                EstadoSri = recepcion.Estado,
+                MensajesSri = mensajesRecepcion
             };
         }
 
@@ -162,27 +151,23 @@ namespace LogicaNegocios.Services
             if (recepcion.Estado != null &&
                 recepcion.Estado.Equals("RECIBIDA", StringComparison.OrdinalIgnoreCase))
             {
-                return new RespuestaRecepcionSri { RespuestaRecepcion = recepcion.Estado };
+                return new RespuestaRecepcionSri
+                {
+                    RespuestaRecepcion = recepcion.Estado,
+                    EstadoSri = recepcion.Estado,
+                    MensajesSri = ConvertirErroresSri(recepcion.Errores)
+                };
             }
 
-            string mensajeError;
+            var mensajesLote = ConvertirErroresSri(recepcion.Errores);
+            string mensajeError = FormatearMensajesSri(recepcion.Estado, mensajesLote);
 
-            if (recepcion.Errores != null && recepcion.Errores.Count > 0)
+            return new RespuestaRecepcionSri
             {
-                var err = recepcion.Errores.First();
-                mensajeError =
-                    "Estado: " + (recepcion.Estado ?? "SIN ESTADO") + Environment.NewLine +
-                    "Mensaje: " + err.Mensaje + Environment.NewLine +
-                    "Detalle: " + err.InformacionAdicional + Environment.NewLine +
-                    "Tipo: " + err.Tipo;
-            }
-            else
-            {
-                mensajeError = "Estado: " + (recepcion.Estado ?? "SIN ESTADO") +
-                               " (Sin mensajes detallados del SRI)";
-            }
-
-            return new RespuestaRecepcionSri { Error = mensajeError };
+                Error = mensajeError,
+                EstadoSri = recepcion.Estado,
+                MensajesSri = mensajesLote
+            };
         }
 
         public RespuestaAutorizacionSri autorizacion(string clave, string rutaFirmado, string rutaAutorizado)
@@ -198,30 +183,22 @@ namespace LogicaNegocios.Services
             if (autorizacion == null)
             {
                 respuesta.Error = "No se pudo consultar autorización";
+                respuesta.EstadoSri = "SIN_RESPUESTA";
                 return respuesta;
             }
+
+            respuesta.EstadoSri = autorizacion.Estado;
+            respuesta.ClaveAccesoConsultada = autorizacion.ClaveAcceso;
+            respuesta.NumeroComprobantes = autorizacion.NumeroComprobantes;
 
             if (autorizacion.Comprobantes == null || autorizacion.Comprobantes.Count == 0)
             {
                 // Igual que en recepción: si no hay comprobantes, intenta mostrar errores del SOAP
-                string mensajeError = "";
-
-                if (autorizacion.Errores != null && autorizacion.Errores.Count > 0)
-                {
-                    var err = autorizacion.Errores.First();
-
-                    mensajeError =
-                        "Estado: " + "SIN COMPROBANTES" + Environment.NewLine +
-                        "Mensaje: " + err.Mensaje + Environment.NewLine +
-                        "Detalle: " + err.InformacionAdicional + Environment.NewLine +
-                        "Tipo: " + err.Tipo;
-                }
-                else
-                {
-                    mensajeError = "Estado: SIN COMPROBANTES (No existen mensajes detallados del SRI)";
-                }
+                var mensajesSinComprobantes = ConvertirErroresSri(autorizacion.Errores);
+                string mensajeError = FormatearMensajesSri("SIN COMPROBANTES", mensajesSinComprobantes);
 
                 respuesta.Error = mensajeError;
+                respuesta.MensajesSri = mensajesSinComprobantes;
                 return respuesta;
             }
 
@@ -240,6 +217,8 @@ namespace LogicaNegocios.Services
                 );
 
                 respuesta.RespuestaAutorizacion = comp.Estado;
+                respuesta.EstadoSri = comp.Estado;
+                respuesta.MensajesSri = ConvertirMensajesSri(comp.Mensajes);
                 return respuesta;
             }
 
@@ -248,33 +227,81 @@ namespace LogicaNegocios.Services
             // ==========================================
             string mensajeErrorNoAut = "";
 
-            if (comp.Mensajes != null && comp.Mensajes.Count > 0)
-            {
-                var msg = comp.Mensajes.First();
-                mensajeErrorNoAut =
-                    "Estado: " + (comp.Estado ?? "SIN ESTADO") + Environment.NewLine +
-                    "Mensaje: " + msg.mensajes + Environment.NewLine +
-                    "Detalle: " + msg.InformacionAdicional + Environment.NewLine +
-                    "Tipo: " + msg.Tipo;
-            }
-            else if (autorizacion.Errores != null && autorizacion.Errores.Count > 0)
-            {
-                var err = autorizacion.Errores.First();
-                mensajeErrorNoAut =
-                    "Estado: " + (comp.Estado ?? "SIN ESTADO") + Environment.NewLine +
-                    "Mensaje: " + err.Mensaje + Environment.NewLine +
-                    "Detalle: " + err.InformacionAdicional + Environment.NewLine +
-                    "Tipo: " + err.Tipo;
-            }
-            else
-            {
-                mensajeErrorNoAut =
-                    "Estado: " + (comp.Estado ?? "SIN ESTADO") +
-                    " (No existen mensajes detallados del SRI)";
-            }
+            var mensajesNoAut = ConvertirMensajesSri(comp.Mensajes);
+            if (mensajesNoAut.Count == 0)
+                mensajesNoAut = ConvertirErroresSri(autorizacion.Errores);
+
+            mensajeErrorNoAut = FormatearMensajesSri(comp.Estado, mensajesNoAut);
 
             respuesta.Error = mensajeErrorNoAut;
+            respuesta.EstadoSri = comp.Estado;
+            respuesta.MensajesSri = mensajesNoAut;
             return respuesta;
+        }
+
+        private static List<SriMensajeDto> ConvertirErroresSri(IEnumerable<CErrorSri> errores)
+        {
+            if (errores == null)
+                return new List<SriMensajeDto>();
+
+            return errores
+                .Where(e => e != null)
+                .Select(e => new SriMensajeDto
+                {
+                    Identificador = e.Identificador ?? "",
+                    Mensaje = e.Mensaje ?? "",
+                    InformacionAdicional = e.InformacionAdicional ?? "",
+                    Tipo = e.Tipo ?? ""
+                })
+                .Where(e =>
+                    !string.IsNullOrWhiteSpace(e.Identificador) ||
+                    !string.IsNullOrWhiteSpace(e.Mensaje) ||
+                    !string.IsNullOrWhiteSpace(e.InformacionAdicional) ||
+                    !string.IsNullOrWhiteSpace(e.Tipo))
+                .ToList();
+        }
+
+        private static List<SriMensajeDto> ConvertirMensajesSri(IEnumerable<Mensajes> mensajes)
+        {
+            if (mensajes == null)
+                return new List<SriMensajeDto>();
+
+            return mensajes
+                .Where(m => m != null)
+                .Select(m => new SriMensajeDto
+                {
+                    Identificador = m.Identificador ?? "",
+                    Mensaje = m.mensajes ?? "",
+                    InformacionAdicional = m.InformacionAdicional ?? "",
+                    Tipo = m.Tipo ?? ""
+                })
+                .Where(m =>
+                    !string.IsNullOrWhiteSpace(m.Identificador) ||
+                    !string.IsNullOrWhiteSpace(m.Mensaje) ||
+                    !string.IsNullOrWhiteSpace(m.InformacionAdicional) ||
+                    !string.IsNullOrWhiteSpace(m.Tipo))
+                .ToList();
+        }
+
+        private static string FormatearMensajesSri(string estado, List<SriMensajeDto> mensajes)
+        {
+            string estadoFinal = string.IsNullOrWhiteSpace(estado) ? "SIN ESTADO" : estado;
+            if (mensajes == null || mensajes.Count == 0)
+                return "Estado: " + estadoFinal + " (No existen mensajes detallados del SRI)";
+
+            var sb = new StringBuilder();
+            sb.Append("Estado: ").Append(estadoFinal);
+
+            foreach (var msg in mensajes)
+            {
+                sb.AppendLine();
+                sb.Append("Identificador: ").Append(string.IsNullOrWhiteSpace(msg.Identificador) ? "N/A" : msg.Identificador).AppendLine();
+                sb.Append("Mensaje: ").Append(msg.Mensaje ?? "").AppendLine();
+                sb.Append("Detalle: ").Append(msg.InformacionAdicional ?? "").AppendLine();
+                sb.Append("Tipo: ").Append(msg.Tipo ?? "");
+            }
+
+            return sb.ToString();
         }
 
     }

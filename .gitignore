@@ -33,3 +33,11 @@ Instaladores/
 *.sdf
 *.opensdf
 *.userprefs
+
+# Archivos locales de asistentes / automatizacion
+.claude/settings.local.json
+.claude-commit-report.md
+
+# Salidas generadas de analisis
+graphify-out/
+LogicaNegocios/graphify logicanegocios/

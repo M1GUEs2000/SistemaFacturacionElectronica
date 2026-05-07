@@ -46,10 +46,6 @@
     <Reference Include="FirmaXadesNet, Version=2.0.1.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\FirmaXadesNet.2.0.1.1\lib\net45\FirmaXadesNet.dll</HintPath>
     </Reference>
-    <Reference Include="GenerarXml, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\SistemaFacturacion\GenerarXml\bin\Debug\GenerarXml.dll</HintPath>
-    </Reference>
     <Reference Include="IKVM.OpenJDK.Core">
       <HintPath>..\Firmador\Dll\IKVM.OpenJDK.Core.dll</HintPath>
     </Reference>
@@ -185,6 +181,10 @@
     <ProjectReference Include="..\Firmador.xml\Firmador.xml.csproj">
       <Project>{8682071f-4299-45b1-a1f2-968517e338d8}</Project>
       <Name>Firmador.xml</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\SistemaFacturacion\GenerarXml\GenerarXml.csproj">
+      <Project>{F21CCB3D-9FAF-4D65-8523-04C18CBC2316}</Project>
+      <Name>GenerarXml</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup />

@@ -1,5 +1,7 @@
 ﻿using LogicaNegocios.Services;
+using GenerarXml.Dto;
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
 using System.IO;
@@ -591,6 +593,10 @@ namespace LogicaNegocios.Procesos
                 // MENSAJE SRI NORMALIZADO (TEXTO PLANO)
                 // ======================================================
                 string mensajeSri = (recepcion.Error ?? "").ToUpperInvariant();
+                r.EstadoSri = string.IsNullOrWhiteSpace(recepcion.EstadoSri)
+                    ? estadoRecepcion
+                    : recepcion.EstadoSri;
+                r.MensajesSri = recepcion.MensajesSri ?? new List<SriMensajeDto>();
 
                 // ======================================================
                 // FLAGS SRI
@@ -754,6 +760,7 @@ namespace LogicaNegocios.Procesos
                     Path.Combine(carpetaAutorizados, claveAcceso + ".xml");
 
                 Consultas consulta = new Consultas();
+                string ultimoDetalleSri = "";
 
                 for (int intento = 1; intento <= maxIntentos; intento++)
                 {
@@ -766,6 +773,11 @@ namespace LogicaNegocios.Procesos
                     if (auth != null)
                     {
                         string estadoAuth = auth.Estado ?? "";
+                        r.EstadoSri = string.IsNullOrWhiteSpace(auth.EstadoSri)
+                            ? estadoAuth
+                            : auth.EstadoSri;
+                        r.MensajesSri = auth.MensajesSri ?? new List<SriMensajeDto>();
+                        ultimoDetalleSri = FormatearDetalleAutorizacionPendiente(auth);
 
                         if (estadoAuth == "AUTORIZADO" && File.Exists(rutaAutorizado))
                         {
@@ -801,7 +813,7 @@ namespace LogicaNegocios.Procesos
                     // Sigue en procesamiento
                     onPendiente?.Invoke(intento, "EN PROCESAMIENTO");
 
-                    Thread.Sleep(3000);
+                    Thread.Sleep(2000);
                 }
 
                 // Agotó los intentos sin respuesta definitiva del SRI
@@ -816,7 +828,10 @@ namespace LogicaNegocios.Procesos
                 );
 
                 r.Exito = false;
-                r.Mensaje = $"{tipoDocumento} quedó PENDIENTE tras {maxIntentos} intento(s).";
+                r.Mensaje = $"{tipoDocumento} quedó PENDIENTE tras {maxIntentos} intento(s)." +
+                            (string.IsNullOrWhiteSpace(ultimoDetalleSri)
+                                ? ""
+                                : Environment.NewLine + "Última respuesta SRI:" + Environment.NewLine + ultimoDetalleSri);
 
                 return r;
             }
@@ -841,6 +856,43 @@ namespace LogicaNegocios.Procesos
                 r.Mensaje = "Error en AUTORIZACIÓN SRI: " + ex.Message;
                 return r;
             }
+        }
+
+        private static string FormatearDetalleAutorizacionPendiente(RespuestaAutorizacionSri auth)
+        {
+            if (auth == null)
+                return "";
+
+            if (!string.IsNullOrWhiteSpace(auth.Error))
+                return auth.Error.Trim();
+
+            string estado = !string.IsNullOrWhiteSpace(auth.EstadoSri)
+                ? auth.EstadoSri
+                : auth.Estado;
+
+            if (string.IsNullOrWhiteSpace(estado) &&
+                (auth.MensajesSri == null || auth.MensajesSri.Count == 0))
+            {
+                return "";
+            }
+
+            if (auth.MensajesSri == null || auth.MensajesSri.Count == 0)
+                return "Estado: " + (string.IsNullOrWhiteSpace(estado) ? "SIN ESTADO" : estado);
+
+            var lineas = new List<string>
+            {
+                "Estado: " + (string.IsNullOrWhiteSpace(estado) ? "SIN ESTADO" : estado)
+            };
+
+            foreach (var msg in auth.MensajesSri)
+            {
+                lineas.Add("Identificador: " + (string.IsNullOrWhiteSpace(msg.Identificador) ? "N/A" : msg.Identificador));
+                lineas.Add("Mensaje: " + (msg.Mensaje ?? ""));
+                lineas.Add("Detalle: " + (msg.InformacionAdicional ?? ""));
+                lineas.Add("Tipo: " + (msg.Tipo ?? ""));
+            }
+
+            return string.Join(Environment.NewLine, lineas);
         }
 
         private void GuardarPendienteAutorizacion(
@@ -1391,6 +1443,8 @@ namespace LogicaNegocios.Procesos
         public bool Autorizado { get; set; }
         public bool SecuencialRepetido { get; set; }
         public string Mensaje { get; set; }
+        public string EstadoSri { get; set; }
+        public List<SriMensajeDto> MensajesSri { get; set; } = new List<SriMensajeDto>();
         public string EstadoEspecial { get; set; }
         public string RutaXmlAutorizado { get; set; }
         public XDocument XmlAutorizado { get; set; }

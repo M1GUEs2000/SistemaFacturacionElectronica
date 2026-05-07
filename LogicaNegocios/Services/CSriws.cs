@@ -12,6 +12,7 @@ namespace LogicaNegocios.Services
 
     public class CErrorSri
     {
+        public string Identificador { get; set; }
         public string Mensaje { get; set; }
         public string InformacionAdicional { get; set; }
         public string Tipo { get; set; }
@@ -54,19 +55,7 @@ namespace LogicaNegocios.Services
                     // ============================================
                     // EXTRAER LOS ERRORES DEL SRI (mensaje, info, tipo)
                     // ============================================
-                    var errores = new List<CErrorSri>();
-
-                    var mensajesXml = soapResult.Descendants("mensaje");
-
-                    foreach (var m in mensajesXml)
-                    {
-                        errores.Add(new CErrorSri
-                        {
-                            Mensaje = m.Element("mensaje")?.Value ?? "",
-                            InformacionAdicional = m.Element("informacionAdicional")?.Value ?? "",
-                            Tipo = m.Element("tipo")?.Value ?? ""
-                        });
-                    }
+                    var errores = ExtraerMensajesSri(soapResult);
 
                     // ============================================
                     // DESERIALIZAR RESPUESTA NORMAL
@@ -243,20 +232,7 @@ namespace LogicaNegocios.Services
                 var soapResult = XDocument.Parse(xmlTexto);
                 CRespuestaRecepcion resultado = new CRespuestaRecepcion();
 
-                var errores = new List<CErrorSri>();
-                foreach (var m in soapResult.Descendants("mensaje"))
-                {
-                    string mensajeTexto = m.Element("mensaje") != null
-                        ? m.Element("mensaje").Value
-                        : (m.Value ?? "");
-
-                    errores.Add(new CErrorSri
-                    {
-                        Mensaje = mensajeTexto,
-                        InformacionAdicional = m.Element("informacionAdicional")?.Value ?? "",
-                        Tipo = m.Element("tipo")?.Value ?? ""
-                    });
-                }
+                var errores = ExtraerMensajesSri(soapResult);
 
                 var responseXml = soapResult.Descendants("RespuestaRecepcionComprobante").ToList();
                 foreach (var xmlDoc in responseXml)
@@ -462,16 +438,7 @@ namespace LogicaNegocios.Services
                 var soapResult = XDocument.Parse(xmlTexto);
                 CRespuestaAutorizacion resultado = new CRespuestaAutorizacion();
 
-                var errores = new List<CErrorSri>();
-                foreach (var m in soapResult.Descendants("mensaje"))
-                {
-                    errores.Add(new CErrorSri
-                    {
-                        Mensaje = m.Element("mensaje")?.Value ?? m.Value ?? "",
-                        InformacionAdicional = m.Element("informacionAdicional")?.Value ?? "",
-                        Tipo = m.Element("tipo")?.Value ?? ""
-                    });
-                }
+                var errores = ExtraerMensajesSri(soapResult);
 
                 var responseXml = soapResult.Descendants("RespuestaAutorizacionComprobante").ToList();
                 foreach (var xmlDoc in responseXml)
@@ -522,6 +489,35 @@ namespace LogicaNegocios.Services
 
 
 
+        }
+
+        private List<CErrorSri> ExtraerMensajesSri(XDocument soapResult)
+        {
+            var errores = new List<CErrorSri>();
+            if (soapResult == null)
+                return errores;
+
+            foreach (var m in soapResult.Descendants("mensaje"))
+            {
+                bool esNodoMensajeSri =
+                    m.Element("identificador") != null ||
+                    m.Element("mensaje") != null ||
+                    m.Element("informacionAdicional") != null ||
+                    m.Element("tipo") != null;
+
+                if (!esNodoMensajeSri)
+                    continue;
+
+                errores.Add(new CErrorSri
+                {
+                    Identificador = m.Element("identificador")?.Value ?? "",
+                    Mensaje = m.Element("mensaje")?.Value ?? "",
+                    InformacionAdicional = m.Element("informacionAdicional")?.Value ?? "",
+                    Tipo = m.Element("tipo")?.Value ?? ""
+                });
+            }
+
+            return errores;
         }
     }
 }
