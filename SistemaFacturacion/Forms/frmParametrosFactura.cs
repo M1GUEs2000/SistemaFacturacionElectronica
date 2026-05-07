@@ -144,7 +144,6 @@ namespace SistemaFacturacion
         private void ConfigurarEventos()
         {
             btnModificar.Click += BtnModificar_Click;
-            btnEliminar.Click += BtnEliminar_Click;
             dataGridView1.CellClick += DataGridView1_CellClick;
             cmbContribuyenteE.SelectedIndexChanged += CmbContribuyenteE_SelectedIndexChanged;
             this.Load += frmParametrosFactura_Load;

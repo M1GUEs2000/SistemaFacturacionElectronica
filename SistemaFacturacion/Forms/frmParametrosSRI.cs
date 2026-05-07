@@ -99,7 +99,6 @@ namespace SistemaFacturacion
         {
             this.Load += frmParametrosSRI_Load;
             btnModificar.Click += BtnModificar_Click;
-            btnEliminar.Click += BtnEliminar_Click;
             dataGridView1.CellClick += DataGridView1_CellClick;
         }
         // =========================================================
