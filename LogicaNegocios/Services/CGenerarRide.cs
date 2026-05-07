@@ -284,6 +284,7 @@ namespace LogicaNegocios.Services
         {
             string razonC = Xp(xml, "infoFactura", "razonSocialComprador");
             string idC = Xp(xml, "infoFactura", "identificacionComprador");
+            string dirC = Xp(xml, "infoFactura", "direccionComprador");
             string fechaE = Xp(xml, "infoFactura", "fechaEmision");
 
             var tCli = new PdfPTable(4);
@@ -296,6 +297,8 @@ namespace LogicaNegocios.Services
             tCli.AddCell(Va(idC));
             tCli.AddCell(Lb("Fecha Emision:"));
             tCli.AddCell(Va(fechaE));
+            tCli.AddCell(Lb("Direccion:"));
+            tCli.AddCell(new PdfPCell(new Phrase(dirC, Fnt(8))) { Colspan = 3 });
             doc.Add(tCli);
 
             string[] cols = { "Cod.Principal", "Cod.Auxiliar", "Cant.", "Descripcion", "P.Unitario", "Descuento", "P.T.Sin Imp." };
@@ -317,9 +320,9 @@ namespace LogicaNegocios.Services
                 tItems.AddCell(TD(codA));
                 tItems.AddCell(TDR(det.Element("cantidad")?.Value ?? ""));
                 tItems.AddCell(TD(det.Element("descripcion")?.Value ?? ""));
-                tItems.AddCell(TDR(det.Element("precioUnitario")?.Value ?? ""));
+                tItems.AddCell(TDR(Moneda(det.Element("precioUnitario")?.Value ?? "")));
                 tItems.AddCell(TDR(det.Element("descuento")?.Value ?? ""));
-                tItems.AddCell(TDR(det.Element("precioTotalSinImpuesto")?.Value ?? ""));
+                tItems.AddCell(TDR(Moneda(det.Element("precioTotalSinImpuesto")?.Value ?? "")));
 
                 decimal baseD = Dec(det.Element("precioTotalSinImpuesto")?.Value);
                 foreach (var imp in det.Elements("impuestos").Elements("impuesto"))
@@ -358,7 +361,7 @@ namespace LogicaNegocios.Services
             tFP.AddCell(TH("Forma de Pago"));
             tFP.AddCell(TH("Valor"));
             tFP.AddCell(TD(DescripcionFormaPago(formaPago)));
-            tFP.AddCell(TDR(total));
+            tFP.AddCell(TDR(Moneda(total)));
             doc.Add(tFP);
         }
 
@@ -419,9 +422,9 @@ namespace LogicaNegocios.Services
                 tItems.AddCell(TD(codA));
                 tItems.AddCell(TDR(cant.ToString("0.00")));
                 tItems.AddCell(TD(det.Element("descripcion")?.Value ?? ""));
-                tItems.AddCell(TDR(unitD.ToString("0.000000")));
+                tItems.AddCell(TDR(Moneda(unitD)));
                 tItems.AddCell(TDR(det.Element("descuento")?.Value ?? "0"));
-                tItems.AddCell(TDR(totalD.ToString("0.00")));
+                tItems.AddCell(TDR(Moneda(totalD)));
 
                 var impPrincipal = det.Elements("impuestos").Elements("impuesto").FirstOrDefault();
                 string cp = impPrincipal?.Element("codigoPorcentaje")?.Value ?? "0";
@@ -491,9 +494,9 @@ namespace LogicaNegocios.Services
                 tItems.AddCell(TD(imp.Element("fechaEmisionDocSustento")?.Value ?? ""));
                 tItems.AddCell(TD(tipo));
                 tItems.AddCell(TD(imp.Element("codigoRetencion")?.Value ?? ""));
-                tItems.AddCell(TDR(baseI.ToString("0.00")));
+                tItems.AddCell(TDR(Moneda(baseI)));
                 tItems.AddCell(TDR(porc.ToString("0.00")));
-                tItems.AddCell(TDR(val.ToString("0.00")));
+                tItems.AddCell(TDR(Moneda(val)));
             }
             doc.Add(tItems);
 
@@ -502,10 +505,10 @@ namespace LogicaNegocios.Services
             tTot.WidthPercentage = 45;
             tTot.SpacingBefore = 6f;
             tTot.SetWidths(new float[] { 65, 35 });
-            tTot.AddCell(Lb("TOTAL RETENCION RENTA")); tTot.AddCell(TDR(totalRenta.ToString("0.00")));
-            tTot.AddCell(Lb("TOTAL RETENCION IVA")); tTot.AddCell(TDR(totalIVA.ToString("0.00")));
+            tTot.AddCell(Lb("TOTAL RETENCION RENTA")); tTot.AddCell(TDR(Moneda(totalRenta)));
+            tTot.AddCell(Lb("TOTAL RETENCION IVA")); tTot.AddCell(TDR(Moneda(totalIVA)));
             tTot.AddCell(new PdfPCell(new Phrase("TOTAL RETENIDO", Fnt(8, Font.BOLD, BaseColor.WHITE))) { BackgroundColor = Azul });
-            tTot.AddCell(new PdfPCell(new Phrase((totalRenta + totalIVA).ToString("0.00"), Fnt(8, Font.BOLD, BaseColor.WHITE))) { BackgroundColor = Azul, HorizontalAlignment = Element.ALIGN_RIGHT });
+            tTot.AddCell(new PdfPCell(new Phrase(Moneda(totalRenta + totalIVA), Fnt(8, Font.BOLD, BaseColor.WHITE))) { BackgroundColor = Azul, HorizontalAlignment = Element.ALIGN_RIGHT });
             doc.Add(tTot);
         }
 
@@ -528,12 +531,12 @@ namespace LogicaNegocios.Services
             AddSubtotal(t, "SUBTOTAL IVA 15%", s15, v15);
             AddSubtotal(t, "EXENTO DE IVA", sEx, 0);
             AddSubtotal(t, "NO OBJETO IVA", sNo, 0);
-            if (ice > 0) { t.AddCell(Lb("ICE")); t.AddCell(TDR(ice.ToString("0.00"))); }
+            if (ice > 0) { t.AddCell(Lb("ICE")); t.AddCell(TDR(Moneda(ice))); }
 
-            t.AddCell(Lb("SUBTOTAL SIN IMPUESTOS")); t.AddCell(TDR(subtSinImp));
-            t.AddCell(Lb("DESCUENTO")); t.AddCell(TDR(descuento));
+            t.AddCell(Lb("SUBTOTAL SIN IMPUESTOS")); t.AddCell(TDR(Moneda(subtSinImp)));
+            t.AddCell(Lb("DESCUENTO")); t.AddCell(TDR(Moneda(descuento)));
             t.AddCell(new PdfPCell(new Phrase(labelTotal, Fnt(8, Font.BOLD, BaseColor.WHITE))) { BackgroundColor = Azul });
-            t.AddCell(new PdfPCell(new Phrase(importeTotal, Fnt(8, Font.BOLD, BaseColor.WHITE))) { BackgroundColor = Azul, HorizontalAlignment = Element.ALIGN_RIGHT });
+            t.AddCell(new PdfPCell(new Phrase(Moneda(importeTotal), Fnt(8, Font.BOLD, BaseColor.WHITE))) { BackgroundColor = Azul, HorizontalAlignment = Element.ALIGN_RIGHT });
             return t;
         }
 
@@ -541,14 +544,17 @@ namespace LogicaNegocios.Services
         {
             if (subtotal <= 0) return;
             t.AddCell(new PdfPCell(new Phrase(label, FontFactory.GetFont("Arial", 8, Font.BOLD))));
-            t.AddCell(new PdfPCell(new Phrase(subtotal.ToString("0.00"), FontFactory.GetFont("Arial", 8))) { HorizontalAlignment = Element.ALIGN_RIGHT });
+            t.AddCell(new PdfPCell(new Phrase(Moneda(subtotal), FontFactory.GetFont("Arial", 8))) { HorizontalAlignment = Element.ALIGN_RIGHT });
             if (iva > 0)
             {
                 string ivaLabel = label.Replace("SUBTOTAL ", "");
                 t.AddCell(new PdfPCell(new Phrase(ivaLabel, FontFactory.GetFont("Arial", 8))));
-                t.AddCell(new PdfPCell(new Phrase(iva.ToString("0.00"), FontFactory.GetFont("Arial", 8))) { HorizontalAlignment = Element.ALIGN_RIGHT });
+                t.AddCell(new PdfPCell(new Phrase(Moneda(iva), FontFactory.GetFont("Arial", 8))) { HorizontalAlignment = Element.ALIGN_RIGHT });
             }
         }
+
+        private static string Moneda(decimal v) => v.ToString("$ #,##0.00", CultureInfo.InvariantCulture);
+        private static string Moneda(string s) => Moneda(Dec(s));
 
         private static PdfPTable TablaInfoAdicional(List<KeyValuePair<string, string>> campos)
         {

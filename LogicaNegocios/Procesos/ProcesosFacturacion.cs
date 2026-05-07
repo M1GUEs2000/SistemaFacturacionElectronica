@@ -381,6 +381,8 @@ namespace LogicaNegocios.Procesos
                 string direccionCliente = rowCliente["DIRECCION"].ToString();
                 string nombreCliente = rowCliente["NOMBRE"].ToString();
                 string correoCliente = rowCliente["CORREO"].ToString();
+                string telefonoCliente = rowCliente.Table.Columns.Contains("TELEFONO")
+                    ? rowCliente["TELEFONO"].ToString().Trim() : "";
 
                 string tipoIdent =
                     cedulaCliente == "9999999999999" ? "07" :
@@ -438,7 +440,8 @@ namespace LogicaNegocios.Procesos
                     if (dsProd == null || dsProd.Tables[0].Rows.Count == 0)
                         throw new Exception("Producto no existe en BD: " + producto);
 
-                    string codProd = dsProd.Tables[0].Rows[0]["CODIGO"].ToString();
+                    string codProd = dsProd.Tables[0].Rows[0]["CODIGO"].ToString().Trim();
+                    if (string.IsNullOrEmpty(codProd)) codProd = "SIN-CODIGO";
                     string ivaProducto = dsProd.Tables[0].Rows[0]["IVA"].ToString().Trim().ToUpperInvariant();
 
                     // En tu BD es "SI"/"NO"
@@ -623,6 +626,8 @@ namespace LogicaNegocios.Procesos
                 {
                     new CampoAdicional { Nombre = "MAIL", Text = correoCliente },
                 };
+                if (!string.IsNullOrWhiteSpace(telefonoCliente))
+                    campos.Add(new CampoAdicional { Nombre = "TELEFONO", Text = telefonoCliente });
                 if (!string.IsNullOrWhiteSpace(comentario))
                     campos.Add(new CampoAdicional { Nombre = "COMENTARIO", Text = comentario });
                 infoAd.CampoAdicional = campos;

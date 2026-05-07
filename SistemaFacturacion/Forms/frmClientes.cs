@@ -161,6 +161,7 @@ namespace SistemaFacturacion
             btnEliminar.Visible = false;
             btnGuardar.Text = "Guardar";
             modoNuevo = false;
+            txtCedula.Enabled = true;
         }
 
 
