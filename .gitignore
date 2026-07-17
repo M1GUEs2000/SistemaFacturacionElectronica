@@ -10,6 +10,7 @@ ConexionSQL.dat
 **/App_Data/FACTURACION*/
 **/App_Data/FACTURACION/
 **/FACTURACION/
+**/App_Data/logs/
 
 # Bases de datos
 *.accdb

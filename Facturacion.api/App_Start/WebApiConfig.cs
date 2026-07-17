@@ -9,6 +9,15 @@ namespace Facturacion.api
     {
         public static void Register(HttpConfiguration config)
         {
+            // Toda petición recibe un identificador trazable, incluso cuando falla.
+            config.MessageHandlers.Add(new Seguridad.TraceIdHandler());
+
+            // Las excepciones no controladas se devuelven como JSON seguro.
+            config.Services.Replace(
+                typeof(System.Web.Http.ExceptionHandling.IExceptionHandler),
+                new Seguridad.GlobalExceptionHandler());
+            config.IncludeErrorDetailPolicy = IncludeErrorDetailPolicy.Never;
+
             var cors = new EnableCorsAttribute(
                 "http://sistemadefacturacion.ssm.com.ec,https://sistemadefacturacion.ssm.com.ec,http://facturacionapi.ssm.com.ec,https://facturacionapi.ssm.com.ec,http://localhost:5173",
                 "*",

@@ -63,6 +63,27 @@ namespace AccesoDatosWeb
             return filas;
         }
 
+        public int Ejecutar(string sql, params (string nombre, object valor)[] parametros)
+        {
+            if (parametros == null || parametros.Length == 0)
+                return Ejecutar(sql);
+
+            string cadena = ObtenerCadenaConexion();
+
+            using (SqlConnection con = new SqlConnection(cadena))
+            {
+                con.Open();
+
+                using (SqlCommand cmd = new SqlCommand(sql, con))
+                {
+                    foreach (var (nombre, valor) in parametros)
+                        cmd.Parameters.AddWithValue("@" + nombre.TrimStart('@'), valor ?? DBNull.Value);
+
+                    return cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
         public DataSet Seleccionar(string sql)
         {
             DataSet dsDatos = new DataSet();
