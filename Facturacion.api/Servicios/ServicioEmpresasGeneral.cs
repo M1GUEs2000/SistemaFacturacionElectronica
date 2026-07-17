@@ -4,6 +4,7 @@ using Facturacion.api.Mappers;
 using Facturacion.api.Models.DTOs;
 using Facturacion.api.Servicios.Interfaces;
 using System;
+using System.Collections.Generic;
 using System.Data.SqlClient;
 
 namespace Facturacion.api.Servicios
@@ -75,6 +76,36 @@ namespace Facturacion.api.Servicios
         public bool existeEmpresa(string empresa)
         {
             return obtenerPorNombreOCodigo(empresa) != null;
+        }
+
+        public List<string> listarNombresActivas()
+        {
+            var nombres = new List<string>();
+            string connection_string = buildConnectionString(general_db);
+
+            using (var sql_connection = new SqlConnection(connection_string))
+            {
+                sql_connection.Open();
+
+                string sql = @"
+                    SELECT NombreEmpresa
+                    FROM Empresas
+                    WHERE Activa = 1
+                    ORDER BY NombreEmpresa";
+
+                using (var sql_command = new SqlCommand(sql, sql_connection))
+                using (var sql_reader = sql_command.ExecuteReader())
+                {
+                    while (sql_reader.Read())
+                    {
+                        string nombre = Convert.ToString(sql_reader["NombreEmpresa"]);
+                        if (!string.IsNullOrWhiteSpace(nombre))
+                            nombres.Add(nombre.Trim());
+                    }
+                }
+            }
+
+            return nombres;
         }
 
         public DatabaseSettings obtenerDatabaseSettings(string empresa)

@@ -11,6 +11,7 @@ namespace Facturacion.api
         {
             LoggingConfig.Configurar();
             GlobalConfiguration.Configure(WebApiConfig.Register);
+            Jobs.ReprocesoAutomaticoDaemon.Iniciar();
         }
 
         protected void Application_Error()
@@ -27,6 +28,7 @@ namespace Facturacion.api
 
         protected void Application_End()
         {
+            Jobs.ReprocesoAutomaticoDaemon.Detener();
             LoggingConfig.Cerrar();
         }
     }

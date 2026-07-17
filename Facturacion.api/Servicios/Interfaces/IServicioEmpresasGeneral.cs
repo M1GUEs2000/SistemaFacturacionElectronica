@@ -13,5 +13,6 @@ namespace Facturacion.api.Servicios.Interfaces
         DtoEmpresasGeneral obtenerPorNombreOCodigo(string empresa);
         bool existeEmpresa(string empresa);
         DatabaseSettings obtenerDatabaseSettings(string empresa);
+        List<string> listarNombresActivas();
     }
 }
