@@ -17,6 +17,9 @@ namespace Facturacion.api
                 new Seguridad.GlobalExceptionHandler());
             config.IncludeErrorDetailPolicy = IncludeErrorDetailPolicy.Never;
 
+            // Valida las solicitudes con FluentValidation antes de la logica de negocio.
+            config.Filters.Add(new Validators.ValidacionActionFilter());
+
             Seguridad.CorsConfig.Registrar(config);
 
             // RUTAS

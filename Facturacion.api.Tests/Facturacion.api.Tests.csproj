@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <Nullable>disable</Nullable>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+    <!-- No arrastra el proyecto web: solo se compilan los validadores y sus
+         solicitudes, que dependen unicamente de FluentValidation. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" Version="11.9.2" />
+    <!-- FluentValidation 11.x referencia Unsafe 6.0.0.0; sin esto el test host
+         copia una version vieja (4.0.4.1) y falla el binding. -->
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Solicitudes bajo prueba -->
+    <Compile Include="..\Facturacion.api\Models\Solicitudes\SolicitudLogin.cs" Link="Origen\SolicitudLogin.cs" />
+    <Compile Include="..\Facturacion.api\Models\Solicitudes\SolicitudFactura.cs" Link="Origen\SolicitudFactura.cs" />
+    <Compile Include="..\Facturacion.api\Models\Solicitudes\SolicitudProcesarPendienteDocumento.cs" Link="Origen\SolicitudProcesarPendienteDocumento.cs" />
+    <Compile Include="..\Facturacion.api\Models\Solicitudes\SolicitudProcesarFacturaConsumidorFinal.cs" Link="Origen\SolicitudProcesarFacturaConsumidorFinal.cs" />
+    <Compile Include="..\Facturacion.api\Models\Solicitudes\SolicitudNotaCredito.cs" Link="Origen\SolicitudNotaCredito.cs" />
+    <Compile Include="..\Facturacion.api\Models\Solicitudes\SolicitudRetencion.cs" Link="Origen\SolicitudRetencion.cs" />
+    <Compile Include="..\Facturacion.api\Models\Solicitudes\SolicitudFacturacion.cs" Link="Origen\SolicitudFacturacion.cs" />
+
+    <!-- Validadores bajo prueba (se excluye ValidacionActionFilter: depende de System.Web.Http) -->
+    <Compile Include="..\Facturacion.api\Validators\Login\SolicitudLoginValidator.cs" Link="Origen\SolicitudLoginValidator.cs" />
+    <Compile Include="..\Facturacion.api\Validators\Facturas\SolicitudFacturaValidator.cs" Link="Origen\SolicitudFacturaValidator.cs" />
+    <Compile Include="..\Facturacion.api\Validators\Facturas\SolicitudProcesarFacturaConsumidorFinalValidator.cs" Link="Origen\SolicitudProcesarFacturaConsumidorFinalValidator.cs" />
+    <Compile Include="..\Facturacion.api\Validators\Pendientes\SolicitudProcesarPendienteDocumentoValidator.cs" Link="Origen\SolicitudProcesarPendienteDocumentoValidator.cs" />
+    <Compile Include="..\Facturacion.api\Validators\NotasCredito\SolicitudNotaCreditoValidator.cs" Link="Origen\SolicitudNotaCreditoValidator.cs" />
+    <Compile Include="..\Facturacion.api\Validators\Retenciones\SolicitudCrearRetencionValidator.cs" Link="Origen\SolicitudCrearRetencionValidator.cs" />
+    <Compile Include="..\Facturacion.api\Validators\ValidadorRegistro.cs" Link="Origen\ValidadorRegistro.cs" />
+  </ItemGroup>
+
+</Project>

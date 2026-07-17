@@ -88,6 +88,9 @@
     <Reference Include="Newtonsoft.Json.Bson, Version=1.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.Bson.1.0.2\lib\net45\Newtonsoft.Json.Bson.dll</HintPath>
     </Reference>
+    <Reference Include="FluentValidation">
+      <HintPath>..\packages\FluentValidation.11.9.2\lib\netstandard2.0\FluentValidation.dll</HintPath>
+    </Reference>
     <Reference Include="Serilog, Version=4.2.0.0, Culture=neutral, PublicKeyToken=24c2f752a8e58a10, processorArchitecture=MSIL">
       <HintPath>..\packages\Serilog.4.2.0\lib\net471\Serilog.dll</HintPath>
     </Reference>
@@ -352,6 +355,14 @@
     <Compile Include="Servicios\ServicioRetenciones.cs" />
     <Compile Include="Servicios\ServicioSecuenciales.cs" />
     <Compile Include="Servicios\ServicioUsuariosGenerales.cs" />
+    <Compile Include="Validators\Login\SolicitudLoginValidator.cs" />
+    <Compile Include="Validators\Facturas\SolicitudFacturaValidator.cs" />
+    <Compile Include="Validators\Facturas\SolicitudProcesarFacturaConsumidorFinalValidator.cs" />
+    <Compile Include="Validators\Pendientes\SolicitudProcesarPendienteDocumentoValidator.cs" />
+    <Compile Include="Validators\NotasCredito\SolicitudNotaCreditoValidator.cs" />
+    <Compile Include="Validators\Retenciones\SolicitudCrearRetencionValidator.cs" />
+    <Compile Include="Validators\ValidadorRegistro.cs" />
+    <Compile Include="Validators\ValidacionActionFilter.cs" />
     <Compile Include="Seguridad\GlobalExceptionHandler.cs" />
     <Compile Include="Seguridad\ProblemDetailsResponse.cs" />
     <Compile Include="Seguridad\TraceIdHandler.cs" />
