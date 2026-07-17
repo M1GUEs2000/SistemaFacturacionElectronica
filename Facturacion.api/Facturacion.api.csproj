@@ -371,6 +371,7 @@
     <Compile Include="Seguridad\TraceIdHandler.cs" />
     <Compile Include="Seguridad\CorsConfig.cs" />
     <Compile Include="Seguridad\CorsHandler.cs" />
+    <Compile Include="Seguridad\RateLimitingHandler.cs" />
     <Compile Include="Logging\LoggingConfig.cs" />
   </ItemGroup>
   <ItemGroup>

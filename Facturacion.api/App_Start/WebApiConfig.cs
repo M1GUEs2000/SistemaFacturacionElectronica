@@ -11,6 +11,11 @@ namespace Facturacion.api
             // Toda petición recibe un identificador trazable, incluso cuando falla.
             config.MessageHandlers.Add(new Seguridad.TraceIdHandler());
 
+            // Rate limiting (FixedWindow en memoria): auth 10/min por IP, emisión 120/min
+            // y escritura 40/min por empresa. Va tras el TraceId para que un 429 igual
+            // reciba X-Trace-Id y quede registrado.
+            config.MessageHandlers.Add(new Seguridad.RateLimitingHandler());
+
             // Las excepciones no controladas se devuelven como JSON seguro.
             config.Services.Replace(
                 typeof(System.Web.Http.ExceptionHandling.IExceptionHandler),
