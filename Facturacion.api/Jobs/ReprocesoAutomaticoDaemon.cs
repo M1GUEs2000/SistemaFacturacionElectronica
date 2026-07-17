@@ -1,7 +1,6 @@
 using System;
 using System.Configuration;
 using System.Threading;
-using Facturacion.api.Servicios;
 using Serilog;
 
 namespace Facturacion.api.Jobs
@@ -71,13 +70,7 @@ namespace Facturacion.api.Jobs
 
             try
             {
-                var empresas = new ServicioEmpresasGeneral().listarNombresActivas();
-
-                Log.Information(
-                    "Barrido de reproceso ejecutado. Empresas activas: {Total}.",
-                    empresas.Count);
-
-                // Lote 7.1: por cada empresa -> autorizacion SRI, correo y reproceso.
+                BarridoPendientes.Ejecutar();
             }
             catch (Exception ex)
             {

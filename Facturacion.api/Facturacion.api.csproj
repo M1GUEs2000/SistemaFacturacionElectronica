@@ -234,6 +234,7 @@
     <Compile Include="Controllers\FacturasContoller.cs" />
     <Compile Include="Controllers\FormaPagoController.cs" />
     <Compile Include="Controllers\HealthController.cs" />
+    <Compile Include="Jobs\BarridoPendientes.cs" />
     <Compile Include="Jobs\ReprocesoAutomaticoDaemon.cs" />
     <Compile Include="Controllers\LoginController.cs" />
     <Compile Include="Controllers\NotasController.cs" />
