@@ -13,7 +13,7 @@ using LogicaNegocios;
 
 namespace Facturacion.api.Controllers
 {
-    [RoutePrefix("api/facturas")]
+    [RoutePrefix("api/v1/facturas")]
     public class FacturasController : BaseController
     {
         private IServicioFactura _servicioFactura;

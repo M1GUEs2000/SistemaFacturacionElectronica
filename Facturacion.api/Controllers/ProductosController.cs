@@ -6,7 +6,7 @@ using Facturacion.api.Servicios;
 
 namespace Facturacion.api.Controllers
 {
-    [RoutePrefix("api/productos")]
+    [RoutePrefix("api/v1/productos")]
     public class ProductosController : BaseController
     {
         private IServicioProductos _servicio;

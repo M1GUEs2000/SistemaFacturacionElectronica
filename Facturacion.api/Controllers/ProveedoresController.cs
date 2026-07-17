@@ -7,7 +7,7 @@ using Facturacion.api.Servicios;
 
 namespace Facturacion.api.Controllers
 {
-    [RoutePrefix("api/proveedores")]
+    [RoutePrefix("api/v1/proveedores")]
     public class ProveedoresController : BaseController
     {
         private IServicioProveedores _servicio;

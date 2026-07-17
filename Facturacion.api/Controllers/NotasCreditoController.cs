@@ -8,7 +8,7 @@ using Facturacion.api.Servicios;
 
 namespace Facturacion.api.Controllers
 {
-    [RoutePrefix("api/notascredito")]
+    [RoutePrefix("api/v1/notascredito")]
     public class NotasCreditoController : BaseController
     {
         private IServicioNotasCredito _servicio;

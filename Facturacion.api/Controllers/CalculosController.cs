@@ -8,7 +8,7 @@ using Facturacion.api.Servicios.Interfaces;
 namespace Facturacion.api.Controllers
 {
     // NO extiende BaseController — no necesita X-Empresa ni BD, solo lógica pura ICE
-    [RoutePrefix("api/calculos")]
+    [RoutePrefix("api/v1/calculos")]
     public class CalculosController : ApiController
     {
         private readonly IServicioCalculos _servicio = new ServicioCalculos();

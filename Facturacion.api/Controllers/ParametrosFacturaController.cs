@@ -7,7 +7,7 @@ using Facturacion.api.Factories;
 
 namespace Facturacion.api.Controllers
 {
-    [RoutePrefix("api/parametrosfacturas")]
+    [RoutePrefix("api/v1/parametrosfacturas")]
     public class ParametrosFacturasController : BaseController
     {
         private IServicioParametrosFacturas _servicio;

@@ -8,7 +8,7 @@ using Facturacion.api.Servicios;
 
 namespace Facturacion.api.Controllers
 {
-    [RoutePrefix("api/formapago")]
+    [RoutePrefix("api/v1/formapago")]
     public class FormaPagoController : BaseController
     {
         private IServicioFormaPago _servicio;

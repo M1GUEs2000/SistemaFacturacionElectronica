@@ -9,7 +9,7 @@ using Facturacion.api.Servicios.Interfaces;
 
 namespace Facturacion.api.Controllers
 {
-    [RoutePrefix("api/retenciones")]
+    [RoutePrefix("api/v1/retenciones")]
     public class RetencionesController : BaseController
     {
         private IServicioRetencion _servicio;

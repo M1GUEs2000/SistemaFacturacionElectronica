@@ -7,7 +7,7 @@ using System.Web.Http;
 
 namespace Facturacion.api.Controllers
 {
-    [RoutePrefix("api/usuariosgenerales")]
+    [RoutePrefix("api/v1/usuariosgenerales")]
     public class UsuariosGeneralesController : ApiController
     {
         private readonly IServicioUsuariosGenerales _servicio;

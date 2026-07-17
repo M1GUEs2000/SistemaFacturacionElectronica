@@ -7,7 +7,7 @@ using Facturacion.api.Servicios.Interfaces;
 
 namespace Facturacion.api.Controllers
 {
-    [RoutePrefix("api/secuenciales")]
+    [RoutePrefix("api/v1/secuenciales")]
     public class SecuencialesController : BaseController
     {
         private IServicioSecuenciales _servicio;

@@ -6,7 +6,7 @@ using Facturacion.api.Servicios.Interfaces;
 
 namespace Facturacion.api.Controllers
 {
-    [RoutePrefix("api/crearbase")]
+    [RoutePrefix("api/v1/crearbase")]
     public class CrearBaseController : BaseController
     {
         private IServicioCrearBase _servicio;

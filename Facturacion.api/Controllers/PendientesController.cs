@@ -7,7 +7,7 @@ using Facturacion.api.Factories;
 
 namespace Facturacion.api.Controllers
 {
-    [RoutePrefix("api/pendientes")]
+    [RoutePrefix("api/v1/pendientes")]
     public class PendientesController : BaseController
     {
         private IServicioPendientes _servicio;

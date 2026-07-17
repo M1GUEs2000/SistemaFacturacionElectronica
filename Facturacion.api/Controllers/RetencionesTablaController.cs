@@ -8,7 +8,7 @@ using Facturacion.api.Factories;
 
 namespace Facturacion.api.Controllers
 {
-    [RoutePrefix("api/retencionestabla")]
+    [RoutePrefix("api/v1/retencionestabla")]
     public class RetencionesTablaController : BaseController
     {
         private IServicioRetenciones _servicio;
