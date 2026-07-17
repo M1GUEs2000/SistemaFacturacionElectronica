@@ -1,4 +1,6 @@
+using Facturacion.api.Auth;
 using Facturacion.api.Models.Solicitudes;
+using Facturacion.api.Seguridad;
 using Facturacion.api.Servicios;
 using Facturacion.api.Servicios.Interfaces;
 using System.Net;
@@ -7,6 +9,9 @@ using System.Web.Http;
 
 namespace Facturacion.api.Controllers
 {
+    // Todo el CRUD de usuarios generales es de operador; solo el login (verificar)
+    // queda anónimo porque aún no hay token del que derivar el rol.
+    [SoloAdmin]
     [RoutePrefix("api/v1/usuariosgenerales")]
     public class UsuariosGeneralesController : ApiController
     {
@@ -18,16 +23,22 @@ namespace Facturacion.api.Controllers
         }
 
         // POST api/usuariosgenerales/verificar
+        [AllowAnonymous]
         [HttpPost]
         [Route("verificar")]
         public async Task<IHttpActionResult> Verificar([FromBody] SolicitudLoginAdmin solicitud)
         {
             var resultado = await _servicio.VerificarAdminAsync(solicitud);
 
-            if (resultado.exito)
-                return Ok(resultado);
+            if (!resultado.exito)
+                return Content(HttpStatusCode.BadRequest, resultado);
 
-            return Content(HttpStatusCode.BadRequest, resultado);
+            // Login de admin correcto: emitir JWT con rol=admin. Sin empresa
+            // (el admin opera sobre la BD general, no sobre un tenant).
+            if (resultado.data != null)
+                resultado.data.Token = JwtHelper.Generar("", JwtHelper.RolAdmin);
+
+            return Ok(resultado);
         }
 
         // GET api/usuariosgenerales

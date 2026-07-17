@@ -2,14 +2,21 @@
 using System.Web.Http;
 using Facturacion.api.Factories;
 using Facturacion.api.Models.Solicitudes;
+using Facturacion.api.Seguridad;
 using Facturacion.api.Servicios.Interfaces;
 
 namespace Facturacion.api.Controllers
 {
+    // Aprovisionamiento (crear/eliminar empresas, scripts, archivos): solo operador.
+    [SoloAdmin]
     [RoutePrefix("api/v1/crearbase")]
     public class CrearBaseController : BaseController
     {
         private IServicioCrearBase _servicio;
+
+        // El admin no está atado a un tenant: como su token trae rol=admin y sin
+        // empresa, BaseController deja AppServices en la BD general, que es el
+        // contexto de estas operaciones. La autorización la impone [SoloAdmin].
 
         protected override void InicializarServicios()
         {

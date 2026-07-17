@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -20,30 +21,76 @@ namespace Facturacion.api.Controllers
         {
             base.Initialize(controllerContext);
 
-            IEnumerable<string> valores;
-            if (controllerContext.Request.Headers.TryGetValues("X-Empresa", out valores))
-                EmpresaActual = valores.FirstOrDefault();
-
             if (RequiereAutenticacion())
-                ValidarToken(controllerContext);
+            {
+                string rol;
+                string empresaToken = ValidarTokenYObtenerEmpresa(controllerContext, out rol);
+
+                if (string.Equals(rol, JwtHelper.RolAdmin, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Operador (admin): SÍ puede dirigirse a un tenant concreto por
+                    // el header X-Empresa (aprovisionamiento). Sin header, queda en
+                    // la BD general. La autorización real la impone [SoloAdmin].
+                    EmpresaActual = LeerHeaderEmpresa(controllerContext);
+                }
+                else
+                {
+                    // Tenant: la empresa se fija SIEMPRE desde el claim del token,
+                    // nunca del header. Así un token emitido para la empresa A no
+                    // puede operar sobre la B enviando X-Empresa: B.
+                    EmpresaActual = empresaToken;
+                }
+            }
+            else
+            {
+                // Endpoints sin token (login): aún no existe ningún token del que
+                // derivar el tenant, así que se toma del header X-Empresa para
+                // localizar la BD de la empresa que se está autenticando.
+                EmpresaActual = LeerHeaderEmpresa(controllerContext);
+            }
 
             AppServices = AppServicesFactory.Create(EmpresaActual);
             InicializarServicios();
         }
 
-        private void ValidarToken(HttpControllerContext ctx)
+        private string ValidarTokenYObtenerEmpresa(HttpControllerContext ctx, out string rol)
         {
             var auth = ctx.Request.Headers.Authorization;
+            string empresa;
+            rol = null;
+
             if (auth == null || auth.Scheme != "Bearer" ||
-                !JwtHelper.Validar(auth.Parameter, out _))
+                !JwtHelper.ValidarConRol(auth.Parameter, out empresa, out rol))
             {
-                throw new HttpResponseException(
-                    ctx.Request.CreateResponse(
-                        HttpStatusCode.Unauthorized,
-                        new { mensaje = "No autorizado. Token inválido o ausente." }
-                    )
-                );
+                throw NoAutorizado(ctx);
             }
+
+            // Un token de tenant sin empresa está malformado; el de admin sí puede
+            // venir sin empresa (opera sobre la BD general).
+            bool esAdmin = string.Equals(rol, JwtHelper.RolAdmin, StringComparison.OrdinalIgnoreCase);
+            if (!esAdmin && string.IsNullOrEmpty(empresa))
+                throw NoAutorizado(ctx);
+
+            return empresa;
+        }
+
+        private static string LeerHeaderEmpresa(HttpControllerContext ctx)
+        {
+            IEnumerable<string> valores;
+            if (ctx.Request.Headers.TryGetValues("X-Empresa", out valores))
+                return valores.FirstOrDefault();
+
+            return null;
+        }
+
+        private static HttpResponseException NoAutorizado(HttpControllerContext ctx)
+        {
+            return new HttpResponseException(
+                ctx.Request.CreateResponse(
+                    HttpStatusCode.Unauthorized,
+                    new { mensaje = "No autorizado. Token inválido o ausente." }
+                )
+            );
         }
 
         protected virtual bool RequiereAutenticacion() => true;
