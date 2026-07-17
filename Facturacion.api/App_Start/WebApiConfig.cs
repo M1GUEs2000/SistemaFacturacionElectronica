@@ -1,5 +1,4 @@
 ﻿using System.Web.Http;
-using System.Web.Http.Cors;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
@@ -18,13 +17,7 @@ namespace Facturacion.api
                 new Seguridad.GlobalExceptionHandler());
             config.IncludeErrorDetailPolicy = IncludeErrorDetailPolicy.Never;
 
-            var cors = new EnableCorsAttribute(
-                "http://sistemadefacturacion.ssm.com.ec,https://sistemadefacturacion.ssm.com.ec,http://facturacionapi.ssm.com.ec,https://facturacionapi.ssm.com.ec,http://localhost:5173",
-                "*",
-                "*"
-            );
-
-            config.EnableCors(cors);
+            Seguridad.CorsConfig.Registrar(config);
 
             // RUTAS
             config.MapHttpAttributeRoutes();

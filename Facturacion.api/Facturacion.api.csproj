@@ -355,6 +355,8 @@
     <Compile Include="Seguridad\GlobalExceptionHandler.cs" />
     <Compile Include="Seguridad\ProblemDetailsResponse.cs" />
     <Compile Include="Seguridad\TraceIdHandler.cs" />
+    <Compile Include="Seguridad\CorsConfig.cs" />
+    <Compile Include="Seguridad\CorsHandler.cs" />
     <Compile Include="Logging\LoggingConfig.cs" />
   </ItemGroup>
   <ItemGroup>
