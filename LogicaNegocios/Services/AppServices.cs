@@ -19,6 +19,7 @@
         public LoginManejador Login { get; }
         public NotasCreditoManejador NotaCredito { get; }
         public ParametrosFacturasManejador ParamFactura { get; }
+        public ParametrosTransaccionesManejador ParamTransaccion { get; }
         public ParametrosManejador Param { get; }
         public ProductoManejador Producto { get; }
         public ProveedoresManejador Proveedor { get; }
@@ -50,6 +51,7 @@
             Login = new LoginManejador(Conexion);
             NotaCredito = new NotasCreditoManejador(Conexion, Log);
             ParamFactura = new ParametrosFacturasManejador(Conexion, Log);
+            ParamTransaccion = new ParametrosTransaccionesManejador(Conexion, Log);
             Param = new ParametrosManejador(Conexion, Log);
             Producto = new ProductoManejador(Conexion, Log);
             Proveedor = new ProveedoresManejador(Conexion, Log);

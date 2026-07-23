@@ -146,6 +146,7 @@
     <Compile Include="Manejadores\NotasCreditoManejador.cs" />
     <Compile Include="Manejadores\ParametrosFacturaManejador.cs" />
     <Compile Include="Manejadores\ParametrosManejador.cs" />
+    <Compile Include="Manejadores\ParametrosTransaccionesManejador.cs" />
     <Compile Include="Procesos\ProcesosFacturacion.cs" />
     <Compile Include="Procesos\ProcesosICE.cs" />
     <Compile Include="Procesos\ProcesosLote.cs" />

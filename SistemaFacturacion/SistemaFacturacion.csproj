@@ -217,6 +217,12 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>dsVenta.xsd</DependentUpon>
     </Compile>
+    <Compile Include="Forms\frmParametrosTransaccion.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\frmParametrosTransaccion.Designer.cs">
+      <DependentUpon>frmParametrosTransaccion.cs</DependentUpon>
+    </Compile>
     <Compile Include="FormValidador.cs" />
     <Compile Include="Forms\frmClientesDatos.cs">
       <SubType>Form</SubType>
@@ -415,6 +421,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\frmNuevaRetencion.resx">
       <DependentUpon>frmNuevaRetencion.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\frmParametrosTransaccion.resx">
+      <DependentUpon>frmParametrosTransaccion.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\frmParametrosSRI.resx">
       <DependentUpon>frmParametrosSRI.cs</DependentUpon>

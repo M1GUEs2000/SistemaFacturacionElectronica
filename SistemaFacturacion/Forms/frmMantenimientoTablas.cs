@@ -74,5 +74,13 @@ namespace SistemaFacturacion
             frmParametrosSRI.IPActual = this.IPActual;
             frmParametrosSRI.Show();
         }
+
+        private void btnParamTrans_Click(object sender, EventArgs e)
+        {
+            frmParametrosTransaccion frmParametrosTransaccion = new frmParametrosTransaccion(_services);
+            frmParametrosTransaccion.UsuarioActual = this.UsuarioActual;
+            frmParametrosTransaccion.IPActual = this.IPActual;
+            frmParametrosTransaccion.Show();
+        }
     }
 }

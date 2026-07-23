@@ -263,9 +263,6 @@ namespace LogicaNegocios.Procesos
             }
         }
 
-
-
-
         public Factura GenerarXmlFactura(
             DataSet em,
             DataSet pfm,
