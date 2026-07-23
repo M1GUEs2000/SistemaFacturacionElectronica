@@ -1,7 +1,10 @@
 ﻿namespace LogicaNegocios.Services
 {
+    using System.Configuration;
     using System.IO;
     using AccesoDatos.Abstractions;
+    using DF_PinPad.Wrapper.Config;
+    using DF_PinPad.Wrapper.Services;
     using LogicaNegocios;
     using LogicaNegocios.Procesos;
     using static LogicaNegocios.Procesos.ProcesosFacturacion;
@@ -31,6 +34,9 @@
         public ProcesosGenerales ProcesosGenerales { get; }
         public ProcesosLote ProcesosLote { get; }
         public FacturacionQueueAsync FacturacionQueue { get; }
+
+        /// <summary>Servicio de cobro con pinpad (Datafast). Auditoría en Access via PinPadLogManejador.</summary>
+        public IPinPadService PinPad { get; private set; }
 
         public decimal TarifaIva { get; private set; } = 0m;
 
@@ -63,6 +69,45 @@
             ProcesosGenerales = new ProcesosGenerales(this);
             ProcesosLote = new ProcesosLote(this);
             FacturacionQueue = new FacturacionQueueAsync();
+
+            PinPad = ConstruirPinPad();
+        }
+
+        // PinPadSettings se arma a mano desde appSettings (NO se usa
+        // PinPadSettings.LoadFromAppConfig(): ese exige la connection string SQL
+        // 'PinPadLogsDb' y lanza. Aquí la auditoría va a Access via PinPadLogManejador,
+        // así que SqlConnectionString queda null a propósito).
+        /// <summary>
+        /// Reconstruye el servicio de pinpad releyendo appSettings. Llamar tras guardar
+        /// la configuración de conexión (frmDatafast) para aplicarla sin reiniciar la app.
+        /// </summary>
+        public void RecargarPinPad()
+        {
+            ConfigurationManager.RefreshSection("appSettings");
+            PinPad = ConstruirPinPad();
+        }
+
+        private IPinPadService ConstruirPinPad()
+        {
+            var settings = new PinPadSettings
+            {
+                IP = ConfigurationManager.AppSettings["PinPad.IP"],
+                Puerto = ParseInt(ConfigurationManager.AppSettings["PinPad.Puerto"], 0),
+                TimeOutMs = ParseInt(ConfigurationManager.AppSettings["PinPad.TimeOutMs"], 60000),
+                MID = ConfigurationManager.AppSettings["PinPad.MID"],
+                TID = ConfigurationManager.AppSettings["PinPad.TID"],
+                CajaID = ConfigurationManager.AppSettings["PinPad.CajaID"],
+                Version = ParseInt(ConfigurationManager.AppSettings["PinPad.Version"], 1), // 1 = V4_4
+                SHA = ParseInt(ConfigurationManager.AppSettings["PinPad.SHA"], 1)          // 1 = SHA1
+                // SqlConnectionString: null a propósito (auditoría en Access)
+            };
+
+            return new PinPadService(settings, new PinPadLogManejador(Conexion));
+        }
+
+        private static int ParseInt(string valor, int porDefecto)
+        {
+            return int.TryParse(valor, out int r) ? r : porDefecto;
         }
 
         public void CargarTarifaIva(string nombreEmpresa)

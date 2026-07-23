@@ -43,6 +43,14 @@
     <Reference Include="BouncyCastle.Cryptography, Version=2.0.0.0, Culture=neutral, PublicKeyToken=072edcf4a5328938, processorArchitecture=MSIL">
       <HintPath>..\packages\BouncyCastle.Cryptography.2.6.2\lib\net461\BouncyCastle.Cryptography.dll</HintPath>
     </Reference>
+    <Reference Include="DF_PinPad">
+      <HintPath>..\SistemaFacturacion\PinPad\DF_PinPad.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="DF_PinPad.Wrapper">
+      <HintPath>..\SistemaFacturacion\PinPad\DF_PinPad.Wrapper.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="FirmaXadesNet, Version=2.0.1.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\FirmaXadesNet.2.0.1.1\lib\net45\FirmaXadesNet.dll</HintPath>
     </Reference>
@@ -113,6 +121,7 @@
       <HintPath>..\Firmador\Dll\serializer-2.7.1.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data.SqlClient, Version=4.6.1.6, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Data.SqlClient.4.8.6\lib\net461\System.Data.SqlClient.dll</HintPath>
@@ -147,6 +156,7 @@
     <Compile Include="Manejadores\ParametrosFacturaManejador.cs" />
     <Compile Include="Manejadores\ParametrosManejador.cs" />
     <Compile Include="Manejadores\ParametrosTransaccionesManejador.cs" />
+    <Compile Include="Manejadores\PinPadLogManejador.cs" />
     <Compile Include="Procesos\ProcesosFacturacion.cs" />
     <Compile Include="Procesos\ProcesosICE.cs" />
     <Compile Include="Procesos\ProcesosLote.cs" />

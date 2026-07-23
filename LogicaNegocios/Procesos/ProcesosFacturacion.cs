@@ -98,6 +98,25 @@ namespace LogicaNegocios.Procesos
     //Metodos
 
 
+    /// <summary>
+    /// Totales monetarios de una factura, calculados desde el detalle con las mismas
+    /// fórmulas que <see cref="ProcesosFacturacion.GenerarXmlFactura"/>. Se usa para
+    /// cobrar en el pinpad ANTES de emitir (mismos montos que irán al XML del SRI).
+    /// </summary>
+    public class TotalesFactura
+    {
+        /// <summary>Base gravada con IVA, ya incluyendo el ICE (lo que el SRI usa como base imponible del IVA).</summary>
+        public decimal BaseImponible { get; set; }
+        /// <summary>Base tarifa 0% (no gravada).</summary>
+        public decimal Base0 { get; set; }
+        /// <summary>IVA total.</summary>
+        public decimal Iva { get; set; }
+        /// <summary>ICE total (ya incluido dentro de BaseImponible).</summary>
+        public decimal TotalIce { get; set; }
+        /// <summary>Total a cobrar = Base0 + BaseImponible + Iva.</summary>
+        public decimal Total { get; set; }
+    }
+
     public class ProcesosFacturacion
     {
 
@@ -110,6 +129,74 @@ namespace LogicaNegocios.Procesos
         {
             _services = services;
 
+        }
+
+        /// <summary>
+        /// Calcula los totales monetarios de una factura desde su detalle, replicando
+        /// exactamente la acumulación de <c>GenerarXmlFactura</c> (ICE por línea, base
+        /// gravada = precio + ICE, IVA sobre precio+ICE). No construye XML; sirve para
+        /// cobrar en el pinpad antes de emitir. Las columnas usadas del detalle son
+        /// PRODUCTO, CANTIDAD y TOTAL (idénticas al loop de emisión).
+        /// </summary>
+        public TotalesFactura CalcularTotalesFactura(DataTable detalleFactura)
+        {
+            var totales = new TotalesFactura();
+            if (detalleFactura == null || detalleFactura.Rows.Count == 0)
+                return totales;
+
+            decimal tarifaBase = _services.TarifaIva;
+
+            decimal base0 = 0m;
+            decimal baseGravada = 0m;
+            decimal baseGravadaConICE = 0m;
+            decimal ivaGravado = 0m;
+            decimal totalICE = 0m;
+
+            foreach (DataRow row in detalleFactura.Rows)
+            {
+                string producto = row["PRODUCTO"].ToString();
+                decimal cantidad = Convert.ToDecimal(row["CANTIDAD"]);
+                decimal totalLinea = Convert.ToDecimal(row["TOTAL"]);
+
+                DataSet dsProd = _services.Producto.ConsultaNombre(producto);
+                if (dsProd == null || dsProd.Tables[0].Rows.Count == 0)
+                    throw new Exception("Producto no existe en BD: " + producto);
+
+                string ivaProducto = dsProd.Tables[0].Rows[0]["IVA"].ToString().Trim().ToUpperInvariant();
+                bool tieneIva = (ivaProducto == "SI");
+                decimal tarifaLinea = tieneIva ? tarifaBase : 0m;
+
+                decimal subtotalSinImp = totalLinea;
+
+                var iceLinea = HelperIva.CalcularIceLinea(dsProd.Tables[0].Rows[0], cantidad, subtotalSinImp);
+                decimal iceValorLinea = iceLinea.Aplica ? iceLinea.Valor : 0m;
+                if (iceLinea.Aplica) totalICE += iceValorLinea;
+
+                decimal baseIVALinea = subtotalSinImp + iceValorLinea;
+                decimal valorIVA = HelperIva.CalcularBaseEIvaLinea(subtotalSinImp, tarifaLinea, iceValorLinea).Iva;
+
+                if (tarifaLinea == 0m)
+                {
+                    base0 += subtotalSinImp;
+                }
+                else
+                {
+                    baseGravada += subtotalSinImp;
+                    baseGravadaConICE += baseIVALinea;
+                    ivaGravado += valorIVA;
+                }
+            }
+
+            // Mismo cálculo que GenerarXmlFactura (importeTotal): base0 + baseGravada + totalICE + ivaGravado
+            decimal totalSinImpuestos = Math.Round(base0 + baseGravada, 2);
+            decimal importeTotal = Math.Round(totalSinImpuestos + totalICE + ivaGravado, 2);
+
+            totales.Base0 = Math.Round(base0, 2);
+            totales.BaseImponible = Math.Round(baseGravadaConICE, 2);
+            totales.Iva = Math.Round(ivaGravado, 2);
+            totales.TotalIce = Math.Round(totalICE, 2);
+            totales.Total = importeTotal;
+            return totales;
         }
 
         public ResultadoFacturaPreparada PrepararFactura(

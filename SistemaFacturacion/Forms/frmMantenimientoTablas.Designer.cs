@@ -36,6 +36,7 @@
             this.button2 = new System.Windows.Forms.Button();
             this.button3 = new System.Windows.Forms.Button();
             this.btnParamTrans = new System.Windows.Forms.Button();
+            this.btnPinpad = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // btnProductos
@@ -113,7 +114,7 @@
             // button3
             // 
             this.button3.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.button3.Location = new System.Drawing.Point(257, 213);
+            this.button3.Location = new System.Drawing.Point(376, 213);
             this.button3.Margin = new System.Windows.Forms.Padding(2);
             this.button3.Name = "button3";
             this.button3.Size = new System.Drawing.Size(207, 58);
@@ -134,11 +135,24 @@
             this.btnParamTrans.UseVisualStyleBackColor = true;
             this.btnParamTrans.Click += new System.EventHandler(this.btnParamTrans_Click);
             // 
+            // btnPinpad
+            // 
+            this.btnPinpad.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnPinpad.Location = new System.Drawing.Point(117, 213);
+            this.btnPinpad.Margin = new System.Windows.Forms.Padding(2);
+            this.btnPinpad.Name = "btnPinpad";
+            this.btnPinpad.Size = new System.Drawing.Size(207, 58);
+            this.btnPinpad.TabIndex = 8;
+            this.btnPinpad.Text = "PINPAD";
+            this.btnPinpad.UseVisualStyleBackColor = true;
+            this.btnPinpad.Click += new System.EventHandler(this.btnPinpad_Click);
+            //
             // frmMantenimientoTablas
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(720, 307);
+            this.Controls.Add(this.btnPinpad);
             this.Controls.Add(this.btnParamTrans);
             this.Controls.Add(this.button3);
             this.Controls.Add(this.button2);
@@ -166,5 +180,6 @@
         private System.Windows.Forms.Button button2;
         private System.Windows.Forms.Button button3;
         private System.Windows.Forms.Button btnParamTrans;
+        private System.Windows.Forms.Button btnPinpad;
     }
 }

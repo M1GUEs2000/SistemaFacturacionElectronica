@@ -82,5 +82,13 @@ namespace SistemaFacturacion
             frmParametrosTransaccion.IPActual = this.IPActual;
             frmParametrosTransaccion.Show();
         }
+
+        private void btnPinpad_Click(object sender, EventArgs e)
+        {
+            frmDatafast frmDatafast = new frmDatafast(_services);
+            frmDatafast.UsuarioActual = this.UsuarioActual;
+            frmDatafast.IPActual = this.IPActual;
+            frmDatafast.Show();
+        }
     }
 }

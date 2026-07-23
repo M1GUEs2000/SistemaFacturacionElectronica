@@ -1,0 +1,3 @@
+Este archivo existe solo para que la carpeta PPLog se incluya en el control de versiones
+y se copie al directorio de salida. DF_PinPad.dll escribe aquí sus logs internos
+(controlado por la clave "RutaLog" vacía en DF_PinPad.dll.config).
