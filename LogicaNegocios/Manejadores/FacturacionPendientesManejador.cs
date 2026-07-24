@@ -249,10 +249,94 @@ namespace LogicaNegocios
 
         //Pintar boton accion
 
+        // ==========================================================
+        // CONSULTA POR DOCUMENTO INDIVIDUAL (clicks puntuales)
+        //
+        // Va a la BD por un solo documento y delega la decisión en
+        // ConstruirAccionDesdeEstado. Usar SOLO para un documento suelto;
+        // para pintar una grilla entera usar ConsultarEstadosPendientesPorTipo
+        // + ConstruirAccionDesdeEstado, que hace 1 sola consulta en vez de N.
+        // ==========================================================
         public AccionPendienteDocumento ConsultarAccionPendienteDocumento(
             string numeroDocumento,
             string tipoDocumento   // "FACTURA" | "NOTADECREDITO" | "RETENCION"
         )
+        {
+            if (string.IsNullOrWhiteSpace(numeroDocumento) ||
+                string.IsNullOrWhiteSpace(tipoDocumento))
+            {
+                return ConstruirAccionDesdeEstado(numeroDocumento, tipoDocumento, null);
+            }
+
+            DataSet dsPendiente = ConsultarPorNumeroYTipo(
+                numeroDocumento.Trim().ToUpperInvariant(),
+                tipoDocumento.Trim().ToUpperInvariant()
+            );
+
+            string estado = null;
+            if (dsPendiente != null &&
+                dsPendiente.Tables.Count > 0 &&
+                dsPendiente.Tables[0].Rows.Count > 0)
+            {
+                estado = dsPendiente.Tables[0].Rows[0]["ESTADO"]?.ToString();
+            }
+
+            return ConstruirAccionDesdeEstado(numeroDocumento, tipoDocumento, estado);
+        }
+
+        // ==========================================================
+        // CONSULTA EN LOTE — TODOS LOS PENDIENTES DE UN TIPO (1 sola query)
+        //
+        // Reemplaza el N+1 al pintar grillas: en vez de consultar la BD por
+        // cada fila, se trae de golpe el mapa numero→estado y se busca en
+        // memoria. La tabla FACTURAS_PENDIENTES es chica (solo lo pendiente),
+        // así que traerla entera cuesta menos que una fila-por-fila.
+        // ==========================================================
+        public System.Collections.Generic.Dictionary<string, string> ConsultarEstadosPendientesPorTipo(
+            string tipoDocumento)
+        {
+            var mapa = new System.Collections.Generic.Dictionary<string, string>(
+                StringComparer.OrdinalIgnoreCase);
+
+            if (string.IsNullOrWhiteSpace(tipoDocumento))
+                return mapa;
+
+            // Parametrizado: además de correcto, evita romper si el tipo trae comilla.
+            const string sql = @"
+                SELECT NUMEROFACTURA, ESTADO
+                FROM FACTURAS_PENDIENTES
+                WHERE TIPO = @tipo";
+
+            DataSet ds = _conexion.Seleccionar(sql, ("tipo", tipoDocumento.Trim().ToUpper()));
+
+            if (ds == null || ds.Tables.Count == 0)
+                return mapa;
+
+            foreach (DataRow row in ds.Tables[0].Rows)
+            {
+                string numero = row["NUMEROFACTURA"]?.ToString()?.Trim().ToUpperInvariant() ?? "";
+                if (numero.Length == 0)
+                    continue;
+
+                // Si hubiera duplicados, el primero gana — igual que el Rows[0] de antes.
+                if (!mapa.ContainsKey(numero))
+                    mapa[numero] = row["ESTADO"]?.ToString()?.Trim().ToUpperInvariant() ?? "";
+            }
+
+            return mapa;
+        }
+
+        // ==========================================================
+        // DECISIÓN PURA — de un estado ya conocido al botón/PDF/XML
+        //
+        // Sin acceso a BD: recibe el estado (null/"" si el documento NO está
+        // en FACTURAS_PENDIENTES) y devuelve qué pintar. Lo comparten la
+        // consulta individual y la de lote, para que ambas decidan igual.
+        // ==========================================================
+        public AccionPendienteDocumento ConstruirAccionDesdeEstado(
+            string numeroDocumento,
+            string tipoDocumento,
+            string estadoPendiente)
         {
             var r = new AccionPendienteDocumento
             {
@@ -275,7 +359,6 @@ namespace LogicaNegocios
                 return r;
 
             numeroDocumento = numeroDocumento.Trim().ToUpperInvariant();
-            tipoDocumento = tipoDocumento.Trim().ToUpperInvariant();
 
             // ==================================================
             // 1) CASO ESPECIAL: NÚMERO PENDIENTE (NO EXISTE PDF/XML)
@@ -287,28 +370,15 @@ namespace LogicaNegocios
             }
 
             // ==================================================
-            // 2) CONSULTAR FACTURAS_PENDIENTES
+            // 2) ¿ESTÁ EN FACTURAS_PENDIENTES?
             // ==================================================
-            DataSet dsPendiente = ConsultarPorNumeroYTipo(
-                numeroDocumento,
-                tipoDocumento
-            );
+            estadoPendiente = estadoPendiente?.Trim().ToUpperInvariant() ?? "";
 
-            if (dsPendiente == null ||
-                dsPendiente.Tables.Count == 0 ||
-                dsPendiente.Tables[0].Rows.Count == 0)
+            if (string.IsNullOrWhiteSpace(estadoPendiente))
             {
                 // No es pendiente → se respeta lo definido arriba
                 return r;
             }
-
-            DataRow rowPend = dsPendiente.Tables[0].Rows[0];
-
-            string estadoPendiente =
-                rowPend["ESTADO"]?.ToString()?.Trim().ToUpperInvariant() ?? "";
-
-            if (string.IsNullOrWhiteSpace(estadoPendiente))
-                return r;
 
             r.Existe = true;
             r.EstadoPendiente = estadoPendiente;

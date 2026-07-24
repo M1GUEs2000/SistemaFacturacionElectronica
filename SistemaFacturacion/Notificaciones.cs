@@ -115,13 +115,15 @@ public static class Notificaciones
 
             Panel footer = CrearFooter(fondo);
 
+            container.SuspendLayout();
             container.Controls.Add(panelBotones);
             container.Controls.Add(body);
             container.Controls.Add(footer);
             container.Controls.Add(header);
+            container.ResumeLayout();
 
             destino.Controls.Add(container);
-            container.PerformLayout();
+            container.PerformLayout();   // fija el tamaño AutoSize antes de centrar
 
             container.Location = new Point(
                 (destino.ClientSize.Width - container.Width) / 2,
@@ -130,6 +132,7 @@ public static class Notificaciones
 
             overlayBloqueo.BringToFront();
             container.BringToFront();
+            container.Visible = true;    // recién ahora se pinta: entero y ya centrado
 
             // BringToFront solo cambia el z-order: el foco de teclado se queda en el
             // control que lo tenía antes (p.ej. el reportViewer del recibo, que además
@@ -154,11 +157,12 @@ public static class Notificaciones
         // ======================================================================
         if (tipo == "exito")
         {
-            Panel toast = new Panel
+            PanelDobleBuffer toast = new PanelDobleBuffer
             {
                 BackColor = Color.FromArgb(35, 160, 70),
                 Width = 420,
                 Height = 45,
+                Visible = false,
                 Tag = "toast"
             };
 
@@ -178,11 +182,15 @@ public static class Notificaciones
             };
 
             toast.Controls.Add(lbl);
-            destino.Controls.Add(toast);
-            toast.BringToFront();
 
+            // Posicionar ANTES de agregarlo evita el parpadeo de aparecer en la esquina
+            // y saltar al centro; se muestra ya colocado.
             int x = (destino.ClientSize.Width - toast.Width) / 2;
             toast.Location = new Point(x, 20);
+
+            destino.Controls.Add(toast);
+            toast.BringToFront();
+            toast.Visible = true;
 
             LimitarToasts(destino, 2);
 
@@ -234,12 +242,14 @@ public static class Notificaciones
 
             Panel footer = CrearFooter(colorFondo);
 
+            container.SuspendLayout();
             container.Controls.Add(body);
             container.Controls.Add(footer);
             container.Controls.Add(header);
+            container.ResumeLayout();
 
             destino.Controls.Add(container);
-            container.PerformLayout();
+            container.PerformLayout();   // fija el tamaño AutoSize antes de centrar
 
             container.Location = new Point(
                 (destino.ClientSize.Width - container.Width) / 2,
@@ -248,6 +258,7 @@ public static class Notificaciones
 
             overlayBloqueo.BringToFront();
             container.BringToFront();
+            container.Visible = true;    // recién ahora se pinta: entero y ya centrado
 
             toastProceso = container;
 
@@ -321,17 +332,22 @@ public static class Notificaciones
         Panel bodyArea = CrearBody(lblM);
         Panel foot = CrearFooter(fondoToast);
 
+        cont.SuspendLayout();
         cont.Controls.Add(bodyArea);
         cont.Controls.Add(foot);
         cont.Controls.Add(headerToast);
+        cont.ResumeLayout();
 
         destino.Controls.Add(cont);
-        cont.BringToFront();
+        cont.PerformLayout();   // fija el tamaño AutoSize antes de centrar
 
         cont.Location = new Point(
             (destino.ClientSize.Width - cont.Width) / 2,
             (destino.ClientSize.Height - cont.Height) / 2
         );
+
+        cont.BringToFront();
+        cont.Visible = true;    // recién ahora se pinta: entero y ya centrado
 
         LimitarToasts(destino, 2);
 
@@ -368,13 +384,17 @@ public static class Notificaciones
 
     private static Panel CrearContenedorToast(Color colorFondo, Color colorBorde)
     {
-        Panel container = new Panel
+        PanelDobleBuffer container = new PanelDobleBuffer
         {
             Width = 420,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             MinimumSize = new Size(420, 60),
             BackColor = Color.White,
+            // Nace oculto: se arma y se centra invisible, y cada bloque de "show" lo
+            // hace visible como ÚLTIMO paso para que aparezca de una sola vez, no por
+            // franjas (header/body/footer) ni saltando desde la esquina al centro.
+            Visible = false,
             Tag = "toast"
         };
 
@@ -613,6 +633,23 @@ public static class Notificaciones
             destino.Controls.Remove(overlayBloqueo);
             overlayBloqueo.Dispose();
             overlayBloqueo = null;
+        }
+    }
+
+    /// <summary>
+    /// Panel con doble búfer: dibuja su fondo, su borde y sus franjas en memoria y las
+    /// muestra completas de un solo golpe, en vez de dejar que se pinten por separado.
+    /// La propiedad DoubleBuffered de Panel es protegida, por eso se activa desde una
+    /// subclase en lugar de por reflexión.
+    /// </summary>
+    private class PanelDobleBuffer : Panel
+    {
+        public PanelDobleBuffer()
+        {
+            DoubleBuffered = true;
+            SetStyle(ControlStyles.OptimizedDoubleBuffer |
+                     ControlStyles.AllPaintingInWmPaint, true);
+            UpdateStyles();
         }
     }
 
