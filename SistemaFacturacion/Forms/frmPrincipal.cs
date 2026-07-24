@@ -345,11 +345,15 @@ namespace SistemaFacturacion
                 long pinpadLogId = 0;
                 bool cobradoConTarjeta = false;
 
+                // Se conserva el resultado completo del cobro (no solo el Id de auditoría):
+                // los datos de la tarjeta y los totales cobrados se necesitan después para
+                // el recibo y para el baucher.
+                ResultadoCobroTarjeta cobro = null;
+
                 if (ProcesosTarjetas.EsPagoTarjeta(formaPagoOriginal))
                 {
                     Notificaciones.Show(this, "Inserte / acerque la tarjeta en el datafast…", "proceso");
 
-                    ResultadoCobroTarjeta cobro;
                     try
                     {
                         // Toda la orquestación del cobro + auditoría vive en ProcesosTarjetas;
@@ -477,12 +481,17 @@ namespace SistemaFacturacion
                             enc.Columns.Add("HORA");
                             enc.Columns.Add("CLIENTE");
                             enc.Columns.Add("FORMAPAGO");
+                            // Vacíos si la venta no fue con tarjeta: el recibo los omite.
+                            enc.Columns.Add("APROBACION");
+                            enc.Columns.Add("TARJETA");
                             enc.Rows.Add(
                                 lblNombreEmpresa.Text,
                                 fechaOriginal,
                                 horaOriginal,
                                 clienteOriginal,
-                                formaPagoOriginal
+                                formaPagoOriginal,
+                                cobradoConTarjeta ? (cobro.Detalle?.Autorizacion ?? "") : "",
+                                cobradoConTarjeta ? ProcesosTarjetas.NumeroTarjetaVisible(cobro.Detalle) : ""
                             );
 
                             reportViewer1.LocalReport.DataSources.Clear();
@@ -499,6 +508,66 @@ namespace SistemaFacturacion
                                 rdlc.DataSources.Add(new ReportDataSource("DataSet2", enc));
                                 var imp = new Impresora();
                                 try { imp.Imprime(rdlc); } finally { imp.Dispose(); }
+
+                                // ==============================================
+                                // SEGUNDA TIRA: BAUCHER CON FIRMA
+                                // Solo si se cobró con tarjeta Y el consumo alcanza
+                                // MINIMOFIRMA. El recibo de arriba sale siempre.
+                                // ==============================================
+                                if (cobradoConTarjeta
+                                    && cobro.Totales != null
+                                    && _services.ProcesosTarjetas.RequiereFirmaBaucher(cobro.Totales.Total))
+                                {
+                                    try
+                                    {
+                                        BaucherTarjeta.Imprimir(
+                                            _services,
+                                            em.Tables[0].Rows[0],
+                                            cobro.Detalle,
+                                            cobro.Totales,
+                                            BaucherTarjeta.RotuloOriginal
+                                        );
+
+                                        // La COPIA se pregunta DESPUÉS de que el ORIGINAL ya
+                                        // salió: si el original falla, entra al catch y no
+                                        // tiene sentido ofrecer una copia de algo que no
+                                        // se imprimió. El toast "confirmacion" es bloqueante
+                                        // (bombea mensajes hasta que el cajero responde), así
+                                        // que aquí se detiene el flujo un momento; no hay
+                                        // problema porque ya estamos de vuelta en el hilo de
+                                        // UI y el cobro y la emisión están cerrados.
+                                        bool quiereCopia = Notificaciones.Show(
+                                            this,
+                                            "¿Desea imprimir la copia del baucher?",
+                                            "confirmacion"
+                                        );
+
+                                        if (quiereCopia)
+                                        {
+                                            BaucherTarjeta.Imprimir(
+                                                _services,
+                                                em.Tables[0].Rows[0],
+                                                cobro.Detalle,
+                                                cobro.Totales,
+                                                BaucherTarjeta.RotuloCopia
+                                            );
+                                        }
+                                    }
+                                    catch (Exception exBaucher)
+                                    {
+                                        // La venta ya se cobró y se emitió: un fallo de
+                                        // impresión no puede tumbar el flujo, pero el
+                                        // cajero tiene que enterarse de que falta la firma.
+                                        Notificaciones.Show(
+                                            this,
+                                            "No se pudo imprimir el baucher de la tarjeta:\n" +
+                                            exBaucher.Message,
+                                            "error",
+                                            UsuarioActual,
+                                            IPActual
+                                        );
+                                    }
+                                }
                             }
 
                             // ==================================================

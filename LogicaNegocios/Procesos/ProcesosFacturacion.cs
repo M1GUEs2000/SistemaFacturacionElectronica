@@ -927,6 +927,14 @@ namespace LogicaNegocios.Procesos
                         r.Autorizado = false;
                         r.EsElectronica = false;
                         r.NumeroFactura = prep.NumeroFactura;
+
+                        // El form usa TB_Venta como DataSet1 del recibo ANTES de mirar
+                        // EsElectronica: si van en null, RefreshReport lanza "No se puede
+                        // crear un lector de datos para el conjunto de datos 'DataSet1'" y
+                        // se pierde la vista previa y TODA la impresión.
+                        r.TB_Venta = prep.TB_Venta;
+                        r.TB_Transacciones = prep.TB_Transacciones;
+
                         r.Mensaje = "Factura de consumidor final registrada correctamente.";
                         return r;
 

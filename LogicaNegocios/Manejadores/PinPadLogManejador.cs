@@ -161,13 +161,13 @@ namespace LogicaNegocios
                      CODIGORESPUESTAAUT, MENSAJERESPUESTAAUT, REDADQUIRENTE,
                      REFERENCIA, LOTE, AUTORIZACION, TID, MID,
                      CODIGOADQUIRENTE, NOMBREADQUIRENTE, NOMBREGRUPOTARJETA,
-                     MODOLECTURA, TARJETAHABIENTE, NUMEROTARJETA, NUMEROFACTURA)
+                     MODOLECTURA, TARJETAHABIENTE, NUMEROTARJETA, FECHAVENCIMIENTO, NUMEROFACTURA)
                     VALUES
                     (@transId, @monto, @tipoTrans, @red,
                      @codAut, @msgAut, @redAdq,
                      @refer, @lote, @autoriz, @tid, @mid,
                      @codAdq, @nomAdq, @grupo,
-                     @modo, @habiente, @tarjeta, @factura)";
+                     @modo, @habiente, @tarjeta, @vence, @factura)";
 
                 _conexion.Ejecutar(sql,
                     ("transId", clave),
@@ -188,6 +188,7 @@ namespace LogicaNegocios
                     ("modo", result?.ModoLectura ?? ""),
                     ("habiente", result?.TarjetaHabiente ?? ""),
                     ("tarjeta", result?.NumeroTarjeta ?? ""),
+                    ("vence", result?.FechaVencimiento ?? ""),
                     ("factura", clave));
             }
             catch { /* swallow */ }

@@ -392,6 +392,7 @@
     <Compile Include="Forms\frmReporteTotales.Designer.cs">
       <DependentUpon>frmReporteTotales.cs</DependentUpon>
     </Compile>
+    <Compile Include="BaucherTarjeta.cs" />
     <Compile Include="Impresora.cs" />
     <Compile Include="Notificaciones.cs" />
     <Compile Include="ProcesosGeneralesUI.cs" />
@@ -492,7 +493,20 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
-    <EmbeddedResource Include="rptRecibo.rdlc" />
+    <!--
+      Los .rdlc se usan de DOS formas y por eso necesitan ambas cosas:
+        - EmbeddedResource: el preview del reportViewer1 los carga por
+          ReportEmbeddedResource ("SistemaFacturacion.rptRecibo.rdlc").
+        - CopyToOutputDirectory: la IMPRESIÓN los carga por ReportPath, que es una ruta
+          de archivo relativa al directorio de ejecución. Sin esta copia, el bin se
+          queda con una versión vieja y lo que se imprime NO es lo que se diseñó.
+    -->
+    <EmbeddedResource Include="rptRecibo.rdlc">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="rptBaucher.rdlc">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
     <None Include="bin\Debug\ConexionSQL.dat">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

@@ -1,0 +1,1566 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rptBaucher.rdlc — Baucher de consumo con tarjeta (Datafast).
+
+  Se imprime SOLO cuando el cobro fue con tarjeta Y el total alcanza el parámetro
+  MINIMOFIRMA (PARAMETROS_TRANSACCIONES, CODIGO='F1'). Sale como una SEGUNDA tira,
+  después del recibo: el recibo se sigue imprimiendo en toda venta, sin cambios.
+
+  Todo entra por ReportParameters (no hay DataSets): son campos escalares y así se
+  evita un Tablix por dato. Los arma BaucherTarjeta.Imprimir(...).
+
+  El rótulo final (ORIGINAL / COPIA) es el parámetro ROTULO — para la reimpresión
+  de la copia solo hay que llamar otra vez con "COPIA", sin tocar este archivo.
+
+  Ancho pensado para el mismo rollo térmico que rptRecibo.rdlc (7 cm / 4 in).
+-->
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2008/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <Body>
+    <ReportItems>
+      <!-- ============================================================= -->
+      <!-- MARCO DEL CUPÓN DE CONSUMO                                    -->
+      <!-- ============================================================= -->
+      <Line Name="MarcoTop">
+        <Top>0.05cm</Top>
+        <Left>0.10cm</Left>
+        <Height>0cm</Height>
+        <Width>6.60cm</Width>
+        <ZIndex>0</ZIndex>
+        <Style>
+          <Border>
+            <Style>Solid</Style>
+          </Border>
+        </Style>
+      </Line>
+      <Line Name="MarcoBottom">
+        <Top>8.05cm</Top>
+        <Left>0.10cm</Left>
+        <Height>0cm</Height>
+        <Width>6.60cm</Width>
+        <ZIndex>0</ZIndex>
+        <Style>
+          <Border>
+            <Style>Solid</Style>
+          </Border>
+        </Style>
+      </Line>
+      <Line Name="MarcoLeft">
+        <Top>0.05cm</Top>
+        <Left>0.10cm</Left>
+        <Height>8.00cm</Height>
+        <Width>0cm</Width>
+        <ZIndex>0</ZIndex>
+        <Style>
+          <Border>
+            <Style>Solid</Style>
+          </Border>
+        </Style>
+      </Line>
+      <Line Name="MarcoRight">
+        <Top>0.05cm</Top>
+        <Left>6.70cm</Left>
+        <Height>8.00cm</Height>
+        <Width>0cm</Width>
+        <ZIndex>0</ZIndex>
+        <Style>
+          <Border>
+            <Style>Solid</Style>
+          </Border>
+        </Style>
+      </Line>
+
+      <!-- ============================================================= -->
+      <!-- CABECERA DEL COMERCIO (EmpresaManejador)                       -->
+      <!-- ============================================================= -->
+      <Textbox Name="Comercio">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>=Parameters!COMERCIO.Value</Value>
+                <Style>
+                  <FontSize>9pt</FontSize>
+                  <FontWeight>Bold</FontWeight>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Center</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Comercio</rd:DefaultName>
+        <Top>0.15cm</Top>
+        <Left>0.20cm</Left>
+        <Height>0.45cm</Height>
+        <Width>6.40cm</Width>
+        <ZIndex>1</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="Ruc">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>="R U C : " &amp; Parameters!RUC.Value</Value>
+                <Style>
+                  <FontSize>8pt</FontSize>
+                  <FontWeight>Bold</FontWeight>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Center</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Ruc</rd:DefaultName>
+        <Top>0.60cm</Top>
+        <Left>0.20cm</Left>
+        <Height>0.40cm</Height>
+        <Width>6.40cm</Width>
+        <ZIndex>2</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="Direccion">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>=Parameters!DIRECCION.Value</Value>
+                <Style>
+                  <FontSize>8pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Center</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Direccion</rd:DefaultName>
+        <Top>1.00cm</Top>
+        <Left>0.20cm</Left>
+        <Height>0.40cm</Height>
+        <Width>6.40cm</Width>
+        <ZIndex>3</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="Telefono">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>="Telefono " &amp; Parameters!TELEFONO.Value</Value>
+                <Style>
+                  <FontSize>8pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Center</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Telefono</rd:DefaultName>
+        <Top>1.40cm</Top>
+        <Left>0.20cm</Left>
+        <Height>0.40cm</Height>
+        <Width>6.40cm</Width>
+        <ZIndex>4</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <!-- CIUDAD: queda vacía a propósito — no existe el campo en la tabla EMPRESA. -->
+      <Textbox Name="Ciudad">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>=Parameters!CIUDAD.Value</Value>
+                <Style>
+                  <FontSize>8pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Center</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Ciudad</rd:DefaultName>
+        <Top>1.80cm</Top>
+        <Left>0.20cm</Left>
+        <Height>0.40cm</Height>
+        <Width>6.40cm</Width>
+        <ZIndex>5</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <!-- TID - MID - versión de aplicación (quemada) - modo de lectura (MODOPAGO). -->
+      <Textbox Name="Terminal">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>=Parameters!TID.Value &amp; " - " &amp; Parameters!MID.Value &amp; " - 4.0.01 - "</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+              <TextRun>
+                <Value>=Parameters!MODOLECTURA.Value</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                  <Color>Red</Color>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Center</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Terminal</rd:DefaultName>
+        <Top>2.20cm</Top>
+        <Left>0.20cm</Left>
+        <Height>0.40cm</Height>
+        <Width>6.40cm</Width>
+        <ZIndex>6</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="GrupoTarjeta">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>=Parameters!GRUPOTARJETA.Value</Value>
+                <Style>
+                  <FontSize>8pt</FontSize>
+                  <FontWeight>Bold</FontWeight>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Center</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>GrupoTarjeta</rd:DefaultName>
+        <Top>2.60cm</Top>
+        <Left>0.20cm</Left>
+        <Height>0.45cm</Height>
+        <Width>6.40cm</Width>
+        <ZIndex>7</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+
+      <!-- ============================================================= -->
+      <!-- DATOS DE LA TRANSACCIÓN (ProcesoPagoResult)                    -->
+      <!-- ============================================================= -->
+      <Textbox Name="Tarjeta">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>="TARJETA: " &amp; Parameters!TARJETA.Value</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Tarjeta</rd:DefaultName>
+        <Top>3.20cm</Top>
+        <Left>0.30cm</Left>
+        <Height>0.40cm</Height>
+        <Width>4.10cm</Width>
+        <ZIndex>8</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <!-- Vencimiento: placeholder — el pinpad no devuelve la fecha de expiración. -->
+      <Textbox Name="Vencimiento">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>="V:" &amp; Parameters!VENCIMIENTO.Value</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Vencimiento</rd:DefaultName>
+        <Top>3.20cm</Top>
+        <Left>4.45cm</Left>
+        <Height>0.40cm</Height>
+        <Width>2.15cm</Width>
+        <ZIndex>9</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="Lote">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>="LOTE#: " &amp; Parameters!LOTE.Value</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Lote</rd:DefaultName>
+        <Top>3.60cm</Top>
+        <Left>0.30cm</Left>
+        <Height>0.40cm</Height>
+        <Width>4.10cm</Width>
+        <ZIndex>10</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="Referencia">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>="REF: " &amp; Parameters!REFERENCIA.Value</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Referencia</rd:DefaultName>
+        <Top>3.60cm</Top>
+        <Left>4.45cm</Left>
+        <Height>0.40cm</Height>
+        <Width>2.15cm</Width>
+        <ZIndex>11</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="LblAdquirente">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>ADQUIRIENTE:</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>LblAdquirente</rd:DefaultName>
+        <Top>4.00cm</Top>
+        <Left>0.30cm</Left>
+        <Height>0.40cm</Height>
+        <Width>4.10cm</Width>
+        <ZIndex>12</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="Adquirente">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>=Parameters!ADQUIRIENTE.Value</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Adquirente</rd:DefaultName>
+        <Top>4.00cm</Top>
+        <Left>4.45cm</Left>
+        <Height>0.40cm</Height>
+        <Width>2.15cm</Width>
+        <ZIndex>13</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="Fecha">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>="FECHA:" &amp; Parameters!FECHA.Value</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Fecha</rd:DefaultName>
+        <Top>4.40cm</Top>
+        <Left>0.30cm</Left>
+        <Height>0.40cm</Height>
+        <Width>4.10cm</Width>
+        <ZIndex>14</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="Hora">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>="HORA: " &amp; Parameters!HORA.Value</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Hora</rd:DefaultName>
+        <Top>4.40cm</Top>
+        <Left>4.45cm</Left>
+        <Height>0.40cm</Height>
+        <Width>2.15cm</Width>
+        <ZIndex>15</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="Aprobacion">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>="APROBACION#     " &amp; Parameters!APROBACION.Value</Value>
+                <Style>
+                  <FontSize>8pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Center</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Aprobacion</rd:DefaultName>
+        <Top>4.95cm</Top>
+        <Left>0.30cm</Left>
+        <Height>0.45cm</Height>
+        <Width>6.30cm</Width>
+        <ZIndex>16</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+
+      <!-- ============================================================= -->
+      <!-- MONTOS — mismos que se cobraron en el pinpad (TotalesFactura). -->
+      <!-- La tarifa del rótulo viene de PARAMETROS_FACTURAS, no es fija. -->
+      <!-- ============================================================= -->
+      <Textbox Name="LblBaseGravada">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>="BASE CONSUMO TARIFA " &amp; Parameters!TARIFAIVA.Value</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>LblBaseGravada</rd:DefaultName>
+        <Top>5.50cm</Top>
+        <Left>0.30cm</Left>
+        <Height>0.38cm</Height>
+        <Width>3.30cm</Width>
+        <ZIndex>17</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>0pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="UsdBaseGravada">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>:US$</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>UsdBaseGravada</rd:DefaultName>
+        <Top>5.50cm</Top>
+        <Left>3.65cm</Left>
+        <Height>0.38cm</Height>
+        <Width>1.05cm</Width>
+        <ZIndex>18</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>0pt</PaddingLeft>
+          <PaddingRight>0pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="BaseGravada">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>=Parameters!BASEGRAVADA.Value</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Right</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>BaseGravada</rd:DefaultName>
+        <Top>5.50cm</Top>
+        <Left>4.70cm</Left>
+        <Height>0.38cm</Height>
+        <Width>1.90cm</Width>
+        <ZIndex>19</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>0pt</PaddingLeft>
+          <PaddingRight>4pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="LblBase0">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>BASE CONSUMO TARIFA 0</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>LblBase0</rd:DefaultName>
+        <Top>5.88cm</Top>
+        <Left>0.30cm</Left>
+        <Height>0.38cm</Height>
+        <Width>3.30cm</Width>
+        <ZIndex>20</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>0pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="UsdBase0">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>:US$</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>UsdBase0</rd:DefaultName>
+        <Top>5.88cm</Top>
+        <Left>3.65cm</Left>
+        <Height>0.38cm</Height>
+        <Width>1.05cm</Width>
+        <ZIndex>21</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>0pt</PaddingLeft>
+          <PaddingRight>0pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="Base0">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>=Parameters!BASE0.Value</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Right</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Base0</rd:DefaultName>
+        <Top>5.88cm</Top>
+        <Left>4.70cm</Left>
+        <Height>0.38cm</Height>
+        <Width>1.90cm</Width>
+        <ZIndex>22</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>0pt</PaddingLeft>
+          <PaddingRight>4pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="LblSubtotal">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>SUBTOTAL CONSUMOS</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>LblSubtotal</rd:DefaultName>
+        <Top>6.26cm</Top>
+        <Left>0.30cm</Left>
+        <Height>0.38cm</Height>
+        <Width>3.30cm</Width>
+        <ZIndex>23</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>0pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="UsdSubtotal">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>:US$</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>UsdSubtotal</rd:DefaultName>
+        <Top>6.26cm</Top>
+        <Left>3.65cm</Left>
+        <Height>0.38cm</Height>
+        <Width>1.05cm</Width>
+        <ZIndex>24</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>0pt</PaddingLeft>
+          <PaddingRight>0pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="Subtotal">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>=Parameters!SUBTOTAL.Value</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Right</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Subtotal</rd:DefaultName>
+        <Top>6.26cm</Top>
+        <Left>4.70cm</Left>
+        <Height>0.38cm</Height>
+        <Width>1.90cm</Width>
+        <ZIndex>25</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>0pt</PaddingLeft>
+          <PaddingRight>4pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="LblIva">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>IVA</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>LblIva</rd:DefaultName>
+        <Top>6.64cm</Top>
+        <Left>0.30cm</Left>
+        <Height>0.38cm</Height>
+        <Width>3.30cm</Width>
+        <ZIndex>26</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>0pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="UsdIva">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>:US$</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>UsdIva</rd:DefaultName>
+        <Top>6.64cm</Top>
+        <Left>3.65cm</Left>
+        <Height>0.38cm</Height>
+        <Width>1.05cm</Width>
+        <ZIndex>27</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>0pt</PaddingLeft>
+          <PaddingRight>0pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="Iva">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>=Parameters!IVA.Value</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Right</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Iva</rd:DefaultName>
+        <Top>6.64cm</Top>
+        <Left>4.70cm</Left>
+        <Height>0.38cm</Height>
+        <Width>1.90cm</Width>
+        <ZIndex>28</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>0pt</PaddingLeft>
+          <PaddingRight>4pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="LblTotal">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>VR. TOTAL</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                  <FontWeight>Bold</FontWeight>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>LblTotal</rd:DefaultName>
+        <Top>7.10cm</Top>
+        <Left>0.30cm</Left>
+        <Height>0.40cm</Height>
+        <Width>3.30cm</Width>
+        <ZIndex>29</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>0pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="UsdTotal">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>:US$</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                  <FontWeight>Bold</FontWeight>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>UsdTotal</rd:DefaultName>
+        <Top>7.10cm</Top>
+        <Left>3.65cm</Left>
+        <Height>0.40cm</Height>
+        <Width>1.05cm</Width>
+        <ZIndex>30</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>0pt</PaddingLeft>
+          <PaddingRight>0pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="Total">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>=Parameters!TOTAL.Value</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                  <FontWeight>Bold</FontWeight>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Right</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Total</rd:DefaultName>
+        <Top>7.10cm</Top>
+        <Left>4.70cm</Left>
+        <Height>0.40cm</Height>
+        <Width>1.90cm</Width>
+        <ZIndex>31</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>0pt</PaddingLeft>
+          <PaddingRight>4pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="CapElecCupon">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>="CAP  ELEC  " &amp; Parameters!RED.Value</Value>
+                <Style>
+                  <FontSize>8pt</FontSize>
+                  <FontWeight>Bold</FontWeight>
+                  <Color>Red</Color>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Center</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>CapElecCupon</rd:DefaultName>
+        <Top>7.58cm</Top>
+        <Left>0.30cm</Left>
+        <Height>0.42cm</Height>
+        <Width>6.30cm</Width>
+        <ZIndex>32</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+
+      <!-- ============================================================= -->
+      <!-- HOJA DE FIRMA — la razón de ser del MINIMOFIRMA                -->
+      <!-- ============================================================= -->
+      <Textbox Name="CapElecFirma">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>="CAP  ELEC  " &amp; Parameters!RED.Value</Value>
+                <Style>
+                  <FontSize>8pt</FontSize>
+                  <FontWeight>Bold</FontWeight>
+                  <Color>Red</Color>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Center</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>CapElecFirma</rd:DefaultName>
+        <Top>8.60cm</Top>
+        <Left>0.30cm</Left>
+        <Height>0.42cm</Height>
+        <Width>6.30cm</Width>
+        <ZIndex>33</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="TextoLegal">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>DEBO Y PAGARE AL EMISOR INCONDICIONALMENTE Y SIN PROTESTO EL TOTAL DE ESTE PAGARE MAS LOS INTERESES Y CARGOS POR SERVICIO, EN CASO DE MORA PAGARE LA TASA MAXIMA AUTORIZADA PARA EL EMISOR. DECLARO QUE EL PRODUCTO DE LA TRANSACCION NO SERA UTILIZADO EN ACTIVIDADES DE LAVADO DE ACTIVOS, FINANCIAMIENTO DEL TERRORISMO Y OTROS DELITOS.</Value>
+                <Style>
+                  <FontSize>6.5pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Left</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>TextoLegal</rd:DefaultName>
+        <Top>9.10cm</Top>
+        <Left>0.30cm</Left>
+        <Height>2.90cm</Height>
+        <Width>6.30cm</Width>
+        <ZIndex>34</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <!-- Nombre del TARJETAHABIENTE que devuelve el pinpad. -->
+      <Textbox Name="Habiente">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>="NOMBRE   :" &amp; Parameters!HABIENTE.Value</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Habiente</rd:DefaultName>
+        <Top>12.10cm</Top>
+        <Left>0.30cm</Left>
+        <Height>0.40cm</Height>
+        <Width>6.30cm</Width>
+        <ZIndex>35</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="LineaFirma">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>x______________________________</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>LineaFirma</rd:DefaultName>
+        <Top>12.50cm</Top>
+        <Left>0.30cm</Left>
+        <Height>0.40cm</Height>
+        <Width>6.30cm</Width>
+        <ZIndex>36</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="VerificaFirma">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>EL ESTABLECIMIENTO VERIFICA QUE LA FIRMA DEL CLIENTE ES AUTENTICA</Value>
+                <Style>
+                  <FontSize>6.5pt</FontSize>
+                  <Color>Red</Color>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Left</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>VerificaFirma</rd:DefaultName>
+        <Top>12.95cm</Top>
+        <Left>0.30cm</Left>
+        <Height>0.75cm</Height>
+        <Width>6.30cm</Width>
+        <ZIndex>37</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <!-- C.I. y TELEFONO van EN BLANCO: los llena el cliente a mano. -->
+      <Textbox Name="Cedula">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>C.I.: ____________________</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Cedula</rd:DefaultName>
+        <Top>13.80cm</Top>
+        <Left>0.30cm</Left>
+        <Height>0.40cm</Height>
+        <Width>6.30cm</Width>
+        <ZIndex>38</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <Textbox Name="TelefonoCliente">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>TELEFONO: ________________</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>TelefonoCliente</rd:DefaultName>
+        <Top>14.20cm</Top>
+        <Left>0.30cm</Left>
+        <Height>0.40cm</Height>
+        <Width>6.30cm</Width>
+        <ZIndex>39</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <!-- ORIGINAL / COPIA — parametrizado para la reimpresión de la copia. -->
+      <Textbox Name="Rotulo">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>=Parameters!ROTULO.Value</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Center</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Rotulo</rd:DefaultName>
+        <Top>14.90cm</Top>
+        <Left>0.30cm</Left>
+        <Height>0.42cm</Height>
+        <Width>6.30cm</Width>
+        <ZIndex>40</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+      <!-- Publicidad = nombre de la empresa (EMPRESA.NOMBRE). -->
+      <Textbox Name="Publicidad">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>="***" &amp; Parameters!PUBLICIDAD.Value &amp; "***"</Value>
+                <Style>
+                  <FontSize>7pt</FontSize>
+                  <FontWeight>Bold</FontWeight>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Center</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Publicidad</rd:DefaultName>
+        <Top>15.45cm</Top>
+        <Left>0.30cm</Left>
+        <Height>0.42cm</Height>
+        <Width>6.30cm</Width>
+        <ZIndex>41</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+        </Style>
+      </Textbox>
+    </ReportItems>
+    <Height>16.00cm</Height>
+    <Style />
+  </Body>
+  <Width>7.00cm</Width>
+  <Page>
+    <PageHeight>18cm</PageHeight>
+    <PageWidth>7cm</PageWidth>
+    <InteractiveHeight>18cm</InteractiveHeight>
+    <InteractiveWidth>7cm</InteractiveWidth>
+    <LeftMargin>0.5cm</LeftMargin>
+    <RightMargin>0cm</RightMargin>
+    <TopMargin>0cm</TopMargin>
+    <BottomMargin>0cm</BottomMargin>
+    <ColumnSpacing>1.27cm</ColumnSpacing>
+    <Style />
+  </Page>
+  <AutoRefresh>0</AutoRefresh>
+  <ReportParameters>
+    <ReportParameter Name="COMERCIO">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>COMERCIO</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="RUC">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>RUC</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="DIRECCION">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>DIRECCION</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="TELEFONO">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>TELEFONO</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="CIUDAD">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>CIUDAD</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="TID">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>TID</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="MID">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>MID</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="MODOLECTURA">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>MODOLECTURA</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="GRUPOTARJETA">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>GRUPOTARJETA</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="TARJETA">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>TARJETA</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="VENCIMIENTO">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>VENCIMIENTO</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="LOTE">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>LOTE</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="REFERENCIA">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>REFERENCIA</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="ADQUIRIENTE">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>ADQUIRIENTE</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="FECHA">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>FECHA</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="HORA">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>HORA</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="APROBACION">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>APROBACION</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="TARIFAIVA">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>TARIFAIVA</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="BASEGRAVADA">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>BASEGRAVADA</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="BASE0">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>BASE0</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="SUBTOTAL">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>SUBTOTAL</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="IVA">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>IVA</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="TOTAL">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>TOTAL</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="RED">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>RED</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="HABIENTE">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>HABIENTE</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="ROTULO">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>ROTULO</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="PUBLICIDAD">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>PUBLICIDAD</Prompt>
+    </ReportParameter>
+  </ReportParameters>
+  <rd:ReportUnitType>Cm</rd:ReportUnitType>
+  <rd:ReportID>7e3a1c04-9b5d-4f21-a6c8-2d0f5b8e91aa</rd:ReportID>
+</Report>

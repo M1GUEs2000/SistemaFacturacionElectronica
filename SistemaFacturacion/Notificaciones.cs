@@ -47,7 +47,7 @@ public static class Notificaciones
             bool resultado = false;
             bool respondido = false;
 
-            BloquearUI(destino);
+            BloquearUI(destino, 60);
 
             Color fondo = Color.FromArgb(108, 117, 125);
             Color borde = Color.FromArgb(90, 98, 104);
@@ -130,6 +130,16 @@ public static class Notificaciones
 
             overlayBloqueo.BringToFront();
             container.BringToFront();
+
+            // BringToFront solo cambia el z-order: el foco de teclado se queda en el
+            // control que lo tenía antes (p.ej. el reportViewer del recibo, que además
+            // se come el primer clic al soltarlo). Sin esto el cajero tiene que hacer
+            // un clic "en vacío" para poder responder. Enfocar btnNo mete el panel en
+            // la conversación — a partir de ahí Sí y No responden al primer clic — y
+            // deja el Enter en la opción segura: estas confirmaciones también anulan
+            // notas de crédito y retenciones.
+            try { destino.ActiveControl = btnNo; }
+            catch { /* si el form no puede dar foco, el panel igual funciona con mouse */ }
 
             while (!respondido)
             {
@@ -536,16 +546,56 @@ public static class Notificaciones
         catch { }
     }
 
-    private static void BloquearUI(Form destino)
+    /// <param name="alpha">
+    /// Intensidad del velo gris (0-255). El de "proceso" va oscuro a propósito: ahí el
+    /// cajero NO puede hacer nada y conviene que se note. El de "confirmacion" va más
+    /// claro porque suele necesitar leer lo que hay detrás para decidir.
+    /// </param>
+    private static void BloquearUI(Form destino, int alpha = 120)
     {
         if (overlayBloqueo != null && !overlayBloqueo.IsDisposed)
             return;
 
+        // WinForms NO permite que un control vea a sus hermanos de abajo: un Panel con
+        // BackColor semitransparente solo mezcla contra SU PROPIO fondo, y sale un gris
+        // plano por más que se baje el alpha. El truco estándar es fotografiar el form
+        // ANTES de taparlo y pintar esa foto dentro del overlay; el velo negro va encima
+        // de la foto, y ahí sí se ve lo de atrás atenuado.
+        //
+        // La foto queda congelada, pero da igual: mientras el overlay está puesto la UI
+        // está bloqueada y nada de lo que hay debajo puede cambiar.
+        Bitmap fondo = null;
+        Point origenCliente = Point.Empty;
+        try
+        {
+            // DrawToBitmap de un Form incluye el área NO-CLIENTE (borde + barra de título)
+            // y la dibuja desde el pixel 0,0. Como el overlay vive en coordenadas de
+            // cliente, se captura la ventana COMPLETA y se guarda dónde empieza el área
+            // cliente dentro de esa foto; el OnPaint la desplaza para que calce.
+            Size tam = destino.Size;
+            if (tam.Width > 0 && tam.Height > 0)
+            {
+                fondo = new Bitmap(tam.Width, tam.Height);
+                destino.DrawToBitmap(fondo, new Rectangle(Point.Empty, tam));
+
+                Point cliente = destino.PointToScreen(Point.Empty);
+                origenCliente = new Point(cliente.X - destino.Left, cliente.Y - destino.Top);
+            }
+        }
+        catch
+        {
+            // Algún control puede negarse a renderizarse a bitmap. Sin foto el overlay
+            // se comporta como antes (gris opaco): feo, pero sigue bloqueando.
+            if (fondo != null) { fondo.Dispose(); fondo = null; }
+        }
+
         overlayBloqueo = new OverlayTransparente
         {
             Dock = DockStyle.Fill,
-            Alpha = 120,            // intensidad de oscuridad (0-255)
+            Alpha = alpha,
             ColorOverlay = Color.Black,
+            Fondo = fondo,
+            OrigenCliente = origenCliente,
             Tag = "bloqueo"
         };
 
@@ -571,6 +621,18 @@ public static class Notificaciones
         public int Alpha { get; set; } = 120;
         public Color ColorOverlay { get; set; } = Color.Black;
 
+        /// <summary>
+        /// Foto de lo que había debajo, tomada por BloquearUI antes de tapar el form.
+        /// Si va en null el overlay pinta gris opaco (el comportamiento viejo).
+        /// </summary>
+        public Image Fondo { get; set; }
+
+        /// <summary>
+        /// Dónde arranca el área cliente dentro de <see cref="Fondo"/>. Sirve para
+        /// descartar el borde y la barra de título que DrawToBitmap incluye siempre.
+        /// </summary>
+        public Point OrigenCliente { get; set; }
+
         public OverlayTransparente()
         {
             this.SetStyle(ControlStyles.AllPaintingInWmPaint |
@@ -582,12 +644,28 @@ public static class Notificaciones
 
         protected override void OnPaint(PaintEventArgs e)
         {
+            // Primero la foto, después el velo: al revés el velo quedaría debajo y no
+            // atenuaría nada.
+            if (Fondo != null)
+                e.Graphics.DrawImageUnscaled(Fondo, -OrigenCliente.X, -OrigenCliente.Y);
+
             using (SolidBrush brush = new SolidBrush(Color.FromArgb(Alpha, ColorOverlay)))
             {
                 e.Graphics.FillRectangle(brush, this.ClientRectangle);
             }
 
             base.OnPaint(e);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && Fondo != null)
+            {
+                Fondo.Dispose();
+                Fondo = null;
+            }
+
+            base.Dispose(disposing);
         }
     }
 

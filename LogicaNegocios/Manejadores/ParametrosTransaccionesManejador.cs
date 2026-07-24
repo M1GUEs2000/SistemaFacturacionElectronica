@@ -12,6 +12,7 @@ namespace LogicaNegocios
     ///   NOMBRE=TIPODIFERIDO  VALOR=SIN INTERESES...           CODIGO=T1..T7  (ACTIVO=1 marca los habilitados en el sistema)
     ///   NOMBRE=CUOTA         VALOR=(nº cuotas)                CODIGO=T1..T7  (ligada a su TIPODIFERIDO por mismo CODIGO)
     ///   NOMBRE=MINIMOFIRMA   VALOR=10                         CODIGO=F1
+    ///   NOMBRE=MODOPAGO      VALOR=MANUAL - TOKEN MANUAL/BANDA/CHIP/FALLBACK MANUAL (CHIP)/FALLBACK BANDA (CHIP)/CTLS - TOKEN CTLS   CODIGO=01..06
     /// </summary>
     public class ParametrosTransaccionesManejador
     {
@@ -104,6 +105,24 @@ namespace LogicaNegocios
                              AND CODIGO = @codigo";
 
             return _conexion.Seleccionar(sql, ("codigo", CodigoDiferido));
+        }
+
+        /// <summary>Todas las opciones de MODO DE PAGO (códigos 01..06), activas o no.</summary>
+        public DataSet ObtenerModosPago()
+        {
+            return ConsultarPorNombre("MODOPAGO");
+        }
+
+        /// <summary>Modos de pago habilitados (ACTIVO=1) — lo que debe ofrecer el resto del sistema.</summary>
+        public DataSet ObtenerModosPagoActivos()
+        {
+            string sql = @"SELECT NOMBRE, VALOR, CODIGO, ACTIVO
+                           FROM PARAMETROS_TRANSACCIONES
+                           WHERE NOMBRE = 'MODOPAGO'
+                             AND ACTIVO = 1
+                           ORDER BY CODIGO";
+
+            return _conexion.Seleccionar(sql);
         }
 
         /// <summary>Valor único de un parámetro por su NOMBRE (ej: MINIMOFIRMA => "10"). "" si no existe.</summary>

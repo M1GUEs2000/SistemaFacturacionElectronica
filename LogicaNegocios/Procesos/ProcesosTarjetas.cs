@@ -1,5 +1,6 @@
 using System;
 using System.Data;
+using System.Globalization;
 using System.Text;
 using DF_PinPad.Wrapper.Models;
 using LogicaNegocios.Services;
@@ -16,6 +17,13 @@ namespace LogicaNegocios.Procesos
         public string Motivo { get; set; }               // razón del rechazo si no aprobado
         public long PinpadLogId { get; set; }            // Id de auditoría (PINPAD_LOG) para vincular la factura
         public ProcesoPagoResult Detalle { get; set; }   // respuesta cruda del wrapper (autorización, lote, etc.)
+
+        /// <summary>
+        /// Totales que se COBRARON realmente (los que se le mandaron al pinpad). Se
+        /// devuelven para que el baucher imprima exactamente esos montos y no un
+        /// recálculo posterior que podría diferir en centavos.
+        /// </summary>
+        public TotalesFactura Totales { get; set; }
     }
 
     /// <summary>
@@ -95,7 +103,7 @@ namespace LogicaNegocios.Procesos
                 UsuarioSistema = usuarioSistema
             };
 
-            var resultado = new ResultadoCobroTarjeta();
+            var resultado = new ResultadoCobroTarjeta { Totales = totales };
             try
             {
                 // Aquí adentro el wrapper YA persiste la auditoría en Access.
@@ -132,6 +140,118 @@ namespace LogicaNegocios.Procesos
             if (pinpadLogId == 0) return;
             try { _services.PinPad.VincularNumeroFactura(pinpadLogId, numeroFacturaReal); }
             catch { /* auditoría no bloquea la factura */ }
+        }
+
+        /// <summary>
+        /// ¿El consumo obliga a imprimir el baucher con firma? Compara el total cobrado
+        /// contra MINIMOFIRMA (PARAMETROS_TRANSACCIONES, NOMBRE='MINIMOFIRMA', CODIGO='F1').
+        ///
+        /// Si el parámetro no existe o no es un número, devuelve false: se mantiene el
+        /// comportamiento de siempre (solo el recibo) en vez de imprimir un baucher
+        /// disparado por un valor basura.
+        /// </summary>
+        public bool RequiereFirmaBaucher(decimal total)
+        {
+            string valor = _services.ParamTransaccion.ObtenerMinimoFirma();
+            if (string.IsNullOrWhiteSpace(valor))
+                return false;
+
+            if (!TryParseMonto(valor, out decimal minimo))
+                return false;
+
+            return total >= minimo;
+        }
+
+        /// <summary>
+        /// Número de tarjeta a mostrar en recibo y baucher.
+        ///
+        /// El campo TarjetaTruncadaOTT viene vacío en las transacciones normales (la DLL
+        /// solo lo llena en el flujo OTT/tokenizado), así que se usa NumeroTarjeta, que es
+        /// el PAN ya enmascarado que devuelve el pinpad. Se deja TarjetaTruncadaOTT como
+        /// respaldo por si en algún flujo llega solo ese.
+        /// </summary>
+        public static string NumeroTarjetaVisible(ProcesoPagoResult cobro)
+        {
+            if (cobro == null)
+                return "";
+
+            string numero = (cobro.NumeroTarjeta ?? "").Trim();
+            if (numero.Length > 0)
+                return numero;
+
+            return (cobro.TarjetaTruncadaOTT ?? "").Trim();
+        }
+
+        /// <summary>
+        /// Fecha de expiración de la tarjeta con el formato del baucher ("MM/AA").
+        ///
+        /// El pinpad la devuelve como 4 dígitos sin separador; se le mete la barra sin
+        /// reordenar nada. Si llegara con otra longitud (o vacía) se devuelve tal cual:
+        /// más vale imprimir el dato crudo que inventarle un formato.
+        ///
+        /// Se toma como entrada un string (no el ProcesoPagoResult) para que la reimpresión
+        /// de una COPIA pueda pasarle el valor leído de PINPAD_AUTORIZADAS.FECHAVENCIMIENTO.
+        /// </summary>
+        public static string FormatearVencimiento(string valor)
+        {
+            string v = (valor ?? "").Trim();
+            if (v.Length != 4)
+                return v;
+
+            foreach (char c in v)
+                if (!char.IsDigit(c))
+                    return v;
+
+            return v.Substring(0, 2) + "/" + v.Substring(2, 2);
+        }
+
+        /// <summary>
+        /// Texto del "TIPO DE LECTURA" del baucher. El pinpad devuelve
+        /// <see cref="ProcesoPagoResult.ModoLectura"/> y la tabla de parámetros tiene la
+        /// descripción en NOMBRE='MODOPAGO' (CODIGO 01..06).
+        ///
+        /// Resuelve por CODIGO; si lo que llegó no es uno de esos códigos (la DLL ya manda
+        /// el texto, o manda algo nuevo), devuelve el valor crudo en vez de vaciar el campo.
+        /// </summary>
+        public string DescribirModoLectura(string modoLectura)
+        {
+            string modo = (modoLectura ?? "").Trim();
+            if (modo.Length == 0)
+                return "";
+
+            try
+            {
+                DataSet ds = _services.ParamTransaccion.ObtenerModosPago();
+                if (ds != null && ds.Tables.Count > 0)
+                {
+                    foreach (DataRow fila in ds.Tables[0].Rows)
+                    {
+                        string codigo = (fila["CODIGO"] ?? "").ToString().Trim();
+                        if (string.Equals(codigo, modo, StringComparison.OrdinalIgnoreCase))
+                            return (fila["VALOR"] ?? "").ToString().Trim();
+                    }
+                }
+            }
+            catch
+            {
+                // Un fallo de lectura de la tabla no debe dejar el baucher sin imprimir:
+                // se cae al valor crudo del pinpad.
+            }
+
+            return modo;
+        }
+
+        /// <summary>
+        /// Parsea un monto guardado como texto en la tabla de parámetros. Se intenta con la
+        /// cultura del equipo y con la invariante, porque el valor pudo grabarse con coma
+        /// o con punto decimal según cómo estuviera configurada la caja.
+        /// </summary>
+        private static bool TryParseMonto(string valor, out decimal resultado)
+        {
+            const NumberStyles estilos = NumberStyles.Number;
+
+            return decimal.TryParse(valor, estilos, CultureInfo.CurrentCulture, out resultado)
+                || decimal.TryParse(valor, estilos, CultureInfo.InvariantCulture, out resultado);
         }
 
         /// <summary>

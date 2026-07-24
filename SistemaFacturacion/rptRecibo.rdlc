@@ -873,8 +873,94 @@
           </Border>
         </Style>
       </Tablix>
+      <!--
+        Datos del cobro con tarjeta (aprobación + tarjeta). Se alimentan de
+        ProcesoPagoResult via el DataSet2 de encabezado. En ventas que NO son con
+        tarjeta llegan vacíos y el bloque se imprime en blanco.
+      -->
+      <Tablix Name="Tablix6">
+        <TablixBody>
+          <TablixColumns>
+            <TablixColumn>
+              <Width>6.4cm</Width>
+            </TablixColumn>
+          </TablixColumns>
+          <TablixRows>
+            <TablixRow>
+              <Height>0.9cm</Height>
+              <TablixCells>
+                <TablixCell>
+                  <CellContents>
+                    <Textbox Name="DATOSTARJETA">
+                      <CanGrow>true</CanGrow>
+                      <KeepTogether>true</KeepTogether>
+                      <Paragraphs>
+                        <Paragraph>
+                          <TextRuns>
+                            <TextRun>
+                              <Value>=IIf(Len(Trim(Fields!APROBACION.Value &amp; "")) = 0, "", "APROBACION#: " &amp; Fields!APROBACION.Value)</Value>
+                              <Style>
+                                <FontSize>8pt</FontSize>
+                              </Style>
+                            </TextRun>
+                          </TextRuns>
+                          <Style />
+                        </Paragraph>
+                        <Paragraph>
+                          <TextRuns>
+                            <TextRun>
+                              <Value>=IIf(Len(Trim(Fields!TARJETA.Value &amp; "")) = 0, "", "TARJETA: " &amp; Fields!TARJETA.Value)</Value>
+                              <Style>
+                                <FontSize>8pt</FontSize>
+                              </Style>
+                            </TextRun>
+                          </TextRuns>
+                          <Style />
+                        </Paragraph>
+                      </Paragraphs>
+                      <rd:DefaultName>DATOSTARJETA</rd:DefaultName>
+                      <Style>
+                        <Border>
+                          <Style>None</Style>
+                        </Border>
+                        <PaddingLeft>2pt</PaddingLeft>
+                        <PaddingRight>2pt</PaddingRight>
+                        <PaddingTop>2pt</PaddingTop>
+                        <PaddingBottom>2pt</PaddingBottom>
+                      </Style>
+                    </Textbox>
+                  </CellContents>
+                </TablixCell>
+              </TablixCells>
+            </TablixRow>
+          </TablixRows>
+        </TablixBody>
+        <TablixColumnHierarchy>
+          <TablixMembers>
+            <TablixMember />
+          </TablixMembers>
+        </TablixColumnHierarchy>
+        <TablixRowHierarchy>
+          <TablixMembers>
+            <TablixMember>
+              <Group Name="Details5" />
+            </TablixMember>
+          </TablixMembers>
+        </TablixRowHierarchy>
+        <DataSetName>DataSet2</DataSetName>
+        <Top>7.30259cm</Top>
+        <Left>0.30cm</Left>
+        <Height>0.9cm</Height>
+        <Width>6.4cm</Width>
+        <ZIndex>11</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+        </Style>
+      </Tablix>
     </ReportItems>
-    <Height>7.70367cm</Height>
+    <Height>8.40cm</Height>
     <Style />
   </Body>
   <Width>7.2587cm</Width>
@@ -964,6 +1050,14 @@
         </Field>
         <Field Name="FORMAPAGO">
           <DataField>FORMAPAGO</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="APROBACION">
+          <DataField>APROBACION</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="TARJETA">
+          <DataField>TARJETA</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
       </Fields>
