@@ -199,6 +199,30 @@ namespace LogicaNegocios.Procesos
             return totales;
         }
 
+        /// <summary>
+        /// Devuelve el número de factura que se USARÁ al emitir, según el caso:
+        ///   - cliente "FINAL"  → secuencial interno de consumidor final
+        ///   - forma "COMPRAS"  → "COMPRA"
+        ///   - resto            → secuencial formateado del SRI (tipo "01")
+        ///
+        /// Es un PEEK: <see cref="ParametrosManejador.ObtenerSecuencialFormateado"/> solo LEE
+        /// y formatea el secuencial actual, NO lo incrementa (el incremento ocurre aparte,
+        /// tras autorizar). Por eso llamarlo antes de emitir (p.ej. para el cobro con tarjeta)
+        /// da el MISMO número que generará <see cref="PrepararFactura"/> después. Única fuente
+        /// de verdad del número, compartida entre la emisión y la auditoría del pinpad.
+        /// </summary>
+        public string ObtenerNumeroFacturaPrevisto(string cliente, string formaPago)
+        {
+            string clienteUpper = (cliente ?? "").Trim().ToUpperInvariant();
+            string formaUpper = (formaPago ?? "").Trim().ToUpperInvariant();
+
+            if (clienteUpper == "FINAL")
+                return _services.Facturacion.ObtenerSecuencialConsumidor();
+            if (formaUpper == "COMPRAS")
+                return "COMPRA";
+            return _services.Param.ObtenerSecuencialFormateado("01");
+        }
+
         public ResultadoFacturaPreparada PrepararFactura(
             DataTable detalleFactura,
             string cliente,
@@ -223,13 +247,8 @@ namespace LogicaNegocios.Procesos
                     formaUpper != "COMPRAS" &&
                     lblFacturaElectronica == "SI";
 
-                string numeroFactura;
-                if (clienteUpper == "FINAL")
-                    numeroFactura = _services.Facturacion.ObtenerSecuencialConsumidor();
-                else if (formaUpper == "COMPRAS")
-                    numeroFactura = "COMPRA";
-                else
-                    numeroFactura = _services.Param.ObtenerSecuencialFormateado("01");
+                // Fuente ÚNICA del número de factura (misma que usa el cobro con tarjeta).
+                string numeroFactura = ObtenerNumeroFacturaPrevisto(cliente, formaPago);
 
                 // Tablas temp (si las quieres conservar)
                 DataTable TB_VENTA = new DataTable();

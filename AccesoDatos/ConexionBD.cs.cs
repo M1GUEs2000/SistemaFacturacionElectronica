@@ -46,6 +46,27 @@ namespace AccesoDatos
             }
         }
 
+        // Enlaza parámetros para OleDb (Access). Dos tipos NO deben ir por AddWithValue,
+        // porque el inferido choca con la columna y Jet/ACE tira "Data type mismatch in
+        // criteria expression" aunque la columna sea correcta:
+        //   - DateTime  -> AddWithValue lo infiere DBTimeStamp; columna Fecha/Hora lo rechaza.
+        //                  OleDbType.Date (fecha OLE, conserva la hora) sí lo acepta.
+        //   - decimal   -> AddWithValue lo infiere Decimal/Numeric; columna Currency lo
+        //                  rechaza. OleDbType.Currency mapea limpio a Access Moneda.
+        // El resto (strings, bool->YesNo, int) va como antes.
+        private static void AgregarParametrosOleDb(OleDbCommand cmd, (string nombre, object valor)[] parametros)
+        {
+            foreach (var (nombre, valor) in parametros)
+            {
+                if (valor is DateTime fecha)
+                    cmd.Parameters.Add(nombre, OleDbType.Date).Value = fecha;
+                else if (valor is decimal monto)
+                    cmd.Parameters.Add(nombre, OleDbType.Currency).Value = monto;
+                else
+                    cmd.Parameters.AddWithValue(nombre, valor ?? DBNull.Value);
+            }
+        }
+
         public int Ejecutar(string SQL)
         {
             int filas = 0;
@@ -140,8 +161,7 @@ namespace AccesoDatos
                     con.Open();
                     using (OleDbCommand cmd = new OleDbCommand(oleDbSql, con))
                     {
-                        foreach (var (nombre, valor) in parametros)
-                            cmd.Parameters.AddWithValue(nombre, valor ?? DBNull.Value);
+                        AgregarParametrosOleDb(cmd, parametros);
                         filas = cmd.ExecuteNonQuery();
                     }
                 }
@@ -182,8 +202,7 @@ namespace AccesoDatos
                     con.Open();
                     using (OleDbCommand cmd = new OleDbCommand(oleDbSql, con))
                     {
-                        foreach (var (nombre, valor) in parametros)
-                            cmd.Parameters.AddWithValue(nombre, valor ?? DBNull.Value);
+                        AgregarParametrosOleDb(cmd, parametros);
                         using (OleDbDataAdapter da = new OleDbDataAdapter(cmd))
                             da.Fill(dsDatos);
                     }

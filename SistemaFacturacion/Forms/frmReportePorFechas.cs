@@ -22,6 +22,16 @@ namespace SistemaFacturacion
         private int _batchPendiente;
         private int _batchError;
 
+        // Columnas del cobro con pinpad (vienen siempre en la consulta, pero se
+        // muestran solo al expandir con chkVerTarjeta). El grid las oculta por
+        // defecto y las revela junto con ensanchar el form y la tabla.
+        private static readonly string[] ColumnasTarjeta =
+            { "AUTORIZACION", "NUMEROTARJETA", "NOMBREGRUPOTARJETA", "ESTADO" };
+
+        private const int DeltaTarjeta = 620; // cuánto crece form/grid al expandir
+        private int _anchoFormOriginal;
+        private int _anchoGridOriginal;
+
         public frmReportePorFechas(AppServices services)
         {
             InitializeComponent();
@@ -32,6 +42,67 @@ namespace SistemaFacturacion
             MostrarFormaPago();
 
             gvReporteFecha.CellClick += gvReporteFecha_CellClick;
+
+            // Un solo hook: tras cada rebind del DataSource (consulta, ver
+            // pendientes, ver consumidor, recarga) se aplica la visibilidad de
+            // las columnas de tarjeta según el estado del expander.
+            gvReporteFecha.DataBindingComplete += (s, e) => AplicarVisibilidadTarjeta();
+        }
+
+        // ======================================================
+        // EXPANDER "VER COLUMNAS DE TARJETA"
+        // ======================================================
+
+        private void chkVerTarjeta_CheckedChanged(object sender, EventArgs e)
+        {
+            // El grid (control hijo) puede crecer sin tope, pero el form NO puede
+            // superar el ancho de la pantalla: Windows recorta el tamaño de ventana.
+            // Por eso capamos el crecimiento al área de trabajo del monitor y, si se
+            // sale por la derecha, corremos el form a la izquierda para que quepa.
+            var area = Screen.FromControl(this).WorkingArea;
+
+            if (chkVerTarjeta.Checked)
+            {
+                int anchoDeseado = Math.Min(_anchoFormOriginal + DeltaTarjeta, area.Width);
+                int crecimiento = anchoDeseado - _anchoFormOriginal;
+
+                this.Width = anchoDeseado;
+                gvReporteFecha.Width = _anchoGridOriginal + crecimiento;
+
+                if (this.Right > area.Right)
+                    this.Left = Math.Max(area.Left, area.Right - this.Width);
+
+                chkVerTarjeta.Text = "Ocultar columnas de tarjeta «";
+            }
+            else
+            {
+                this.Width = _anchoFormOriginal;
+                gvReporteFecha.Width = _anchoGridOriginal;
+                chkVerTarjeta.Text = "Ver columnas de tarjeta »";
+            }
+
+            AplicarVisibilidadTarjeta();
+        }
+
+        private void AplicarVisibilidadTarjeta()
+        {
+            bool ver = chkVerTarjeta.Checked;
+
+            foreach (string col in ColumnasTarjeta)
+            {
+                if (!gvReporteFecha.Columns.Contains(col))
+                    continue;
+
+                var columna = gvReporteFecha.Columns[col];
+                columna.Visible = ver;
+
+                if (ver)
+                {
+                    columna.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
+                    if (columna.Width < 140)
+                        columna.Width = 150;
+                }
+            }
         }
 
         // ======================================================
@@ -105,7 +176,9 @@ namespace SistemaFacturacion
 
         private void frmReportePorFechas_Load(object sender, EventArgs e)
         {
-
+            // Anchos base ya escalados por la fuente del monitor real (AutoScaleMode.Font).
+            _anchoFormOriginal = this.Width;
+            _anchoGridOriginal = gvReporteFecha.Width;
         }
 
         // ======================================================

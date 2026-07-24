@@ -92,19 +92,27 @@ namespace LogicaNegocios
             DataSet dsdatos = new DataSet();
 
             string sql = @"
-                         SELECT 
+                         SELECT
                              F.FECHA,
                              F.FORMADEPAGO AS [FORMA DE PAGO],
                              F.PRODUCTO AS [NOMBRES DE PRODUCTOS],
                              F.CANTIDAD,
                              F.TOTAL,
                              C.NOMBRE AS CLIENTE,
-                             C.CEDULA, 
+                             C.CEDULA,
                              F.HORA,
-                             F.NUMEROFACTURA
-                         FROM FACTURACION AS F
+                             F.NUMEROFACTURA,
+                             PA.AUTORIZACION,
+                             PA.NUMEROTARJETA,
+                             PA.NOMBREGRUPOTARJETA,
+                             IIF(PAN.NUMEROFACTURA IS NOT NULL, 'ANULADA', IIF(PA.NUMEROFACTURA IS NOT NULL, 'APROBADA', 'SIN TARJETA')) AS ESTADO
+                         FROM ((FACTURACION AS F
                          LEFT JOIN CLIENTE AS C
-                             ON F.CLIENTE = C.CEDULA
+                             ON F.CLIENTE = C.CEDULA)
+                         LEFT JOIN PINPAD_AUTORIZADAS AS PA
+                             ON PA.NUMEROFACTURA = F.NUMEROFACTURA)
+                         LEFT JOIN PINPAD_ANULACIONES AS PAN
+                             ON PAN.NUMEROFACTURA = F.NUMEROFACTURA
                          WHERE F.FECHA >= '" + FechaDesde + @"'
                            AND F.FECHA <= '" + FechaHasta + @"'";
 
@@ -128,7 +136,7 @@ namespace LogicaNegocios
             DataSet dsdatos = new DataSet();
 
             string sql = @"
-        SELECT 
+        SELECT
             F.FECHA,
             F.FORMADEPAGO AS [FORMA DE PAGO],
             F.PRODUCTO AS [NOMBRES DE PRODUCTOS],
@@ -137,10 +145,18 @@ namespace LogicaNegocios
             C.NOMBRE AS CLIENTE,
             C.CEDULA,
             F.HORA,
-            F.NUMEROFACTURA
-        FROM FACTURACION AS F
+            F.NUMEROFACTURA,
+            PA.AUTORIZACION,
+            PA.NUMEROTARJETA,
+            PA.NOMBREGRUPOTARJETA,
+            IIF(PAN.NUMEROFACTURA IS NOT NULL, 'ANULADA', IIF(PA.NUMEROFACTURA IS NOT NULL, 'APROBADA', 'SIN TARJETA')) AS ESTADO
+        FROM ((FACTURACION AS F
         LEFT JOIN CLIENTE AS C
-            ON F.CLIENTE = C.CEDULA
+            ON F.CLIENTE = C.CEDULA)
+        LEFT JOIN PINPAD_AUTORIZADAS AS PA
+            ON PA.NUMEROFACTURA = F.NUMEROFACTURA)
+        LEFT JOIN PINPAD_ANULACIONES AS PAN
+            ON PAN.NUMEROFACTURA = F.NUMEROFACTURA
         WHERE F.FECHA >= '" + FechaDesde + @"'
           AND F.FECHA <= '" + FechaHasta + @"'
         ORDER BY
@@ -155,7 +171,7 @@ namespace LogicaNegocios
             DataSet dsdatos = new DataSet();
 
             string sql = @"
-        SELECT 
+        SELECT
             F.FECHA,
             F.FORMADEPAGO AS [FORMA DE PAGO],
             F.PRODUCTO AS [NOMBRES DE PRODUCTOS],
@@ -164,10 +180,18 @@ namespace LogicaNegocios
             C.NOMBRE AS CLIENTE,
             C.CEDULA,
             F.HORA,
-            F.NUMEROFACTURA
-        FROM FACTURACION AS F
+            F.NUMEROFACTURA,
+            PA.AUTORIZACION,
+            PA.NUMEROTARJETA,
+            PA.NOMBREGRUPOTARJETA,
+            IIF(PAN.NUMEROFACTURA IS NOT NULL, 'ANULADA', IIF(PA.NUMEROFACTURA IS NOT NULL, 'APROBADA', 'SIN TARJETA')) AS ESTADO
+        FROM ((FACTURACION AS F
         LEFT JOIN CLIENTE AS C
-            ON F.CLIENTE = C.CEDULA
+            ON F.CLIENTE = C.CEDULA)
+        LEFT JOIN PINPAD_AUTORIZADAS AS PA
+            ON PA.NUMEROFACTURA = F.NUMEROFACTURA)
+        LEFT JOIN PINPAD_ANULACIONES AS PAN
+            ON PAN.NUMEROFACTURA = F.NUMEROFACTURA
         WHERE F.FECHA >= '" + FechaDesde + @"'
           AND F.FECHA <= '" + FechaHasta + @"'
           AND F.CLIENTE = '" + Cliente + @"'
@@ -318,22 +342,35 @@ namespace LogicaNegocios
             SUM(F.CANTIDAD) AS CANTIDADES,
             SUM(F.TOTAL) AS TOTALES,
             C.NOMBRE AS CLIENTE,
-            C.CEDULA,  
+            C.CEDULA,
             F.HORA,
-            F.NUMEROFACTURA
-        FROM FACTURACION AS F
+            F.NUMEROFACTURA,
+            PA.AUTORIZACION,
+            PA.NUMEROTARJETA,
+            PA.NOMBREGRUPOTARJETA,
+            IIF(PAN.NUMEROFACTURA IS NOT NULL, 'ANULADA', IIF(PA.NUMEROFACTURA IS NOT NULL, 'APROBADA', 'SIN TARJETA')) AS ESTADO
+        FROM ((FACTURACION AS F
         LEFT JOIN CLIENTE AS C
-            ON F.CLIENTE = C.CEDULA
+            ON F.CLIENTE = C.CEDULA)
+        LEFT JOIN PINPAD_AUTORIZADAS AS PA
+            ON PA.NUMEROFACTURA = F.NUMEROFACTURA)
+        LEFT JOIN PINPAD_ANULACIONES AS PAN
+            ON PAN.NUMEROFACTURA = F.NUMEROFACTURA
         WHERE F.FECHA >= '" + FechaDesde + @"'
           AND F.FECHA <= '" + FechaHasta + @"'
           AND F.NUMEROFACTURA LIKE 'PENDIENTE%'
-        GROUP BY 
+        GROUP BY
             F.FECHA,
             F.FORMADEPAGO,
             C.NOMBRE,
-            C.CEDULA, 
+            C.CEDULA,
             F.HORA,
-            F.NUMEROFACTURA
+            F.NUMEROFACTURA,
+            PA.AUTORIZACION,
+            PA.NUMEROTARJETA,
+            PA.NOMBREGRUPOTARJETA,
+            PA.NUMEROFACTURA,
+            PAN.NUMEROFACTURA
         ORDER BY
             F.FECHA DESC,
             F.NUMEROFACTURA DESC
@@ -354,22 +391,35 @@ namespace LogicaNegocios
             SUM(F.CANTIDAD) AS CANTIDADES,
             SUM(F.TOTAL) AS TOTALES,
             C.NOMBRE AS CLIENTE,
-            C.CEDULA,  
+            C.CEDULA,
             F.HORA,
-            F.NUMEROFACTURA
-        FROM FACTURACION AS F
+            F.NUMEROFACTURA,
+            PA.AUTORIZACION,
+            PA.NUMEROTARJETA,
+            PA.NOMBREGRUPOTARJETA,
+            IIF(PAN.NUMEROFACTURA IS NOT NULL, 'ANULADA', IIF(PA.NUMEROFACTURA IS NOT NULL, 'APROBADA', 'SIN TARJETA')) AS ESTADO
+        FROM ((FACTURACION AS F
         LEFT JOIN CLIENTE AS C
-            ON F.CLIENTE = C.CEDULA
+            ON F.CLIENTE = C.CEDULA)
+        LEFT JOIN PINPAD_AUTORIZADAS AS PA
+            ON PA.NUMEROFACTURA = F.NUMEROFACTURA)
+        LEFT JOIN PINPAD_ANULACIONES AS PAN
+            ON PAN.NUMEROFACTURA = F.NUMEROFACTURA
         WHERE F.FECHA >= '" + FechaDesde + @"'
           AND F.FECHA <= '" + FechaHasta + @"'
           AND (C.NOMBRE = 'CONSUMIDOR FINAL' OR C.NOMBRE = 'FINAL')
-        GROUP BY 
+        GROUP BY
             F.FECHA,
             F.FORMADEPAGO,
             C.NOMBRE,
-            C.CEDULA, 
+            C.CEDULA,
             F.HORA,
-            F.NUMEROFACTURA
+            F.NUMEROFACTURA,
+            PA.AUTORIZACION,
+            PA.NUMEROTARJETA,
+            PA.NOMBREGRUPOTARJETA,
+            PA.NUMEROFACTURA,
+            PAN.NUMEROFACTURA
         ORDER BY
             F.FECHA DESC,
             F.NUMEROFACTURA DESC

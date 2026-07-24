@@ -28,9 +28,9 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle4 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle5 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle6 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.btnConsultar = new System.Windows.Forms.Button();
@@ -48,6 +48,7 @@
             this.btnPendientes = new System.Windows.Forms.Button();
             this.btnVerPendientes = new System.Windows.Forms.Button();
             this.btnVerConsumidor = new System.Windows.Forms.Button();
+            this.chkVerTarjeta = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.gvReporteFecha)).BeginInit();
             this.SuspendLayout();
             // 
@@ -76,7 +77,7 @@
             // btnConsultar
             // 
             this.btnConsultar.Font = new System.Drawing.Font("Microsoft Sans Serif", 16F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)), true);
-            this.btnConsultar.Location = new System.Drawing.Point(951, 50);
+            this.btnConsultar.Location = new System.Drawing.Point(951, 11);
             this.btnConsultar.Margin = new System.Windows.Forms.Padding(2);
             this.btnConsultar.Name = "btnConsultar";
             this.btnConsultar.Size = new System.Drawing.Size(221, 64);
@@ -112,29 +113,29 @@
             this.gvReporteFecha.AllowUserToAddRows = false;
             this.gvReporteFecha.AllowUserToResizeColumns = false;
             this.gvReporteFecha.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.ColumnHeader;
-            dataGridViewCellStyle4.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle4.BackColor = System.Drawing.SystemColors.Control;
-            dataGridViewCellStyle4.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            dataGridViewCellStyle4.ForeColor = System.Drawing.SystemColors.WindowText;
-            dataGridViewCellStyle4.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle4.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle4.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.gvReporteFecha.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle4;
+            dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle1.BackColor = System.Drawing.SystemColors.Control;
+            dataGridViewCellStyle1.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle1.ForeColor = System.Drawing.SystemColors.WindowText;
+            dataGridViewCellStyle1.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle1.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.gvReporteFecha.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle1;
             this.gvReporteFecha.Location = new System.Drawing.Point(9, 211);
             this.gvReporteFecha.Margin = new System.Windows.Forms.Padding(2);
             this.gvReporteFecha.Name = "gvReporteFecha";
             this.gvReporteFecha.ReadOnly = true;
-            dataGridViewCellStyle5.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle5.BackColor = System.Drawing.SystemColors.Control;
-            dataGridViewCellStyle5.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            dataGridViewCellStyle5.ForeColor = System.Drawing.SystemColors.WindowText;
-            dataGridViewCellStyle5.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle5.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle5.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.gvReporteFecha.RowHeadersDefaultCellStyle = dataGridViewCellStyle5;
-            dataGridViewCellStyle6.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            dataGridViewCellStyle6.Format = "N2";
-            this.gvReporteFecha.RowsDefaultCellStyle = dataGridViewCellStyle6;
+            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle2.BackColor = System.Drawing.SystemColors.Control;
+            dataGridViewCellStyle2.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle2.ForeColor = System.Drawing.SystemColors.WindowText;
+            dataGridViewCellStyle2.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle2.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle2.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.gvReporteFecha.RowHeadersDefaultCellStyle = dataGridViewCellStyle2;
+            dataGridViewCellStyle3.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle3.Format = "N2";
+            this.gvReporteFecha.RowsDefaultCellStyle = dataGridViewCellStyle3;
             this.gvReporteFecha.RowTemplate.Height = 24;
             this.gvReporteFecha.Size = new System.Drawing.Size(1253, 351);
             this.gvReporteFecha.TabIndex = 5;
@@ -227,7 +228,7 @@
             // btnPendientes
             // 
             this.btnPendientes.Font = new System.Drawing.Font("Microsoft Sans Serif", 16F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)), true);
-            this.btnPendientes.Location = new System.Drawing.Point(951, 124);
+            this.btnPendientes.Location = new System.Drawing.Point(951, 88);
             this.btnPendientes.Margin = new System.Windows.Forms.Padding(2);
             this.btnPendientes.Name = "btnPendientes";
             this.btnPendientes.Size = new System.Drawing.Size(221, 64);
@@ -260,11 +261,26 @@
             this.btnVerConsumidor.UseVisualStyleBackColor = true;
             this.btnVerConsumidor.Click += new System.EventHandler(this.btnVerConsumidor_Click);
             // 
+            // chkVerTarjeta
+            // 
+            this.chkVerTarjeta.Appearance = System.Windows.Forms.Appearance.Button;
+            this.chkVerTarjeta.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.chkVerTarjeta.Location = new System.Drawing.Point(917, 163);
+            this.chkVerTarjeta.Margin = new System.Windows.Forms.Padding(2);
+            this.chkVerTarjeta.Name = "chkVerTarjeta";
+            this.chkVerTarjeta.Size = new System.Drawing.Size(345, 35);
+            this.chkVerTarjeta.TabIndex = 19;
+            this.chkVerTarjeta.Text = "Ver columnas de tarjeta »";
+            this.chkVerTarjeta.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.chkVerTarjeta.UseVisualStyleBackColor = true;
+            this.chkVerTarjeta.CheckedChanged += new System.EventHandler(this.chkVerTarjeta_CheckedChanged);
+            // 
             // frmReportePorFechas
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1273, 609);
+            this.Controls.Add(this.chkVerTarjeta);
             this.Controls.Add(this.btnVerConsumidor);
             this.Controls.Add(this.btnVerPendientes);
             this.Controls.Add(this.btnPendientes);
@@ -313,5 +329,6 @@
         private System.Windows.Forms.Button btnPendientes;
         private System.Windows.Forms.Button btnVerPendientes;
         private System.Windows.Forms.Button btnVerConsumidor;
+        private System.Windows.Forms.CheckBox chkVerTarjeta;
     }
 }

@@ -33,6 +33,7 @@
         public ProcesosRetenciones ProcesosRetenciones { get; }
         public ProcesosGenerales ProcesosGenerales { get; }
         public ProcesosLote ProcesosLote { get; }
+        public ProcesosTarjetas ProcesosTarjetas { get; }
         public FacturacionQueueAsync FacturacionQueue { get; }
 
         /// <summary>Servicio de cobro con pinpad (Datafast). Auditoría en Access via PinPadLogManejador.</summary>
@@ -71,6 +72,7 @@
             FacturacionQueue = new FacturacionQueueAsync();
 
             PinPad = ConstruirPinPad();
+            ProcesosTarjetas = new ProcesosTarjetas(this);
         }
 
         // PinPadSettings se arma a mano desde appSettings (NO se usa

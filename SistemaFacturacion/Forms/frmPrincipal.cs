@@ -1,5 +1,5 @@
 ﻿using LogicaNegocios.Services;
-using DF_PinPad.Wrapper.Models;
+using LogicaNegocios.Procesos;
 using Microsoft.Reporting.WinForms;
 using System;
 using System.Collections.Generic;
@@ -345,51 +345,36 @@ namespace SistemaFacturacion
                 long pinpadLogId = 0;
                 bool cobradoConTarjeta = false;
 
-                if (EsPagoTarjeta(formaPagoOriginal))
+                if (ProcesosTarjetas.EsPagoTarjeta(formaPagoOriginal))
                 {
-                    var totales = _services.ProcesosFacturacion.CalcularTotalesFactura(copiaDetalle);
-
-                    var reqPago = new ProcesoPagoRequest
-                    {
-                        NumeroFactura = lblFactura.Text,          // secuencial previsto; se corrige con VincularNumeroFactura
-                        Monto = totales.Total,
-                        BaseImponible = totales.BaseImponible,
-                        Base0 = totales.Base0,
-                        IVA = totales.Iva,
-                        Red = "Datafast",
-                        TipoTransaccion = (TarjetaTipoPago == "D") ? "Diferido" : "Corriente",
-                        TipoCredito = (TarjetaTipoPago == "D") ? MapearTipoCredito(TarjetaDiferidoNombre) : null,
-                        PlazoDiferido = (TarjetaTipoPago == "D" && TarjetaCuotas > 0) ? (int?)TarjetaCuotas : null,
-                        UsuarioSistema = UsuarioActual
-                    };
-
                     Notificaciones.Show(this, "Inserte / acerque la tarjeta en el datafast…", "proceso");
 
-                    ProcesoPagoResult cobro;
+                    ResultadoCobroTarjeta cobro;
                     try
                     {
-                        cobro = await Task.Run(() => _services.PinPad.ProcesarPago(reqPago));
+                        // Toda la orquestación del cobro + auditoría vive en ProcesosTarjetas;
+                        // el form solo muestra el toast y decide si emite o aborta.
+                        cobro = await Task.Run(() => _services.ProcesosTarjetas.CobrarFactura(
+                            copiaDetalle,
+                            clienteOriginal,          // ProcesosTarjetas resuelve el número real
+                            formaPagoOriginal,        // (mismo secuencial que emitirá la factura)
+                            TarjetaTipoPago,
+                            TarjetaDiferidoNombre,
+                            TarjetaCuotas,
+                            UsuarioActual));
                     }
                     finally
                     {
                         Notificaciones.CerrarProceso(this);
                     }
 
-                    // La guía indica usar SIEMPRE result.Exitoso (ya incorpora
-                    // CodigoRespuestaAut=="00"); no re-chequear a mano para no rechazar
-                    // por error un cobro realmente aprobado.
-                    bool aprobado = cobro != null && cobro.Exitoso;
-                    if (!aprobado)
+                    if (!cobro.Aprobado)
                     {
-                        string motivo = cobro?.MensajeRespuestaAut
-                            ?? cobro?.ExcepcionMensaje
-                            ?? "Sin respuesta del datafast.";
-
-                        Notificaciones.Show(this, "Cobro con tarjeta NO aprobado:\n" + motivo, "error");
+                        Notificaciones.Show(this, "Cobro con tarjeta NO aprobado:\n" + cobro.Motivo, "error");
                         return; // ABORTAR: la factura no se emite
                     }
 
-                    pinpadLogId = cobro.TransaccionLogId;
+                    pinpadLogId = cobro.PinpadLogId;
                     cobradoConTarjeta = true;
                 }
 
@@ -464,10 +449,9 @@ namespace SistemaFacturacion
 
                             // Correlacionar el cobro del pinpad con el número REAL de
                             // factura (el secuencial previsto pudo cambiar por reintento).
-                            if (cobradoConTarjeta && pinpadLogId != 0)
+                            if (cobradoConTarjeta)
                             {
-                                try { _services.PinPad.VincularNumeroFactura(pinpadLogId, resultado.NumeroFactura); }
-                                catch { /* auditoría no bloquea */ }
+                                _services.ProcesosTarjetas.VincularFactura(pinpadLogId, resultado.NumeroFactura);
                             }
 
                             if (!resultado.Exito)
@@ -1469,37 +1453,6 @@ namespace SistemaFacturacion
                 TarjetaDiferidoNombre = "";
                 TarjetaCuotas = 0;
             }
-        }
-
-        // ¿La forma de pago seleccionada es TARJETA? (el botón de forma de pago
-        // deja el nombre del método en txtFormaPago).
-        private static bool EsPagoTarjeta(string formaPago)
-        {
-            return !string.IsNullOrWhiteSpace(formaPago)
-                && formaPago.Trim().ToUpperInvariant().Contains("TARJETA");
-        }
-
-        // Mapea el nombre del tipo de diferido del POS (VALOR de PARAMETROS_TRANSACCIONES)
-        // al string de DF_PinPad.TipoCredito que espera el wrapper. Se resuelve por
-        // palabras clave para no depender de la puntuación/orden exacto del texto.
-        private static string MapearTipoCredito(string nombreDiferido)
-        {
-            string n = (nombreDiferido ?? "").ToUpperInvariant();
-
-            bool gracia = n.Contains("GRACIA");
-            bool plus = n.Contains("PLUS");
-
-            if (plus)
-                return n.Contains("CUOTA") ? "DiferidoPlusCuotas" : "DiferidoPlus";
-
-            if (n.Contains("SIN INTERES"))
-                return gracia ? "DiferidoSinInteresesConMesesDeGracia" : "DiferidoSinIntereses";
-
-            if (n.Contains("CON INTERES"))
-                return gracia ? "DiferidoConInteresesConMesesDeGracia" : "DiferidoConIntereses";
-
-            // "CORRIENTE" u otro: diferido corriente por defecto
-            return "DiferidoCorriente";
         }
 
         private sealed class ItemCombo

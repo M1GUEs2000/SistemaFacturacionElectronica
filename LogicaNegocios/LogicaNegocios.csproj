@@ -163,6 +163,7 @@
     <Compile Include="Procesos\ProcesosGenerales.cs" />
     <Compile Include="Procesos\ProcesosNotaCredito.cs" />
     <Compile Include="Procesos\ProcesosRetenciones.cs" />
+    <Compile Include="Procesos\ProcesosTarjetas.cs" />
     <Compile Include="Manejadores\ProductoManejador.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Manejadores\ProveedoresManejador.cs" />
