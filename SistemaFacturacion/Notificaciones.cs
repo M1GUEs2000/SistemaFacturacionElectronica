@@ -324,6 +324,11 @@ public static class Notificaciones
             Cursor = Cursors.Hand
         };
         btnCerrar.FlatAppearance.BorderSize = 0;
+        // Sin esto el hover usa el color por defecto de WinForms (un blanco que
+        // desentona). bordeToast ya es la versión oscura del fondo del toast, así que
+        // al pasar el mouse la X se oscurece en vez de aclararse.
+        btnCerrar.FlatAppearance.MouseOverBackColor = bordeToast;
+        btnCerrar.FlatAppearance.MouseDownBackColor = bordeToast;
         btnCerrar.Click += (s, e) => cont.Dispose();
 
         headerToast.Controls.Add(btnCerrar);
