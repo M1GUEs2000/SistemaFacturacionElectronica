@@ -12,15 +12,14 @@ using LogicaNegocios.Services;
 namespace SistemaFacturacion
 {
     /// <summary>
-    /// Configuración y operación del pinpad Datafast. Cuatro pestañas:
+    /// Configuración y operación del pinpad Datafast. Tres pestañas:
     ///   • Conexión  — parámetros PinPad.* (appSettings). Se leen/escriben en el
     ///     .exe.config en caliente: al Guardar se llama a AppServices.RecargarPinPad()
     ///     para que el cobro use los nuevos valores sin reiniciar la app.
     ///   • Reinicio  — reconfigura la RED del aparato físico (ConfigurarRedPinPad).
     ///   • Prueba de Tarjeta — lee una tarjeta sin cobrar (LeerTarjeta).
-    ///   • Anulación — anula una transacción por autorización (Anular).
     ///
-    /// Las tres últimas usan la conexión YA GUARDADA (_services.PinPad); configure y
+    /// Las dos últimas usan la conexión YA GUARDADA (_services.PinPad); configure y
     /// guarde primero la pestaña Conexión para poder alcanzar el aparato.
     /// </summary>
     public class frmDatafast : Form
@@ -58,12 +57,6 @@ namespace SistemaFacturacion
         private Label _lblEstadoTarjeta;
         private TextBox _txtTjNumero, _txtTjBin, _txtTjVence, _txtTjRedCorr, _txtTjRedDif;
 
-        // Anulación (Anular)
-        private ComboBox _cmbAnulRed;
-        private TextBox _txtAnulAutoriz, _txtAnulRefer;
-        private Button _btnAnular;
-        private Label _lblEstadoAnul;
-
         public frmDatafast(AppServices services)
         {
             _services = services;
@@ -93,10 +86,6 @@ namespace SistemaFacturacion
             var tabTarjeta = new TabPage("Prueba de Tarjeta");
             ConstruirTabPruebaTarjeta(tabTarjeta);
             tabs.TabPages.Add(tabTarjeta);
-
-            var tabAnulacion = new TabPage("Anulación");
-            ConstruirTabAnulacion(tabAnulacion);
-            tabs.TabPages.Add(tabAnulacion);
 
             Controls.Add(tabs);
         }
@@ -350,79 +339,6 @@ namespace SistemaFacturacion
                 ReadOnly = true,
                 BackColor = Color.FromArgb(245, 245, 245)
             };
-        }
-
-        // =========================================================
-        // PESTAÑA ANULACIÓN — Anular una transacción por Autorización.
-        // (La Referencia es numérica de máx. 6 dígitos; opcional según red.)
-        // =========================================================
-        private void ConstruirTabAnulacion(TabPage tab)
-        {
-            int x1 = 20, x2 = 175, y = 20, alto = 24, sep = 34, ancho = 250;
-
-            AgregarLabel(tab, "Red:", x1, y);
-            _cmbAnulRed = new ComboBox { Location = new Point(x2, y - 2), Size = new Size(180, alto), DropDownStyle = ComboBoxStyle.DropDownList };
-            _cmbAnulRed.Items.AddRange(new object[] { "Datafast", "Medianet", "Austro" });
-            _cmbAnulRed.SelectedIndex = 0;
-            tab.Controls.Add(_cmbAnulRed); y += sep;
-
-            AgregarLabel(tab, "Autorización:", x1, y);
-            _txtAnulAutoriz = new TextBox { Location = new Point(x2, y - 2), Size = new Size(ancho, alto) };
-            tab.Controls.Add(_txtAnulAutoriz); y += sep;
-
-            AgregarLabel(tab, "Referencia (6 díg.):", x1, y);
-            _txtAnulRefer = new TextBox { Location = new Point(x2, y - 2), Size = new Size(120, alto), MaxLength = 6 };
-            tab.Controls.Add(_txtAnulRefer); y += sep + 8;
-
-            _btnAnular = new Button { Text = "Anular transacción", Location = new Point(x1, y), Size = new Size(170, 32) };
-            _btnAnular.Click += BtnAnular_Click;
-            tab.Controls.Add(_btnAnular); y += 40;
-
-            _lblEstadoAnul = new Label { Location = new Point(x1, y), AutoSize = true, MaximumSize = new Size(420, 0), Font = new Font("Microsoft Sans Serif", 9F) };
-            tab.Controls.Add(_lblEstadoAnul);
-        }
-
-        private async void BtnAnular_Click(object sender, EventArgs e)
-        {
-            if (string.IsNullOrWhiteSpace(_txtAnulAutoriz.Text))
-            {
-                MostrarEstadoEn(_lblEstadoAnul, "La autorización es obligatoria para anular.", true);
-                return;
-            }
-
-            var confirmar = MessageBox.Show(
-                "¿Anular la transacción con autorización " + _txtAnulAutoriz.Text.Trim() + "?",
-                "Confirmar anulación", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-            if (confirmar != DialogResult.Yes) return;
-
-            var req = new AnulacionRequest
-            {
-                Red = _cmbAnulRed.SelectedItem?.ToString() ?? "Datafast",
-                Autorizacion = _txtAnulAutoriz.Text.Trim(),
-                Referencia = _txtAnulRefer.Text.Trim(),
-                UsuarioSistema = UsuarioActual
-            };
-
-            _btnAnular.Enabled = false;
-            MostrarEstadoEn(_lblEstadoAnul, "Procesando anulación en el datafast…", false);
-            try
-            {
-                AnulacionResult r = await Task.Run(() => _services.PinPad.Anular(req));
-                if (r != null && r.Exitoso)
-                    MostrarEstadoEn(_lblEstadoAnul,
-                        "✔ Anulada. Lote: " + (r.Lote ?? "-") + "  Aut: " + (r.Autorizacion ?? "-"), false);
-                else
-                    MostrarEstadoEn(_lblEstadoAnul, "✖ No anulada. " +
-                        (r?.MensajeRespuesta ?? r?.ExcepcionMensaje ?? "Verifique la autorización/referencia."), true);
-            }
-            catch (Exception ex)
-            {
-                MostrarEstadoEn(_lblEstadoAnul, "Error: " + ex.Message, true);
-            }
-            finally
-            {
-                _btnAnular.Enabled = true;
-            }
         }
 
         // =========================================================
