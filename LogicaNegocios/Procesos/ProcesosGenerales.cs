@@ -563,14 +563,15 @@ namespace LogicaNegocios.Procesos
                     string estadoPendiente =
                         _services.Pendientes.ObtenerEstadoPendientePorTipo(tipoDocumento);
 
-                    _services.Pendientes.Insertar(
+                    // Upsert, no insert: la emisión ya dejó una fila en EMITIENDO
+                    // para este mismo número antes de llamar al SRI.
+                    UpsertPendiente(
                         numeroDocumento,
                         claveAcceso,
                         rutaXmlFirmado,
-                        DateTime.Now,
-                        0,
                         estadoPendiente,
                         tipoDocumento,
+                        0,
                         usuarioActual,
                         ipActual
                     );
@@ -650,14 +651,13 @@ namespace LogicaNegocios.Procesos
                         _services.Pendientes
                             .ObtenerEstadoPendienteAutorizacionPorTipo(tipoDocumento);
 
-                    _services.Pendientes.Insertar(
+                    UpsertPendiente(
                         numeroDocumento,      // ← SECUENCIAL REAL DEL XML
                         claveAcceso,
                         rutaXmlFirmado,
-                        DateTime.Now,
-                        1,
                         estadoPendienteAut,
                         tipoDocumento,
+                        1,
                         usuarioActual,
                         ipActual
                     );
@@ -681,14 +681,13 @@ namespace LogicaNegocios.Procesos
                 string estadoPendienteFinal =
                     _services.Pendientes.ObtenerEstadoPendientePorTipo(tipoDocumento);
 
-                _services.Pendientes.Insertar(
+                UpsertPendiente(
                     numeroDocumento,
                     claveAcceso,
                     rutaXmlFirmado,
-                    DateTime.Now,
-                    1,
                     estadoPendienteFinal,
                     tipoDocumento,
+                    1,
                     usuarioActual,
                     ipActual
                 );
@@ -909,6 +908,37 @@ namespace LogicaNegocios.Procesos
                 ? _services.Pendientes.ObtenerEstadoPendienteAutorizacionPorTipo(tipoDocumento)
                 : _services.Pendientes.ObtenerEstadoPendientePorTipo(tipoDocumento);
 
+            UpsertPendiente(
+                numeroDocumento,
+                claveAcceso,
+                rutaXmlFirmado,
+                estado,
+                tipoDocumento,
+                1,
+                usuarioActual,
+                ipActual
+            );
+        }
+
+        /// <summary>
+        /// Deja el pendiente en el estado indicado, exista ya la fila o no.
+        ///
+        /// Desde que la emisión hace el INSERT previo, TODA factura electrónica llega
+        /// al SRI con una fila ya creada en FACTURAS_PENDIENTES (estado EMITIENDO).
+        /// Por eso ningún punto del flujo puede insertar a ciegas: duplicaría la fila
+        /// y el reporte leería un estado al azar de los dos.
+        /// </summary>
+        private void UpsertPendiente(
+            string numeroDocumento,
+            string claveAcceso,
+            string rutaXmlFirmado,
+            string estado,
+            string tipoDocumento,
+            int intentos,
+            string usuarioActual,
+            string ipActual
+        )
+        {
             DataSet ds = _services.Pendientes.ConsultarPorNumeroYTipo(numeroDocumento, tipoDocumento);
 
             bool existe = ds != null &&
@@ -932,7 +962,7 @@ namespace LogicaNegocios.Procesos
                     claveAcceso,
                     rutaXmlFirmado,
                     DateTime.Now,
-                    1,
+                    intentos,
                     estado,
                     tipoDocumento,
                     usuarioActual,

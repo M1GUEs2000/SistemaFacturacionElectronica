@@ -186,6 +186,60 @@ namespace LogicaNegocios
         }
 
         // ==========================================================
+        // RENUMERAR + CAMBIAR ESTADO (EMISIÓN RECHAZADA POR EL SRI)
+        // ==========================================================
+
+        /// <summary>
+        /// Cambia a la vez el NUMEROFACTURA y el ESTADO de un pendiente. Se usa cuando
+        /// una factura que se estaba emitiendo con su secuencial real es rechazada por
+        /// el SRI y pasa a ser un pendiente interno ("PENDIENTE001").
+        ///
+        /// Las dos tablas TIENEN que quedar con el mismo número: el reporte busca el
+        /// estado en un mapa indexado por NUMEROFACTURA usando el número que muestra
+        /// la grilla (que sale de FACTURACION). Si acá quedara el secuencial real y en
+        /// FACTURACION el "PENDIENTE001", el documento aparece sin botón para procesar.
+        ///
+        /// Parametrizado: en Access los parámetros son POSICIONALES, así que el orden
+        /// del array coincide con el orden de los @ en el SQL. La fecha va como string
+        /// con el mismo formato que usa ConstruirFechaSqlUniversal, para no depender de
+        /// si la columna es Fecha/Hora o texto.
+        /// </summary>
+        public int ActualizarNumeroYEstado(
+            string numeroActual,
+            string numeroNuevo,
+            string estado,
+            string tipo,
+            string usuario,
+            string ip)
+        {
+            string sql = @"
+        UPDATE FACTURAS_PENDIENTES SET
+            NUMEROFACTURA = @numNuevo,
+            ESTADO        = @estado,
+            FECHAREGISTRO = @fecha
+        WHERE NUMEROFACTURA = @numActual
+          AND TIPO          = @tipo";
+
+            string fecha = DateTime.Now.ToString(
+                "yyyy-MM-dd HH:mm:ss",
+                System.Globalization.CultureInfo.InvariantCulture);
+
+            _log.CrearLog(
+                "Pendiente renumerado " + numeroActual + " -> " + numeroNuevo + " [" + estado + "]",
+                usuario,
+                ip,
+                sql
+            );
+
+            return _conexion.Ejecutar(sql,
+                ("numNuevo", numeroNuevo),
+                ("estado", estado),
+                ("fecha", fecha),
+                ("numActual", numeroActual),
+                ("tipo", (tipo ?? "").Trim().ToUpper()));
+        }
+
+        // ==========================================================
         // ELIMINAR PENDIENTE (CUANDO YA SE COMPLETÓ TODO)
         // ==========================================================
         public int Eliminar(
@@ -386,6 +440,20 @@ namespace LogicaNegocios
             // ==================================================
             // 3) DECIDIR ACCIÓN SEGÚN ESTADO
             // ==================================================
+            // EMITIENDO = la factura se insertó en BD y se mandó al SRI, pero el
+            // proceso nunca llegó a escribir el desenlace (corte de luz, crash).
+            // No sabemos si el SRI la recibió, así que se ofrece el mismo botón que
+            // un PENDIENTE_AUTORIZACION: ir a preguntarle al SRI por la clave de
+            // acceso. PDF y XML todavía no existen.
+            if (estadoPendiente == "EMITIENDO")
+            {
+                r.TextoBoton = "CONSULTAR SRI";
+                r.Accion = "AUTORIZAR";
+                r.MostrarPdf = false;
+                r.MostrarXml = false;
+                return r;
+            }
+
             if (estadoPendiente == "NO_AUTORIZADO")
             {
                 r.TextoBoton = "ERROR";

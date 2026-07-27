@@ -79,6 +79,39 @@ namespace LogicaNegocios
             _conexion.Ejecutar(sql);
         }
 
+        /// <summary>
+        /// Renumera TODAS las filas de una factura (la factura son N filas, una por
+        /// producto). Se usa cuando el SRI rechaza el documento y el número real pasa
+        /// a ser un marcador interno tipo "PENDIENTE001".
+        ///
+        /// Parametrizado a propósito: los parámetros de Access son POSICIONALES
+        /// (ConexionBD reemplaza cada @nombre por ? en orden), así que el orden del
+        /// array DEBE coincidir con el orden de aparición en el SQL — primero @nuevo,
+        /// después @actual. Los nombres además tienen que ser distintos entre sí: si
+        /// se repitiera uno, SQL Server pediría el valor una vez y OleDb dos.
+        /// </summary>
+        public int ActualizarNumeroFactura(
+            string numeroActual,
+            string numeroNuevo,
+            string usuario,
+            string ip)
+        {
+            string sql = @"UPDATE FACTURACION
+                           SET NUMEROFACTURA = @nuevo
+                           WHERE NUMEROFACTURA = @actual";
+
+            _log.CrearLog(
+                "Renumerada factura " + numeroActual + " -> " + numeroNuevo,
+                usuario,
+                ip,
+                sql
+            );
+
+            return _conexion.Ejecutar(sql,
+                ("nuevo", numeroNuevo),
+                ("actual", numeroActual));
+        }
+
         public DataSet ConsultarTotales(string Fecha)
         {
             DataSet dsdatos = new DataSet();
@@ -432,6 +465,14 @@ namespace LogicaNegocios
         public string ObtenerSecuencialError() => ObtenerSecuencialInternoPorPrefijo("PENDIENTE");
 
         public string ObtenerSecuencialConsumidor() => ObtenerSecuencialInternoPorPrefijo("FINAL");
+
+        /// <summary>
+        /// Número transitorio con el que nace la factura al insertarse ANTES de mandarla
+        /// al SRI. Todavía no se sabe si el secuencial real le corresponde (si el SRI no
+        /// la recibe, no se quema y la factura queda como PENDIENTE), así que arranca con
+        /// su propio marcador y se renumera recién cuando el SRI responde.
+        /// </summary>
+        public string ObtenerSecuencialEmitiendo() => ObtenerSecuencialInternoPorPrefijo("EMITIENDO");
 
         private string ObtenerSecuencialInternoPorPrefijo(string prefijo)
         {

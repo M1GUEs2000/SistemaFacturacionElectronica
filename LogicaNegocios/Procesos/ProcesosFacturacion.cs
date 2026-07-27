@@ -123,12 +123,71 @@ namespace LogicaNegocios.Procesos
 
         private readonly AppServices _services;
 
+        /// <summary>
+        /// Estado del pendiente entre el INSERT previo y la respuesta del SRI. Marca
+        /// "está guardada pero todavía no sé qué pasó". Si el proceso muere en ese
+        /// hueco, la fila sobrevive con este estado y el reporte ofrece CONSULTAR SRI
+        /// (ver ConstruirAccionDesdeEstado). A diferencia de PENDIENTE00X, NO se
+        /// numera: es transitorio y va indexado por el número real de la factura.
+        /// </summary>
+        private const string ESTADO_EMITIENDO = "EMITIENDO";
+
         public ProcesosFacturacion(AppServices services
 
         )
         {
             _services = services;
 
+        }
+
+        /// <summary>
+        /// Mueve una factura de su número transitorio al definitivo, escribiendo el
+        /// MISMO valor en las dos tablas: NUMEROFACTURA de FACTURACION y de
+        /// FACTURAS_PENDIENTES. Que sean el mismo no es cosmético — el reporte busca el
+        /// estado del pendiente indexando por el número que muestra la grilla, que sale
+        /// de FACTURACION; si difirieran, el documento aparecería sin botón de acción.
+        ///
+        /// <paramref name="estado"/> es el estado que queda en el pendiente. Cuando el
+        /// destino es un PENDIENTE00X el estado es ese mismo texto (así lo espera
+        /// ConstruirAccionDesdeEstado); cuando es el secuencial real, el estado lo define
+        /// la etapa del SRI en la que quedó.
+        /// </summary>
+        private void RenumerarFactura(
+            string numeroActual,
+            string numeroNuevo,
+            string estado,
+            string usuario,
+            string ip)
+        {
+            _services.Facturacion.ActualizarNumeroFactura(numeroActual, numeroNuevo, usuario, ip);
+            _services.Pendientes.ActualizarNumeroYEstado(
+                numeroActual, numeroNuevo, estado, "FACTURA", usuario, ip);
+        }
+
+        /// <summary>
+        /// Deshace el INSERT previo cuando la emisión se aborta ANTES de que el SRI
+        /// acepte nada (fallo al guardar el detalle, o secuencial repetido). Solo es
+        /// seguro llamarlo mientras el documento no exista para el SRI.
+        /// </summary>
+        private void LimpiarEmisionFallida(string numeroFactura, string usuario, string ip)
+        {
+            try
+            {
+                _services.Facturacion.EliminarPorSecuencial(numeroFactura, usuario, ip);
+            }
+            catch (Exception ex)
+            {
+                LogFactura("ERROR limpiando FACTURACION de " + numeroFactura + ": " + ex);
+            }
+
+            try
+            {
+                _services.Pendientes.Eliminar(numeroFactura, "FACTURA", usuario, ip);
+            }
+            catch (Exception ex)
+            {
+                LogFactura("ERROR limpiando pendiente de " + numeroFactura + ": " + ex);
+            }
         }
 
         /// <summary>
@@ -986,13 +1045,81 @@ namespace LogicaNegocios.Procesos
                     r.ClaveAcceso = firma.ClaveAcceso;
 
                     // ==================================================
+                    // 3.5) INSERT PREVIO — la factura existe en BD ANTES del SRI
+                    // ==================================================
+                    // Antes se insertaba recién al final, así que un corte entre la
+                    // recepción y el insert dejaba una factura autorizada por el SRI que
+                    // no existía en BD. Ahora se inserta acá y los pasos siguientes solo
+                    // hacen UPDATE por checkpoint.
+                    //
+                    // Nace con número EMITIENDO00X, NO con el secuencial real: mientras
+                    // el SRI no conteste no se sabe si ese número le corresponde. Si el
+                    // documento no llega (sin internet, timeout), el secuencial NO se
+                    // quema y la factura queda como PENDIENTE para reemitirse después con
+                    // otro número. Recién cuando el SRI confirma que lo recibió se
+                    // renumera al secuencial real y se incrementa el contador.
+                    //
+                    // El marcador de FACTURAS_PENDIENTES va PRIMERO (1 sola fila, y es la
+                    // que lleva la clave de acceso) y el detalle después: IConexionBD no
+                    // expone transacciones, así que si el proceso muere a mitad de las N
+                    // filas de producto, el marcador ya quedó y señala la factura
+                    // incompleta. Al revés no serviría de nada.
+                    string numeroEmitiendo = _services.Facturacion.ObtenerSecuencialEmitiendo();
+
+                    try
+                    {
+                        _services.Pendientes.Insertar(
+                            numeroEmitiendo,
+                            firma.ClaveAcceso,
+                            firma.RutaXmlFirmado,
+                            DateTime.Now,
+                            0,
+                            ESTADO_EMITIENDO,
+                            "FACTURA",
+                            usuarioActual,
+                            ipActual
+                        );
+
+                        var insPrevio = InsertarFactura(
+                            prep.DetalleOriginal,
+                            fechaPago,
+                            DateTime.Now.ToString("HH:mm:ss"),
+                            formaPago,
+                            clienteTexto,
+                            numeroEmitiendo,
+                            usuarioActual,
+                            ipActual
+                        );
+
+                        if (!insPrevio.Exito)
+                        {
+                            // Todavía no se mandó nada al SRI: se puede limpiar entero
+                            // y abortar sin dejar rastro.
+                            LimpiarEmisionFallida(numeroEmitiendo, usuarioActual, ipActual);
+                            return ErrorFactura(r,
+                                "Error guardando la factura antes de enviarla al SRI: " + insPrevio.Mensaje);
+                        }
+                    }
+                    catch (Exception exPrevio)
+                    {
+                        LogFactura("ERROR en INSERT previo: " + exPrevio);
+                        LimpiarEmisionFallida(numeroEmitiendo, usuarioActual, ipActual);
+                        return ErrorFactura(r,
+                            "Error guardando la factura antes de enviarla al SRI: " + exPrevio.Message);
+                    }
+
+                    // ==================================================
                     // 4) RECEPCIÓN SRI
                     // ==================================================
+                    // Se le pasa numeroEmitiendo, no el real: EnviarRecepcion upsertea el
+                    // pendiente por ese número y tiene que dar con la fila que acabamos
+                    // de crear. La renumeración la hace este método al conocer el
+                    // desenlace, que es el único punto que sabe si el número se ganó.
                     var recepcion = await Task.Run(() =>
                         _services.ProcesosGenerales.EnviarRecepcion(
                             firma.RutaXmlFirmado,
                             firma.ClaveAcceso,
-                            numeroFacturaReal,
+                            numeroEmitiendo,
                             "FACTURA",
                             usuarioActual,
                             ipActual
@@ -1004,6 +1131,10 @@ namespace LogicaNegocios.Procesos
                     // --------------------------------------------------
                     if (recepcion.SecuencialRepetido)
                     {
+                        // El SRI rechazó el documento entero: ese secuencial ya lo usó
+                        // otra factura. Lo que insertamos recién no corresponde a nada,
+                        // se descarta y se reintenta con el siguiente número.
+                        LimpiarEmisionFallida(numeroEmitiendo, usuarioActual, ipActual);
                         IncrementarSecuencialFactura("01");
                         continue;
                     }
@@ -1013,21 +1144,43 @@ namespace LogicaNegocios.Procesos
                     // --------------------------------------------------
                     if (!recepcion.Exito)
                     {
-                        string numeroPendiente =
-                            !string.IsNullOrWhiteSpace(recepcion.EstadoEspecial)
-                                ? recepcion.EstadoEspecial
-                                : _services.Facturacion.ObtenerSecuencialError();
+                        // EL SRI NUNCA RECIBIÓ EL DOCUMENTO (sin internet, timeout, error
+                        // de recepción). El secuencial real NO se quema: la factura pasa
+                        // a PENDIENTE00X y se reemite después con un número nuevo. Por eso
+                        // acá no se llama a IncrementarSecuencialFactura.
+                        //
+                        // El número sale de ObtenerSecuencialError() —el contador que vive
+                        // en FACTURACION— y se escribe igual en las dos tablas. Se usa uno
+                        // solo a propósito: FACTURAS_PENDIENTES se vacía cuando el
+                        // documento se resuelve, así que su contador podría reiniciarse y
+                        // chocar con una fila vieja que sigue viva en FACTURACION.
+                        string numeroPendiente = _services.Facturacion.ObtenerSecuencialError();
 
-                        var insPendiente = InsertarFactura(
-                            prep.DetalleOriginal,
-                            fechaPago,
-                            DateTime.Now.ToString("HH:mm:ss"),
-                            formaPago,
-                            clienteTexto,
-                            numeroPendiente,
-                            usuarioActual,
-                            ipActual
-                        );
+                        var insPendiente = new ResultadoFacturaInsertada
+                        {
+                            NumeroFactura = numeroPendiente
+                        };
+
+                        try
+                        {
+                            RenumerarFactura(
+                                numeroEmitiendo,
+                                numeroPendiente,
+                                numeroPendiente,   // el estado del pendiente ES el número
+                                usuarioActual,
+                                ipActual
+                            );
+
+                            insPendiente.Exito = true;
+                        }
+                        catch (Exception exRenumerar)
+                        {
+                            // La factura NO se pierde: sigue en BD como numeroEmitiendo,
+                            // que el reporte muestra con botón CONSULTAR SRI.
+                            LogFactura("ERROR renumerando a pendiente: " + exRenumerar);
+                            insPendiente.Exito = false;
+                            insPendiente.Mensaje = exRenumerar.Message;
+                        }
 
                         if (insPendiente.Exito && vieneDePendiente)
                         {
@@ -1059,17 +1212,61 @@ namespace LogicaNegocios.Procesos
 
                         r.Exito = false;
                         r.Autorizado = false;
-                        r.NumeroFactura = numeroPendiente;
+                        // Si la renumeración falló, la factura quedó guardada con su
+                        // número transitorio: hay que reportar ESE, no el que no se aplicó.
+                        r.NumeroFactura = insPendiente.Exito ? numeroPendiente : numeroEmitiendo;
+                        // El detalle del SRI va rotulado aparte: EnviarRecepcion arma su
+                        // propio texto con el número que asignó su contador, que después
+                        // sobrescribimos. Sin el rótulo, el mensaje mostraría dos números
+                        // distintos como si ambos fueran el de la factura.
                         r.Mensaje = insPendiente.Exito
                             ? "FACTURA ELECTRÓNICA\n\n" +
                               "Registrada como pendiente.\n\n" +
                               "Número: " + numeroPendiente + "\n\n" +
-                              recepcion.Mensaje
+                              "Detalle SRI:\n" + recepcion.Mensaje
                             : "FACTURA ELECTRÓNICA\n\n" +
-                              "Error SRI y además error al registrar pendiente: " + insPendiente.Mensaje + "\n\n" +
-                              recepcion.Mensaje;
+                              "Error SRI. La factura quedó guardada como " + numeroEmitiendo +
+                              " pero no se pudo marcar como pendiente: " + insPendiente.Mensaje + "\n\n" +
+                              "Detalle SRI:\n" + recepcion.Mensaje;
 
                         return r;
+                    }
+
+                    // --------------------------------------------------
+                    // 4.2.bis EL SRI SÍ LO RECIBIÓ → EL NÚMERO SE GANÓ
+                    // --------------------------------------------------
+                    // Pasar el if de arriba significa RECIBIDA o EN PROCESAMIENTO: en los
+                    // dos casos el documento entró al SRI con el secuencial real, así que
+                    // ese número ya es suyo y no puede reutilizarlo otra factura. Este es
+                    // el único punto del flujo donde EMITIENDO00X se convierte en número
+                    // real, y de acá en adelante todo se referencia por numeroFacturaReal.
+                    //
+                    // El estado se conserva: si EnviarRecepcion lo dejó en
+                    // PENDIENTE_AUTORIZACION00X se respeta, y si vino RECIBIDA sigue en
+                    // EMITIENDO hasta que el paso 5 resuelva la autorización.
+                    try
+                    {
+                        RenumerarFactura(
+                            numeroEmitiendo,
+                            numeroFacturaReal,
+                            string.IsNullOrWhiteSpace(recepcion.EstadoEspecial)
+                                ? ESTADO_EMITIENDO
+                                : recepcion.EstadoEspecial,
+                            usuarioActual,
+                            ipActual
+                        );
+                    }
+                    catch (Exception exRenumerar)
+                    {
+                        // El SRI ya tiene el documento pero en BD sigue como transitorio.
+                        // No se pierde: el reporte lo muestra con CONSULTAR SRI, que
+                        // resuelve la autorización contra la clave de acceso guardada.
+                        LogFactura("ERROR renumerando a secuencial real: " + exRenumerar);
+                        return ErrorFactura(r,
+                            "El SRI recibió la factura pero no se pudo asignarle el número " +
+                            numeroFacturaReal + ". Quedó guardada como " + numeroEmitiendo +
+                            "; usá CONSULTAR SRI en el reporte para completarla. Error: " +
+                            exRenumerar.Message);
                     }
 
                     // --------------------------------------------------
@@ -1078,17 +1275,8 @@ namespace LogicaNegocios.Procesos
                     if (!string.IsNullOrWhiteSpace(recepcion.EstadoEspecial) &&
                         recepcion.EstadoEspecial.StartsWith("PENDIENTE_AUTORIZACION"))
                     {
-                        InsertarFactura(
-                            prep.DetalleOriginal,
-                            fechaPago,
-                            DateTime.Now.ToString("HH:mm:ss"),
-                            formaPago,
-                            clienteTexto,
-                            numeroFacturaReal,
-                            usuarioActual,
-                            ipActual
-                        );
-
+                        // La factura ya quedó en BD con numeroFacturaReal y el pendiente
+                        // en PENDIENTE_AUTORIZACION00X. No hay nada más que escribir.
                         IncrementarSecuencialFactura("01");
 
                         r.Exito = true;
@@ -1121,16 +1309,9 @@ namespace LogicaNegocios.Procesos
 
                     if (!sri.Exito)
                     {
-                        InsertarFactura(
-                            prep.DetalleOriginal,
-                            fechaPago,
-                            DateTime.Now.ToString("HH:mm:ss"),
-                            formaPago,
-                            clienteTexto,
-                            numeroFacturaReal,
-                            usuarioActual,
-                            ipActual
-                        );
+                        // Igual que 4.3: la factura ya está guardada y
+                        // ConsultarAutorizacion ya dejó el pendiente en el estado que
+                        // corresponda (NO_AUTORIZADO o PENDIENTE_AUTORIZACION00X).
                         IncrementarSecuencialFactura("01");
                         return ErrorFactura(r, sri.Mensaje);
                     }
@@ -1138,67 +1319,20 @@ namespace LogicaNegocios.Procesos
                     r.RutaXmlAutorizado = sri.RutaXmlAutorizado;
 
                     // ==================================================
-                    // 6) INSERTAR DEFINITIVO
+                    // 6) (YA NO HAY INSERT — la factura está en BD desde el 3.5)
                     // ==================================================
-                    try
-                    {
-                        LogFactura("========== INICIO INSERTAR FACTURA DEFINITIVA ==========");
-                        LogFactura("numeroFacturaReal: " + (numeroFacturaReal ?? "NULL"));
-                        LogFactura("fechaPago: " + (fechaPago ?? "NULL"));
-                        LogFactura("horaActual: " + DateTime.Now.ToString("HH:mm:ss"));
-                        LogFactura("formaPago: " + (formaPago ?? "NULL"));
-                        LogFactura("clienteTexto: " + (clienteTexto ?? "NULL"));
-                        LogFactura("usuarioActual: " + (usuarioActual ?? "NULL"));
-                        LogFactura("ipActual: " + (ipActual ?? "NULL"));
-                        LogFactura("detalleFactura.Rows.Count: " + (prep.DetalleOriginal != null ? prep.DetalleOriginal.Rows.Count.ToString() : "NULL"));
-                        LogFactura("claveAcceso: " + (r.ClaveAcceso ?? "NULL"));
-                        LogFactura("rutaXmlAutorizado: " + (r.RutaXmlAutorizado ?? "NULL"));
-
-                        InsertarFactura(
-                            prep.DetalleOriginal,
-                            fechaPago,
-                            DateTime.Now.ToString("HH:mm:ss"),
-                            formaPago,
-                            clienteTexto,
-                            numeroFacturaReal,
-                            usuarioActual,
-                            ipActual
-                        );
-
-                        LogFactura("DESPUES InsertarFactura()");
-                        LogFactura("========== FIN INSERTAR FACTURA DEFINITIVA ==========");
-                    }
-                    catch (Exception exInsert)
-                    {
-                        LogFactura("ERROR EN INSERTAR FACTURA DEFINITIVA: " + exInsert);
-
-                        // La factura ya fue autorizada por el SRI pero no pudo guardarse en BD.
-                        // Se registra como PENDIENTE para que no se pierda.
-                        try
-                        {
-                            _services.Pendientes.Insertar(
-                                numeroFacturaReal,
-                                r.ClaveAcceso ?? "",
-                                firma.RutaXmlFirmado ?? "",
-                                DateTime.Now,
-                                0,
-                                "PENDIENTE",
-                                "FACTURA",
-                                usuarioActual,
-                                ipActual
-                            );
-                        }
-                        catch (Exception exPend)
-                        {
-                            LogFactura("ERROR registrando pendiente de rescate: " + exPend);
-                        }
-
-                        return ErrorFactura(r,
-                            "Factura AUTORIZADA por SRI pero error al registrar en BD. " +
-                            "Guardada como pendiente para recuperación. " +
-                            "ClaveAcceso: " + (r.ClaveAcceso ?? "N/A") + ". " +
-                            "Error: " + exInsert.Message);
-                    }
+                    // Acá estaba el INSERT definitivo y su bloque de rescate. Los dos
+                    // desaparecen: el insert ocurrió antes de tocar el SRI, así que en
+                    // este punto no puede fallar.
+                    //
+                    // El marcador de FACTURAS_PENDIENTES se deja vivo a propósito hasta
+                    // que termine el correo:
+                    //   - si el PDF falla (paso 7) queda en EMITIENDO y el reporte
+                    //     ofrece CONSULTAR SRI, que regenera PDF y correo;
+                    //   - si el correo sale bien, EnviarCorreoDocumento lo borra;
+                    //   - si el correo falla, lo deja en PENDIENTE_CORREO00X.
+                    // Borrarlo acá dejaría la factura autorizada sin forma de
+                    // reintentar el PDF.
 
                     // ==================================================
                     // 7) PDF
@@ -1716,16 +1850,9 @@ namespace LogicaNegocios.Procesos
                 // - si quedó pendiente de autorización => borrar vieja
                 // - si quedó autorizada => borrar vieja
                 // - si hubo error general => NO borrar vieja
-                if (resultado.Exito && !resultado.Autorizado)
-                {
-                    _services.Facturacion.EliminarPorSecuencial(
-                        numeroViejo,
-                        usuarioActual,
-                        ipActual
-                    );
-                }
-
-                if (resultado.Exito && resultado.Autorizado)
+                // Autorizada o pendiente de autorización da igual: en los dos casos la
+                // nueva factura ya existe. Solo un error general conserva la vieja.
+                if (resultado.Exito)
                 {
                     _services.Facturacion.EliminarPorSecuencial(
                         numeroViejo,
@@ -1843,7 +1970,11 @@ namespace LogicaNegocios.Procesos
                 );
 
                 // 6) LIMPIAR PENDIENTE VIEJO
-                if (!resultado.Autorizado || (resultado.Exito && resultado.Autorizado))
+                // Solo si el reproceso salió bien. La condición anterior
+                // (!Autorizado || (Exito && Autorizado)) se reducía a "!Autorizado ||
+                // Exito", así que un fallo total —Exito=false, Autorizado=false— también
+                // borraba la factura vieja y no dejaba nada en su lugar.
+                if (resultado.Exito)
                 {
                     _services.Facturacion.EliminarPorSecuencial(
                         numeroViejo,
