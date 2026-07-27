@@ -39,6 +39,15 @@
         /// <summary>Servicio de cobro con pinpad (Datafast). Auditoría en Access via PinPadLogManejador.</summary>
         public IPinPadService PinPad { get; private set; }
 
+        /// <summary>
+        /// Auditoría del pinpad en Access. Es la MISMA instancia que se le pasa al
+        /// PinPadService (por eso se crea una sola vez y sobrevive a RecargarPinPad):
+        /// el mapa token→factura que usa para correlacionar vive en memoria de la
+        /// instancia. Se expone porque la anulación desde el reporte necesita leer
+        /// PINPAD_AUTORIZADAS y registrar la anulación con el número real de factura.
+        /// </summary>
+        public PinPadLogManejador PinPadLog { get; }
+
         public decimal TarifaIva { get; private set; } = 0m;
 
         public AppServices(FacturacionPaths paths, IConexionBD conexion)
@@ -71,6 +80,7 @@
             ProcesosLote = new ProcesosLote(this);
             FacturacionQueue = new FacturacionQueueAsync();
 
+            PinPadLog = new PinPadLogManejador(Conexion);
             PinPad = ConstruirPinPad();
             ProcesosTarjetas = new ProcesosTarjetas(this);
         }
@@ -104,7 +114,7 @@
                 // SqlConnectionString: null a propósito (auditoría en Access)
             };
 
-            return new PinPadService(settings, new PinPadLogManejador(Conexion));
+            return new PinPadService(settings, PinPadLog);
         }
 
         private static int ParseInt(string valor, int porDefecto)

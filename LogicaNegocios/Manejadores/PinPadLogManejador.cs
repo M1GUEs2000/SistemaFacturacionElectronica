@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Data;
 using System.Threading;
 using AccesoDatos.Abstractions;
 using DF_PinPad.Wrapper.Logging;
@@ -7,6 +8,23 @@ using DF_PinPad.Wrapper.Models;
 
 namespace LogicaNegocios
 {
+    /// <summary>
+    /// Datos del cobro original que se necesitan para anularlo. Los tres primeros
+    /// campos son los que pide AnulacionRequest de la DLL; el resto es para mostrarle
+    /// al usuario qué está por anular antes de confirmar.
+    /// </summary>
+    public class DatosAnulacion
+    {
+        public string NumeroFactura { get; set; }
+        public string Red { get; set; }
+        public string Referencia { get; set; }
+        public string Autorizacion { get; set; }
+        public string RedAdquirente { get; set; }
+        public string NumeroTarjeta { get; set; }
+        public string NombreGrupoTarjeta { get; set; }
+        public decimal Monto { get; set; }
+    }
+
     /// <summary>
     /// Implementación de <see cref="ISqlLogger"/> respaldada en Access (la misma .accdb del POS),
     /// NO en SQL Server. Persiste la auditoría del pinpad en 3 tablas:
@@ -216,6 +234,109 @@ namespace LogicaNegocios
                     ("factura", clave));
             }
             catch { /* swallow */ }
+        }
+
+        // =====================================================================
+        // ANULACIÓN DESDE EL REPORTE — consulta y registro con factura REAL
+        //
+        // A diferencia de todo lo de arriba (que lo dispara el wrapper), estos
+        // métodos los llama la UI para anular un cobro ya hecho. Por eso NO tragan
+        // excepciones: si falla la lectura, el usuario debe enterarse en vez de que
+        // se anule a ciegas o el botón no haga nada.
+        // =====================================================================
+
+        /// <summary>
+        /// Datos del cobro original necesarios para armar el AnulacionRequest de la DLL
+        /// (Red + Autorizacion + Referencia). Monto y tarjeta son solo para confirmarle
+        /// al usuario QUÉ está por anular.
+        /// </summary>
+        public DatosAnulacion ConsultarCobroParaAnular(string numeroFactura, string autorizacion)
+        {
+            if (string.IsNullOrWhiteSpace(numeroFactura) || string.IsNullOrWhiteSpace(autorizacion))
+                return null;
+
+            // ⚠️ Los parámetros de Access son POSICIONALES: el orden del array debe
+            // coincidir con el orden de los @ en el SQL.
+            string sql = @"SELECT TOP 1 RED, REFERENCIA, AUTORIZACION, REDADQUIRENTE,
+                                  NUMEROTARJETA, NOMBREGRUPOTARJETA, MONTO
+                           FROM PINPAD_AUTORIZADAS
+                           WHERE NUMEROFACTURA = @factura AND AUTORIZACION = @autoriz";
+
+            DataSet ds = _conexion.Seleccionar(sql,
+                ("factura", numeroFactura.Trim()),
+                ("autoriz", autorizacion.Trim()));
+
+            if (ds == null || ds.Tables.Count == 0 || ds.Tables[0].Rows.Count == 0)
+                return null;
+
+            DataRow fila = ds.Tables[0].Rows[0];
+
+            return new DatosAnulacion
+            {
+                NumeroFactura = numeroFactura.Trim(),
+                // La DLL espera en Red el MISMO selector que se mandó al cobrar
+                // (ProcesoPagoRequest.Red = "Datafast"), no el adquirente.
+                Red = Texto(fila, "RED"),
+                Referencia = Texto(fila, "REFERENCIA"),
+                Autorizacion = Texto(fila, "AUTORIZACION"),
+                RedAdquirente = Texto(fila, "REDADQUIRENTE"),
+                NumeroTarjeta = Texto(fila, "NUMEROTARJETA"),
+                NombreGrupoTarjeta = Texto(fila, "NOMBREGRUPOTARJETA"),
+                Monto = fila["MONTO"] == DBNull.Value ? 0m : Convert.ToDecimal(fila["MONTO"])
+            };
+        }
+
+        /// <summary>¿La factura ya tiene una anulación registrada? Evita mandar dos veces
+        /// la misma anulación al pinpad.</summary>
+        public bool YaAnulada(string numeroFactura)
+        {
+            if (string.IsNullOrWhiteSpace(numeroFactura))
+                return false;
+
+            DataSet ds = _conexion.Seleccionar(
+                "SELECT COUNT(*) AS TOTAL FROM PINPAD_ANULACIONES WHERE NUMEROFACTURA = @factura",
+                ("factura", numeroFactura.Trim()));
+
+            if (ds == null || ds.Tables.Count == 0 || ds.Tables[0].Rows.Count == 0)
+                return false;
+
+            return Convert.ToInt32(ds.Tables[0].Rows[0]["TOTAL"]) > 0;
+        }
+
+        /// <summary>
+        /// Registra la anulación CON EL NÚMERO REAL DE FACTURA.
+        ///
+        /// Es indispensable hacerlo desde aquí: AnulacionRequest no lleva número de
+        /// factura, así que la fila que graba sola la DLL cae en el caso "operación sin
+        /// factura" de IniciarTransaccion y queda con NUMEROFACTURA = "OP-...". El reporte
+        /// calcula el estado ANULADA uniendo PINPAD_ANULACIONES.NUMEROFACTURA con la
+        /// factura, así que sin esta fila el cobro anulado seguiría viéndose APROBADA.
+        /// </summary>
+        public void RegistrarAnulacion(string numeroFactura, string referenciaOriginal,
+            string autorizacionOriginal, string redAdquirente)
+        {
+            string clave = (numeroFactura ?? "").Trim();
+            if (clave.Length == 0)
+                return;
+
+            string sql = @"INSERT INTO PINPAD_ANULACIONES
+                (TRANSACCIONID, REFERENCIAORIGINAL, AUTORIZACIONORIGINAL, REDADQUIRENTE, NUMEROFACTURA)
+                VALUES (@transId, @refer, @autoriz, @red, @factura)";
+
+            _conexion.Ejecutar(sql,
+                ("transId", clave),
+                ("refer", referenciaOriginal ?? ""),
+                ("autoriz", autorizacionOriginal ?? ""),
+                ("red", redAdquirente ?? ""),
+                ("factura", clave));
+        }
+
+        private static string Texto(DataRow fila, string columna)
+        {
+            if (!fila.Table.Columns.Contains(columna) || fila[columna] == DBNull.Value)
+                return "";
+
+            return fila[columna].ToString().Trim();
         }
 
         // =====================================================================

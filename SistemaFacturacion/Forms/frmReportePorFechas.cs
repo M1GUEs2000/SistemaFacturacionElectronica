@@ -1,4 +1,6 @@
-﻿using LogicaNegocios.Procesos;
+﻿using DF_PinPad.Wrapper.Models;
+using LogicaNegocios;
+using LogicaNegocios.Procesos;
 using LogicaNegocios.Services;
 using System;
 using System.Collections.Generic;
@@ -25,8 +27,10 @@ namespace SistemaFacturacion
         // Columnas del cobro con pinpad (vienen siempre en la consulta, pero se
         // muestran solo al expandir con chkVerTarjeta). El grid las oculta por
         // defecto y las revela junto con ensanchar el form y la tabla.
+        // colAnular NO viene de la consulta (es un botón), pero se lista aquí para
+        // que aparezca y desaparezca junto con el resto del bloque de tarjeta.
         private static readonly string[] ColumnasTarjeta =
-            { "AUTORIZACION", "NUMEROTARJETA", "NOMBREGRUPOTARJETA", "ESTADO" };
+            { "AUTORIZACION", "NUMEROTARJETA", "NOMBREGRUPOTARJETA", "ESTADO", "colAnular" };
 
         private const int DeltaTarjeta = 620; // cuánto crece form/grid al expandir
         private int _anchoFormOriginal;
@@ -254,6 +258,13 @@ namespace SistemaFacturacion
 
                 // ❗ BORRAR LAS COLUMNAS
                 LimpiarColumnasAcciones();
+
+                // ANULAR sí aplica: la consulta detallada también trae AUTORIZACION y
+                // ESTADO. Como es una fila por producto, el mismo cobro aparece repetido
+                // en varias filas; anular desde cualquiera de ellas es lo mismo.
+                AgregarColumnaAnular();
+                PintarColumnaAnular();
+
                 AjustarAnchoNumeroFactura();
                 AjustarAnchoCliente();
             }
@@ -308,6 +319,18 @@ namespace SistemaFacturacion
                     return;
 
                 string columna = grid.Columns[e.ColumnIndex].Name;
+
+                // ANULACIÓN DE COBRO CON TARJETA
+                // Va antes del filtro de abajo y con su propio flujo: no depende del
+                // estado del documento en el SRI (una factura autorizada igual puede
+                // tener el cobro anulado), sino del estado del cobro en el pinpad.
+                if (columna == "colAnular")
+                {
+                    if (fila.Cells["colAnular"].Value?.ToString().Trim().Length > 0)
+                        AnularCobroTarjeta(fila);
+
+                    return;
+                }
 
                 if (columna != "colAcciones" &&
                     columna != "colPDF" &&
@@ -1174,6 +1197,72 @@ namespace SistemaFacturacion
                 150
             );
 
+            AgregarColumnaAnular();
+        }
+
+        // ======================================================
+        // COLUMNA ANULAR (COBRO CON TARJETA)
+        // ======================================================
+
+        /// <summary>
+        /// Agrega el botón ANULAR. Va al final a propósito: pertenece al bloque de
+        /// tarjeta, que solo se ve al expandir con chkVerTarjeta.
+        /// </summary>
+        private void AgregarColumnaAnular()
+        {
+            if (gvReporteFecha.Columns.Contains("colAnular"))
+                gvReporteFecha.Columns.Remove("colAnular");
+
+            // Sin ESTADO ni AUTORIZACION no hay forma de saber qué cobro se puede
+            // anular (grid vacío o consulta sin las columnas de tarjeta): la columna
+            // quedaría siempre en blanco, así que mejor no agregarla.
+            if (!gvReporteFecha.Columns.Contains("ESTADO") ||
+                !gvReporteFecha.Columns.Contains("AUTORIZACION"))
+                return;
+
+            gvReporteFecha.Columns.Add(new DataGridViewButtonColumn
+            {
+                Name = "colAnular",
+                HeaderText = "ANULAR",
+                UseColumnTextForButtonValue = false,
+                Width = 150,
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
+
+                // Nace con la visibilidad del expander. A diferencia del resto de
+                // ColumnasTarjeta, esta columna NO viene del DataSource: se agrega
+                // DESPUÉS, cuando DataBindingComplete (y con él AplicarVisibilidadTarjeta)
+                // ya corrió. Si naciera visible, se quedaría visible.
+                Visible = chkVerTarjeta.Checked
+            });
+        }
+
+        /// <summary>
+        /// Escribe "ANULAR" solo en las filas que realmente se pueden anular: cobro
+        /// todavía APROBADO y con número de autorización. Sin autorización el datáfono
+        /// no puede identificar la transacción, así que ni se ofrece el botón.
+        ///
+        /// El resto queda con la celda vacía, que es como el DataGridView deja el botón
+        /// sin dibujar.
+        /// </summary>
+        private void PintarColumnaAnular()
+        {
+            if (!gvReporteFecha.Columns.Contains("colAnular") ||
+                !gvReporteFecha.Columns.Contains("ESTADO") ||
+                !gvReporteFecha.Columns.Contains("AUTORIZACION"))
+                return;
+
+            foreach (DataGridViewRow fila in gvReporteFecha.Rows)
+            {
+                if (fila.IsNewRow)
+                    continue;
+
+                string estado = fila.Cells["ESTADO"].Value?.ToString().Trim().ToUpperInvariant() ?? "";
+                string autorizacion = fila.Cells["AUTORIZACION"].Value?.ToString().Trim() ?? "";
+
+                bool anulable = estado == "APROBADA" && autorizacion.Length > 0;
+
+                fila.Cells["colAnular"].Value = anulable ? "ANULAR" : "";
+            }
         }
 
         private void PintarColumnasFacturar()
@@ -1186,6 +1275,8 @@ namespace SistemaFacturacion
                 _services,
                 true
             );
+
+            PintarColumnaAnular();
         }
 
         private void AjustarAnchoNumeroFactura()
@@ -1503,6 +1594,172 @@ namespace SistemaFacturacion
                 Notificaciones.Show(this,
                     "Error consultando autorización de la Factura:\n" + ex.Message,
                     "error");
+            }
+        }
+
+        // ======================================================
+        // ANULAR COBRO CON TARJETA (PINPAD)
+        // ======================================================
+
+        /// <summary>
+        /// Anula en el pinpad el cobro con tarjeta de la factura de la fila.
+        ///
+        /// La factura electrónica NO se toca: esto reversa el cargo a la tarjeta, que es
+        /// una operación del datáfono. Para dejar sin efecto el comprobante ante el SRI
+        /// hay que emitir la nota de crédito aparte.
+        ///
+        /// El identificador que pide la DLL es AUTORIZACION + REFERENCIA + RED; el número
+        /// de factura solo sirve para ubicar esa fila en PINPAD_AUTORIZADAS y para dejar
+        /// registrada la anulación con la factura real.
+        /// </summary>
+        private async void AnularCobroTarjeta(DataGridViewRow fila)
+        {
+            string numeroFactura = fila.Cells["NUMEROFACTURA"]?.Value?.ToString()?.Trim() ?? "";
+            string autorizacion = fila.Cells["AUTORIZACION"]?.Value?.ToString()?.Trim() ?? "";
+
+            if (string.IsNullOrWhiteSpace(numeroFactura) || string.IsNullOrWhiteSpace(autorizacion))
+            {
+                Notificaciones.Show(this,
+                    "La fila no tiene número de factura o autorización:\n" +
+                    "no se puede identificar el cobro a anular.",
+                    "advertencia");
+                return;
+            }
+
+            try
+            {
+                // ==========================================
+                // DATOS DEL COBRO ORIGINAL
+                // ==========================================
+                if (_services.PinPadLog.YaAnulada(numeroFactura))
+                {
+                    Notificaciones.Show(this,
+                        "El cobro de la factura " + numeroFactura + " ya fue anulado.",
+                        "advertencia");
+                    btnConsultar.PerformClick();
+                    return;
+                }
+
+                DatosAnulacion datos =
+                    _services.PinPadLog.ConsultarCobroParaAnular(numeroFactura, autorizacion);
+
+                if (datos == null)
+                {
+                    Notificaciones.Show(this,
+                        "No se encontró el cobro con tarjeta de la factura " + numeroFactura +
+                        "\ncon la autorización " + autorizacion + ".",
+                        "error");
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(datos.Referencia))
+                {
+                    Notificaciones.Show(this,
+                        "El cobro no tiene número de REFERENCIA registrado.\n" +
+                        "El datáfono no puede identificar la transacción sin ese dato;\n" +
+                        "la anulación debe hacerse desde el equipo.",
+                        "error");
+                    return;
+                }
+
+                // ==========================================
+                // CONFIRMACIÓN — mueve plata real
+                // ==========================================
+                bool confirmado = Notificaciones.Show(
+                    this,
+                    "⚠ ANULAR COBRO CON TARJETA\n\n" +
+                    "Factura:       " + numeroFactura + "\n" +
+                    "Monto:         " + datos.Monto.ToString("0.00") + "\n" +
+                    "Tarjeta:       " + datos.NumeroTarjeta + " " + datos.NombreGrupoTarjeta + "\n" +
+                    "Autorización:  " + datos.Autorizacion + "\n" +
+                    "Referencia:    " + datos.Referencia + "\n\n" +
+                    "Esta operación reversa el cargo en el datáfono.\n" +
+                    "La factura electrónica NO se anula: para eso emita una nota de crédito.\n\n" +
+                    "¿Desea continuar?",
+                    "confirmacion"
+                );
+
+                if (!confirmado)
+                    return;
+
+                Notificaciones.Show(this,
+                    "Anulando el cobro en el datáfono…",
+                    "proceso");
+
+                // ==========================================
+                // ANULACIÓN — bloqueante, fuera del hilo de UI
+                // ==========================================
+                var req = new AnulacionRequest
+                {
+                    // El selector de red es el mismo que se mandó al cobrar, no el adquirente.
+                    Red = string.IsNullOrWhiteSpace(datos.Red) ? "Datafast" : datos.Red,
+                    Autorizacion = datos.Autorizacion,
+                    Referencia = datos.Referencia,
+                    UsuarioSistema = UsuarioActual
+                };
+
+                AnulacionResult res = await Task.Run(() => _services.PinPad.Anular(req));
+
+                if (res == null || !res.Exitoso)
+                {
+                    string motivo = res?.MensajeRespuesta
+                        ?? res?.ExcepcionMensaje
+                        ?? "Sin respuesta del datáfono.";
+
+                    Notificaciones.Show(this,
+                        "No se pudo anular el cobro de la factura " + numeroFactura + ":\n" + motivo,
+                        "error",
+                        UsuarioActual,
+                        IPActual);
+                    return;
+                }
+
+                // ==========================================
+                // REGISTRO CON LA FACTURA REAL
+                // ==========================================
+                // La DLL ya grabó su propia fila, pero bajo un marcador "OP-..." porque
+                // AnulacionRequest no lleva factura. Sin este registro el reporte seguiría
+                // mostrando el cobro como APROBADA.
+                _services.PinPadLog.RegistrarAnulacion(
+                    numeroFactura,
+                    datos.Referencia,
+                    datos.Autorizacion,
+                    string.IsNullOrWhiteSpace(res.RedAdquirente) ? datos.RedAdquirente : res.RedAdquirente);
+
+                _services.Log.CrearLog(
+                    "ANULACION COBRO TARJETA",
+                    UsuarioActual,
+                    IPActual,
+                    "Factura: " + numeroFactura +
+                    " | Monto: " + datos.Monto.ToString("0.00") +
+                    " | Autorizacion: " + datos.Autorizacion +
+                    " | Referencia: " + datos.Referencia);
+
+                Notificaciones.Show(this,
+                    "Cobro ANULADO correctamente.\n" +
+                    "Factura:       " + numeroFactura + "\n" +
+                    "Monto:         " + datos.Monto.ToString("0.00") + "\n" +
+                    "Autorización:  " + (string.IsNullOrWhiteSpace(res.Autorizacion) ? datos.Autorizacion : res.Autorizacion) + "\n" +
+                    "Referencia:    " + (string.IsNullOrWhiteSpace(res.Referencia) ? datos.Referencia : res.Referencia),
+                    "exito");
+
+                // El ESTADO de la fila quedó viejo (sigue diciendo APROBADA): recargar.
+                btnConsultar.PerformClick();
+            }
+            catch (Exception ex)
+            {
+                Notificaciones.Show(this,
+                    "Error anulando el cobro con tarjeta:\n" + ex.Message,
+                    "error",
+                    UsuarioActual,
+                    IPActual);
+            }
+            finally
+            {
+                // Solo cierra el "esperando" (si se llegó a abrir). NO se recarga el grid
+                // aquí: al cancelar la confirmación o fallar una validación no cambió nada,
+                // y recargar sacaría al usuario de las vistas de pendientes/consumidor.
+                Notificaciones.CerrarProceso(this);
             }
         }
     }
