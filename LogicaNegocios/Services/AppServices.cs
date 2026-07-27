@@ -33,6 +33,7 @@
         public ProcesosNotaCredito ProcesosNotaCredito { get; }
         public ProcesosRetenciones ProcesosRetenciones { get; }
         public ProcesosGenerales ProcesosGenerales { get; }
+        public ProcesosErroresSri ProcesosErroresSri { get; }
         public ProcesosLote ProcesosLote { get; }
         public ProcesosTarjetas ProcesosTarjetas { get; }
         public FacturacionQueueAsync FacturacionQueue { get; }
@@ -74,6 +75,7 @@
             Proveedor = new ProveedoresManejador(Conexion, Log);
             Retencion = new RetencionesManejador(Conexion, Log);
 
+            ProcesosErroresSri = new ProcesosErroresSri();
             ProcesosFacturacion = new ProcesosFacturacion(this);
             ProcesosNotaCredito = new ProcesosNotaCredito(this);
             ProcesosRetenciones = new ProcesosRetenciones(this);
@@ -186,4 +188,4 @@
             Directory.CreateDirectory(Path.Combine(Paths.Retenciones, "PDFPREVIEW"));
         }
     }
-}   
+}

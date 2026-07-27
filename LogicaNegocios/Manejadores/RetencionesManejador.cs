@@ -255,6 +255,73 @@ namespace LogicaNegocios
             return _conexion.Ejecutar(sql);
         }
 
+        public void ActualizarNumeroYEstado(
+            string numeroActual,
+            string numeroNuevo,
+            string estado,
+            string usuario,
+            string ip)
+        {
+            string sqlEncabezado = @"
+                UPDATE RETENCIONES SET
+                    NUMERORETENCION = @numeroNuevo,
+                    ESTADO = @estado
+                WHERE NUMERORETENCION = @numeroActual";
+
+            _log.CrearLog(
+                "Retención renumerada " + numeroActual + " -> " +
+                numeroNuevo + " [" + estado + "]",
+                usuario,
+                ip,
+                sqlEncabezado
+            );
+
+            _conexion.Ejecutar(
+                sqlEncabezado,
+                ("numeroNuevo", numeroNuevo),
+                ("estado", estado),
+                ("numeroActual", numeroActual)
+            );
+
+            string sqlDetalle = @"
+                UPDATE RETENCIONES_DETALLE SET
+                    NUMERORETENCION = @numeroNuevo
+                WHERE NUMERORETENCION = @numeroActual";
+
+            _conexion.Ejecutar(
+                sqlDetalle,
+                ("numeroNuevo", numeroNuevo),
+                ("numeroActual", numeroActual)
+            );
+        }
+
+        public string ObtenerSecuencialEmitiendo()
+        {
+            const string prefijo = "EMITIENDO";
+            DataSet ds = _conexion.Seleccionar(
+                "SELECT NUMERORETENCION FROM RETENCIONES WHERE NUMERORETENCION LIKE 'EMITIENDO%'");
+            int max = 0;
+
+            if (ds != null && ds.Tables.Count > 0)
+            {
+                foreach (DataRow row in ds.Tables[0].Rows)
+                {
+                    string valor = row["NUMERORETENCION"].ToString().Trim();
+                    if (!valor.StartsWith(prefijo, System.StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    int numero;
+                    if (int.TryParse(valor.Substring(prefijo.Length).Trim(), out numero) &&
+                        numero > max)
+                    {
+                        max = numero;
+                    }
+                }
+            }
+
+            return prefijo + (max + 1).ToString("000");
+        }
+
         // ======================================================
         // HELPERS
         // ======================================================

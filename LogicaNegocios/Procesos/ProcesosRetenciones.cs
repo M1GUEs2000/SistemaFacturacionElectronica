@@ -17,11 +17,61 @@ namespace LogicaNegocios.Procesos
     public class ProcesosRetenciones
     {
         private readonly AppServices _services;
+        private const string ESTADO_EMITIENDO = "EMITIENDO";
 
         public ProcesosRetenciones(AppServices services
         )
         {
             _services = services;
+        }
+
+        private void RenumerarRetencion(
+            string numeroActual,
+            string numeroNuevo,
+            string estado,
+            string usuario,
+            string ip)
+        {
+            _services.Retencion.ActualizarNumeroYEstado(
+                numeroActual, numeroNuevo, estado, usuario, ip);
+            _services.Pendientes.ActualizarNumeroYEstado(
+                numeroActual, numeroNuevo, estado, "RETENCION", usuario, ip);
+        }
+
+        private void LimpiarEmisionFallida(
+            string numeroRetencion,
+            string usuario,
+            string ip)
+        {
+            try
+            {
+                _services.Retencion.EliminarDetalle(numeroRetencion);
+                _services.Retencion.Eliminar(numeroRetencion, usuario, ip);
+            }
+            catch (Exception ex)
+            {
+                _services.Log.CrearLog(
+                    "Error limpiando emisión retención",
+                    usuario,
+                    ip,
+                    numeroRetencion + ": " + ex
+                );
+            }
+
+            try
+            {
+                _services.Pendientes.Eliminar(
+                    numeroRetencion, "RETENCION", usuario, ip);
+            }
+            catch (Exception ex)
+            {
+                _services.Log.CrearLog(
+                    "Error limpiando pendiente retención",
+                    usuario,
+                    ip,
+                    numeroRetencion + ": " + ex
+                );
+            }
         }
 
         //Helpers DTO
@@ -249,7 +299,7 @@ namespace LogicaNegocios.Procesos
                 foreach (DataRow d in prep.TB_DetalleRetencion.Rows)
                 {
                     _services.Retencion.InsertarDetalle(
-                        NumeroRetencion: prep.NumeroRetencion,
+                        NumeroRetencion: numeroRetencion,
                         TipoImpuesto: d["TIPOIMPUESTO"].ToString(),
                         CodigoImpuesto: d["CODIGOIMPUESTO"].ToString(),
                         BaseImponible: d["BASEIMPONIBLE"].ToString(),
@@ -756,13 +806,63 @@ namespace LogicaNegocios.Procesos
                     r.RutaXmlFirmado = firma.RutaXmlFirmado;
 
                     // ==================================================
+                    // 6.5) INSERT PREVIO — existe en BD antes del SRI
+                    // ==================================================
+                    string numeroEmitiendo =
+                        _services.Retencion.ObtenerSecuencialEmitiendo();
+
+                    try
+                    {
+                        _services.Pendientes.Insertar(
+                            numeroEmitiendo,
+                            claveAcceso,
+                            firma.RutaXmlFirmado,
+                            DateTime.Now,
+                            0,
+                            ESTADO_EMITIENDO,
+                            "RETENCION",
+                            usuarioActual,
+                            ipActual
+                        );
+
+                        bool insertada = InsertarRetencion(
+                            datos,
+                            prep,
+                            rowPfm,
+                            numeroEmitiendo,
+                            claveAcceso,
+                            ESTADO_EMITIENDO,
+                            usuarioActual,
+                            ipActual
+                        );
+
+                        if (!insertada)
+                        {
+                            LimpiarEmisionFallida(
+                                numeroEmitiendo, usuarioActual, ipActual);
+                            return Error(
+                                r,
+                                "No se pudo guardar la retención antes de enviarla al SRI.");
+                        }
+                    }
+                    catch (Exception exPrevio)
+                    {
+                        LimpiarEmisionFallida(
+                            numeroEmitiendo, usuarioActual, ipActual);
+                        return Error(
+                            r,
+                            "Error guardando la retención antes de enviarla al SRI: " +
+                            exPrevio.Message);
+                    }
+
+                    // ==================================================
                     // 7) RECEPCIÓN SRI
                     // ==================================================
                     var recepcion = await Task.Run(() =>
                         _services.ProcesosGenerales.EnviarRecepcion(
                             firma.RutaXmlFirmado,
                             claveAcceso,
-                            numeroRetencionReal,
+                            numeroEmitiendo,
                             "RETENCION",
                             usuarioActual,
                             ipActual
@@ -774,8 +874,36 @@ namespace LogicaNegocios.Procesos
                     // -----------------------------
                     if (recepcion.SecuencialRepetido)
                     {
+                        LimpiarEmisionFallida(
+                            numeroEmitiendo, usuarioActual, ipActual);
                         await Task.Run(() => _services.Param.IncrementarSecuencial("07"));
                         continue;
+                    }
+
+                    // -----------------------------
+                    // 7.1.bis ERROR SRI DEFINITIVO
+                    // -----------------------------
+                    if (recepcion.ErrorFinal)
+                    {
+                        RenumerarRetencion(
+                            numeroEmitiendo,
+                            numeroRetencionReal,
+                            "NO_AUTORIZADO",
+                            usuarioActual,
+                            ipActual
+                        );
+
+                        if (vieneDePendiente)
+                            LimpiarEmisionFallida(
+                                numeroRetencionPendiente, usuarioActual, ipActual);
+
+                        await Task.Run(() => _services.Param.IncrementarSecuencial("07"));
+
+                        r.Exito = false;
+                        r.Autorizado = false;
+                        r.NumeroRetencion = numeroRetencionReal;
+                        r.Mensaje = recepcion.Mensaje;
+                        return r;
                     }
 
                     // -----------------------------
@@ -788,18 +916,32 @@ namespace LogicaNegocios.Procesos
                                 ? recepcion.EstadoEspecial
                                 : _services.Pendientes.ObtenerEstadoPendientePorTipo("RETENCION");
 
-                        bool insPendiente = await Task.Run(() =>
-                            InsertarRetencion(
-                                datos,
-                                prep,
-                                rowPfm,
+                        bool insPendiente = true;
+
+                        try
+                        {
+                            RenumerarRetencion(
+                                numeroEmitiendo,
                                 numeroPendiente,
-                                claveAcceso,
-                                "PENDIENTE",
+                                numeroPendiente,
                                 usuarioActual,
                                 ipActual
-                            )
-                        );
+                            );
+
+                            if (vieneDePendiente)
+                                LimpiarEmisionFallida(
+                                    numeroRetencionPendiente, usuarioActual, ipActual);
+                        }
+                        catch (Exception exRenumerar)
+                        {
+                            insPendiente = false;
+                            _services.Log.CrearLog(
+                                "Error renumerando retención pendiente",
+                                usuarioActual,
+                                ipActual,
+                                numeroEmitiendo + ": " + exRenumerar
+                            );
+                        }
 
                         r.Exito = false;
                         r.Autorizado = false;
@@ -822,24 +964,38 @@ namespace LogicaNegocios.Procesos
                     if (!string.IsNullOrWhiteSpace(recepcion.EstadoEspecial) &&
                         recepcion.EstadoEspecial.StartsWith("PENDIENTE_AUTORIZACION"))
                     {
-                        bool insPendAuth = await Task.Run(() =>
-                            InsertarRetencion(
-                                datos,
-                                prep,
-                                rowPfm,
-                                prep.NumeroRetencion,
-                                claveAcceso,
-                                "PENDIENTE_AUTORIZACION",
+                        bool insPendAuth = true;
+
+                        try
+                        {
+                            RenumerarRetencion(
+                                numeroEmitiendo,
+                                numeroRetencionReal,
+                                recepcion.EstadoEspecial,
                                 usuarioActual,
                                 ipActual
-                            )
-                        );
+                            );
+
+                            if (vieneDePendiente)
+                                LimpiarEmisionFallida(
+                                    numeroRetencionPendiente, usuarioActual, ipActual);
+                        }
+                        catch (Exception exRenumerar)
+                        {
+                            insPendAuth = false;
+                            _services.Log.CrearLog(
+                                "Error renumerando retención recibida",
+                                usuarioActual,
+                                ipActual,
+                                numeroEmitiendo + ": " + exRenumerar
+                            );
+                        }
 
                         await Task.Run(() => _services.Param.IncrementarSecuencial("07"));
 
                         r.Exito = true;
                         r.Autorizado = false;
-                        r.NumeroRetencion = prep.NumeroRetencion;
+                        r.NumeroRetencion = numeroRetencionReal;
                         r.Mensaje = insPendAuth
                             ? "RETENCIÓN ELECTRÓNICA\n\n" +
                               "Documento recibido por el SRI.\n\n" +
@@ -851,6 +1007,19 @@ namespace LogicaNegocios.Procesos
                         return r;
                     }
 
+                    // RECIBIDA: el secuencial real ya pertenece al documento.
+                    RenumerarRetencion(
+                        numeroEmitiendo,
+                        numeroRetencionReal,
+                        ESTADO_EMITIENDO,
+                        usuarioActual,
+                        ipActual
+                    );
+
+                    if (vieneDePendiente)
+                        LimpiarEmisionFallida(
+                            numeroRetencionPendiente, usuarioActual, ipActual);
+
                     // ==================================================
                     // 8) AUTORIZACIÓN
                     // ==================================================
@@ -859,7 +1028,7 @@ namespace LogicaNegocios.Procesos
                             firma.RutaXmlFirmado,
                             claveAcceso,
                             "RETENCION",
-                            prep.NumeroRetencion,
+                            numeroRetencionReal,
                             Path.Combine(_services.Paths.Retenciones, "XMLAUTORIZADOS"),
                             5,
                             (i, m) => { },
@@ -871,7 +1040,14 @@ namespace LogicaNegocios.Procesos
 
                     if (!sri.Exito)
                     {
-                        InsertarRetencion(datos, prep, rowPfm, prep.NumeroRetencion, claveAcceso, "NO_AUTORIZADO", usuarioActual, ipActual);
+                        _services.Retencion.ActualizarNumeroYEstado(
+                            numeroRetencionReal,
+                            numeroRetencionReal,
+                            sri.ErrorFinal ? "NO_AUTORIZADO" : "PENDIENTE_AUTORIZACION",
+                            usuarioActual,
+                            ipActual
+                        );
+                        await Task.Run(() => _services.Param.IncrementarSecuencial("07"));
                         return Error(r, sri.Mensaje);
                     }
 
@@ -880,42 +1056,36 @@ namespace LogicaNegocios.Procesos
                     // ==================================================
                     // 9) INSERTAR AUTORIZADO
                     // ==================================================
-                    bool insOk = await Task.Run(() =>
-                        InsertarRetencion(
-                            datos,
-                            prep,
-                            rowPfm,
-                            prep.NumeroRetencion,
-                            claveAcceso,
+                    bool insOk = true;
+
+                    try
+                    {
+                        _services.Retencion.ActualizarNumeroYEstado(
+                            numeroRetencionReal,
+                            numeroRetencionReal,
                             "AUTORIZADO",
                             usuarioActual,
                             ipActual
-                        )
-                    );
+                        );
+                    }
+                    catch (Exception exActualizar)
+                    {
+                        insOk = false;
+                        _services.Log.CrearLog(
+                            "Error actualizando retención autorizada",
+                            usuarioActual,
+                            ipActual,
+                            numeroRetencionReal + ": " + exActualizar
+                        );
+                    }
 
                     if (!insOk)
                     {
-                        // Retención ya autorizada por SRI pero no pudo guardarse en BD.
-                        // Registrar como PENDIENTE para recuperación.
-                        try
-                        {
-                            _services.Pendientes.Insertar(
-                                prep.NumeroRetencion,
-                                claveAcceso,
-                                firma.RutaXmlFirmado ?? "",
-                                DateTime.Now,
-                                0,
-                                "PENDIENTE",
-                                "RETENCION",
-                                usuarioActual,
-                                ipActual
-                            );
-                        }
-                        catch { /* no bloquear el flujo */ }
-
+                        // El marcador previo ya existe y conserva la clave/ruta. No se
+                        // inserta otro pendiente porque duplicaría el documento.
                         return Error(r,
                             "Retención AUTORIZADA por SRI pero error al registrar en BD. " +
-                            "Guardada como pendiente para recuperación. " +
+                            "El registro EMITIENDO se conserva para recuperación. " +
                             "ClaveAcceso: " + claveAcceso);
                     }
 
@@ -943,7 +1113,7 @@ namespace LogicaNegocios.Procesos
                     var solicitudCorreo = new SolicitudCorreoDocumento
                     {
                         TipoDocumento = "RETENCION",
-                        NumeroDocumento = prep.NumeroRetencion,
+                        NumeroDocumento = numeroRetencionReal,
                         RutaPdf = r.RutaPdf,
                         RutaXmlAutorizado = r.RutaXmlAutorizado
                     };
@@ -975,7 +1145,7 @@ namespace LogicaNegocios.Procesos
 
                     r.Exito = true;
                     r.Autorizado = true;
-                    r.NumeroRetencion = prep.NumeroRetencion;
+                    r.NumeroRetencion = numeroRetencionReal;
                     r.Mensaje = vieneDePendiente
                         ? "Retención pendiente autorizada correctamente."
                         : "Retención electrónica autorizada correctamente.";

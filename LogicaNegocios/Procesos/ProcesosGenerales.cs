@@ -613,29 +613,10 @@ namespace LogicaNegocios.Procesos
                         ? recepcion.RespuestaRecepcion.Trim().ToUpperInvariant()
                         : "";
 
-                // ======================================================
-                // MENSAJE SRI NORMALIZADO (TEXTO PLANO)
-                // ======================================================
-                string mensajeSri = (recepcion.Error ?? "").ToUpperInvariant();
                 r.EstadoSri = string.IsNullOrWhiteSpace(recepcion.EstadoSri)
                     ? estadoRecepcion
                     : recepcion.EstadoSri;
                 r.MensajesSri = recepcion.MensajesSri ?? new List<SriMensajeDto>();
-
-                // ======================================================
-                // FLAGS SRI
-                // ======================================================
-                bool claveAccesoRegistrada =
-                    mensajeSri.Contains("CLAVE ACCESO REGISTRADA") ||
-                    mensajeSri.Contains("CLAVE DE ACCESO REGISTRADA") ||
-                    mensajeSri.Contains("SECUENCIAL REGISTRADO") ||
-                    mensajeSri.Contains("ERROR SECUENCIAL REGISTRADO");
-
-                bool claveAccesoEnProceso =
-                    mensajeSri.Contains("CLAVE DE ACCESO EN PROCESO") ||
-                    mensajeSri.Contains("CLAVE ACCESO EN PROCESO") ||
-                    mensajeSri.Contains("EN PROCESAMIENTO") ||
-                    mensajeSri.Contains("PROCESAMIENTO");
 
                 // ======================================================
                 // 2) RECIBIDA → OK
@@ -648,14 +629,17 @@ namespace LogicaNegocios.Procesos
                     return r;
                 }
 
+                r.ErrorClasificado =
+                    _services.ProcesosErroresSri.Clasificar(r.MensajesSri);
+
                 // ======================================================
                 // 3) CLAVE / SECUENCIAL REGISTRADO
                 // ======================================================
-                if (claveAccesoRegistrada)
+                if (r.ErrorClasificado.Accion == AccionErrorSri.CambiarSecuencial)
                 {
                     r.Exito = false;
                     r.SecuencialRepetido = true;
-                    r.Mensaje = tipoDocumento + ": Secuencial / clave ya registrada en el SRI.";
+                    r.Mensaje = FormatearErrorSri(tipoDocumento, r.ErrorClasificado);
                     return r;
                 }
 
@@ -663,7 +647,8 @@ namespace LogicaNegocios.Procesos
                 // ======================================================
                 // 4) EN PROCESAMIENTO → PENDIENTE_AUTORIZACION###
                 // ======================================================
-                if (claveAccesoEnProceso)
+                if (r.ErrorClasificado.Accion == AccionErrorSri.ConsultarAutorizacion ||
+                    estadoRecepcion == "EN PROCESAMIENTO")
                 {
 
                     // --------------------------------------------------
@@ -697,9 +682,31 @@ namespace LogicaNegocios.Procesos
                     return r;
                 }
 
+                // ======================================================
+                // 5) ERROR DEFINITIVO → NO_AUTORIZADO
+                // ======================================================
+                if (r.ErrorClasificado.Accion == AccionErrorSri.NoReintentar)
+                {
+                    UpsertPendiente(
+                        numeroDocumento,
+                        claveAcceso,
+                        rutaXmlFirmado,
+                        "NO_AUTORIZADO",
+                        tipoDocumento,
+                        1,
+                        usuarioActual,
+                        ipActual
+                    );
+
+                    r.Exito = false;
+                    r.ErrorFinal = true;
+                    r.EstadoEspecial = "NO_AUTORIZADO";
+                    r.Mensaje = FormatearErrorSri(tipoDocumento, r.ErrorClasificado);
+                    return r;
+                }
 
                 // ======================================================
-                // 5) OTRO ERROR → PENDIENTE### (GENÉRICO)
+                // 6) ERROR REINTENTABLE / DESCONOCIDO → PENDIENTE###
                 // ======================================================
                 string estadoPendienteFinal =
                     _services.Pendientes.ObtenerEstadoPendientePorTipo(tipoDocumento);
@@ -717,10 +724,8 @@ namespace LogicaNegocios.Procesos
 
                 r.Exito = false;
                 r.EstadoEspecial = estadoPendienteFinal;
-                r.Mensaje = tipoDocumento +
-                    ": Error en recepción SRI. Registrado como " +
-                    estadoPendienteFinal +
-                    ". Detalle: " + mensajeSri;
+                r.Mensaje = FormatearErrorSri(tipoDocumento, r.ErrorClasificado) +
+                    Environment.NewLine + "Registrado como " + estadoPendienteFinal + ".";
 
                 return r;
             }
@@ -810,11 +815,13 @@ namespace LogicaNegocios.Procesos
 
                     if (auth != null)
                     {
-                        string estadoAuth = auth.Estado ?? "";
+                        string estadoAuth = (auth.Estado ?? "").Trim().ToUpperInvariant();
                         r.EstadoSri = string.IsNullOrWhiteSpace(auth.EstadoSri)
                             ? estadoAuth
                             : auth.EstadoSri;
                         r.MensajesSri = auth.MensajesSri ?? new List<SriMensajeDto>();
+                        r.ErrorClasificado =
+                            _services.ProcesosErroresSri.Clasificar(r.MensajesSri);
                         ultimoDetalleSri = FormatearDetalleAutorizacionPendiente(auth);
 
                         if (estadoAuth == "AUTORIZADO" && File.Exists(rutaAutorizado))
@@ -842,8 +849,8 @@ namespace LogicaNegocios.Procesos
                                 _services.Pendientes.Insertar(numeroDocumento, claveAcceso, rutaXmlFirmado, DateTime.Now, 1, "NO_AUTORIZADO", tipoDocumento, usuarioActual, ipActual);
 
                             r.Exito = false;
-                            r.Mensaje = $"{tipoDocumento} NO AUTORIZADO por el SRI." +
-                                        (string.IsNullOrWhiteSpace(auth.Error) ? "" : Environment.NewLine + auth.Error);
+                            r.ErrorFinal = true;
+                            r.Mensaje = FormatearErrorSri(tipoDocumento, r.ErrorClasificado);
                             return r;
                         }
                     }
@@ -855,7 +862,7 @@ namespace LogicaNegocios.Procesos
                 }
 
                 // Agotó los intentos sin respuesta definitiva del SRI
-                GuardarPendienteAutorizacion(
+                r.EstadoEspecial = GuardarPendienteAutorizacion(
                     numeroDocumento,
                     claveAcceso,
                     rutaXmlFirmado,
@@ -878,7 +885,7 @@ namespace LogicaNegocios.Procesos
                 // Error técnico durante el polling — puede reintentarse
                 try
                 {
-                    GuardarPendienteAutorizacion(
+                    r.EstadoEspecial = GuardarPendienteAutorizacion(
                         numeroDocumento,
                         claveAcceso,
                         rutaXmlFirmado,
@@ -940,7 +947,34 @@ namespace LogicaNegocios.Procesos
             return string.Join(Environment.NewLine, lineas);
         }
 
-        private void GuardarPendienteAutorizacion(
+        private static string FormatearErrorSri(
+            string tipoDocumento,
+            ResultadoErrorSri error)
+        {
+            if (error == null)
+                return tipoDocumento + ": respuesta de error del SRI sin detalle.";
+
+            var lineas = new List<string>
+            {
+                tipoDocumento + ": error SRI " +
+                    (string.IsNullOrWhiteSpace(error.Codigo) ? "sin código" : error.Codigo) + ".",
+                error.Descripcion ?? "",
+                error.Motivo ?? ""
+            };
+
+            if (!string.IsNullOrWhiteSpace(error.MensajeSri))
+                lineas.Add("Mensaje SRI: " + error.MensajeSri);
+
+            if (!string.IsNullOrWhiteSpace(error.InformacionAdicionalSri))
+                lineas.Add("Detalle SRI: " + error.InformacionAdicionalSri);
+
+            return string.Join(
+                Environment.NewLine,
+                lineas.Where(linea => !string.IsNullOrWhiteSpace(linea))
+            );
+        }
+
+        private string GuardarPendienteAutorizacion(
             string numeroDocumento,
             string claveAcceso,
             string rutaXmlFirmado,
@@ -964,6 +998,8 @@ namespace LogicaNegocios.Procesos
                 usuarioActual,
                 ipActual
             );
+
+            return estado;
         }
 
         /// <summary>
@@ -1193,13 +1229,43 @@ namespace LogicaNegocios.Procesos
                     return false;
                 }
 
-                if (!_services.ProcesosGenerales.ObtenerXmlFirmado(
-                    tipoDocumento,
-                    fechaDocumento,
+                string tipoPendiente = tipoDocumento.Trim().ToUpperInvariant();
+                if (tipoPendiente == "NOTA_CREDITO" ||
+                    tipoPendiente == "NOTACREDITO")
+                {
+                    tipoPendiente = "NOTADECREDITO";
+                }
+
+                // EMITIENDO/PENDIENTE no forma parte del nombre físico del XML:
+                // primero se usa la ruta exacta persistida antes de contactar al SRI.
+                DataSet dsPendiente = _services.Pendientes.ConsultarPorNumeroYTipo(
                     numeroDocumento,
-                    out claveAcceso,
-                    out rutaXmlFirmado
-                ))
+                    tipoPendiente
+                );
+
+                if (dsPendiente != null &&
+                    dsPendiente.Tables.Count > 0 &&
+                    dsPendiente.Tables[0].Rows.Count > 0)
+                {
+                    DataRow pendiente = dsPendiente.Tables[0].Rows[0];
+                    claveAcceso = pendiente["CLAVEACCESO"]?.ToString()?.Trim() ?? "";
+                    rutaXmlFirmado =
+                        pendiente["RUTAXMLFIRMADO"]?.ToString()?.Trim() ?? "";
+                }
+
+                bool xmlPersistidoValido =
+                    !string.IsNullOrWhiteSpace(claveAcceso) &&
+                    !string.IsNullOrWhiteSpace(rutaXmlFirmado) &&
+                    File.Exists(rutaXmlFirmado);
+
+                if (!xmlPersistidoValido &&
+                    !_services.ProcesosGenerales.ObtenerXmlFirmado(
+                        tipoDocumento,
+                        fechaDocumento,
+                        numeroDocumento,
+                        out claveAcceso,
+                        out rutaXmlFirmado
+                    ))
                 {
                     mensajeError = "No se pudo localizar el XML firmado del documento.";
                     return false;
@@ -1521,9 +1587,11 @@ namespace LogicaNegocios.Procesos
         public bool Exito { get; set; }
         public bool Autorizado { get; set; }
         public bool SecuencialRepetido { get; set; }
+        public bool ErrorFinal { get; set; }
         public string Mensaje { get; set; }
         public string EstadoSri { get; set; }
         public List<SriMensajeDto> MensajesSri { get; set; } = new List<SriMensajeDto>();
+        public ResultadoErrorSri ErrorClasificado { get; set; }
         public string EstadoEspecial { get; set; }
         public string RutaXmlAutorizado { get; set; }
         public XDocument XmlAutorizado { get; set; }

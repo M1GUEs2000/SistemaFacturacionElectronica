@@ -50,11 +50,61 @@ namespace LogicaNegocios.Procesos
     public class ProcesosNotaCredito
     {
         private readonly AppServices _services;
+        private const string ESTADO_EMITIENDO = "EMITIENDO";
 
         public ProcesosNotaCredito(AppServices services
         )
         {
             _services = services;
+        }
+
+        private void RenumerarNota(
+            string numeroActual,
+            string numeroNuevo,
+            string estado,
+            string usuario,
+            string ip)
+        {
+            _services.NotaCredito.ActualizarNumeroYEstado(
+                numeroActual, numeroNuevo, estado, usuario, ip);
+            _services.Pendientes.ActualizarNumeroYEstado(
+                numeroActual, numeroNuevo, estado, "NOTADECREDITO", usuario, ip);
+        }
+
+        private void LimpiarEmisionFallida(
+            string numeroNota,
+            string usuario,
+            string ip)
+        {
+            try
+            {
+                _services.NotaCredito.EliminarDetallePorNumeroNota(numeroNota);
+                _services.NotaCredito.Eliminar(numeroNota, usuario, ip);
+            }
+            catch (Exception ex)
+            {
+                _services.Log.CrearLog(
+                    "Error limpiando emisión NC",
+                    usuario,
+                    ip,
+                    numeroNota + ": " + ex
+                );
+            }
+
+            try
+            {
+                _services.Pendientes.Eliminar(
+                    numeroNota, "NOTADECREDITO", usuario, ip);
+            }
+            catch (Exception ex)
+            {
+                _services.Log.CrearLog(
+                    "Error limpiando pendiente NC",
+                    usuario,
+                    ip,
+                    numeroNota + ": " + ex
+                );
+            }
         }
 
         public ResultadoNotaCredito PrepararNotaCreditoDesdeFactura(
@@ -967,13 +1017,60 @@ namespace LogicaNegocios.Procesos
                     r.RutaXmlFirmado = firma.RutaXmlFirmado;
 
                     // ==================================================
+                    // 5.5) INSERT PREVIO — existe en BD antes del SRI
+                    // ==================================================
+                    string numeroEmitiendo =
+                        _services.NotaCredito.ObtenerSecuencialEmitiendo();
+
+                    try
+                    {
+                        _services.Pendientes.Insertar(
+                            numeroEmitiendo,
+                            claveAcceso,
+                            firma.RutaXmlFirmado,
+                            DateTime.Now,
+                            0,
+                            ESTADO_EMITIENDO,
+                            "NOTADECREDITO",
+                            usuarioActual,
+                            ipActual
+                        );
+
+                        bool insertada = InsertarNotaCredito(
+                            prep,
+                            rowPfm,
+                            claveAcceso,
+                            numeroEmitiendo,
+                            ESTADO_EMITIENDO,
+                            usuarioActual,
+                            ipActual
+                        );
+
+                        if (!insertada)
+                        {
+                            LimpiarEmisionFallida(
+                                numeroEmitiendo, usuarioActual, ipActual);
+                            return ErrorNC(
+                                "No se pudo guardar la Nota de Crédito antes de enviarla al SRI.");
+                        }
+                    }
+                    catch (Exception exPrevio)
+                    {
+                        LimpiarEmisionFallida(
+                            numeroEmitiendo, usuarioActual, ipActual);
+                        return ErrorNC(
+                            "Error guardando la Nota de Crédito antes de enviarla al SRI: " +
+                            exPrevio.Message);
+                    }
+
+                    // ==================================================
                     // 6) RECEPCIÓN SRI
                     // ==================================================
                     var recepcion = await Task.Run(() =>
                         _services.ProcesosGenerales.EnviarRecepcion(
                             firma.RutaXmlFirmado,
                             claveAcceso,
-                            numeroNotaReal,
+                            numeroEmitiendo,
                             "NOTADECREDITO",
                             usuarioActual,
                             ipActual
@@ -985,8 +1082,36 @@ namespace LogicaNegocios.Procesos
                     // -----------------------------
                     if (recepcion.SecuencialRepetido)
                     {
+                        LimpiarEmisionFallida(
+                            numeroEmitiendo, usuarioActual, ipActual);
                         await Task.Run(() => _services.Param.IncrementarSecuencial("04"));
                         continue;
+                    }
+
+                    // -----------------------------
+                    // 6.1.bis ERROR SRI DEFINITIVO
+                    // -----------------------------
+                    if (recepcion.ErrorFinal)
+                    {
+                        RenumerarNota(
+                            numeroEmitiendo,
+                            numeroNotaReal,
+                            "NO_AUTORIZADO",
+                            usuarioActual,
+                            ipActual
+                        );
+
+                        if (vieneDePendiente)
+                            LimpiarEmisionFallida(
+                                numeroNotaPendiente, usuarioActual, ipActual);
+
+                        await Task.Run(() => _services.Param.IncrementarSecuencial("04"));
+
+                        r.Exito = false;
+                        r.Autorizado = false;
+                        r.NumeroNota = numeroNotaReal;
+                        r.Mensaje = recepcion.Mensaje;
+                        return r;
                     }
 
                     // -----------------------------
@@ -999,17 +1124,17 @@ namespace LogicaNegocios.Procesos
                                 ? recepcion.EstadoEspecial
                                 : _services.Pendientes.ObtenerEstadoPendientePorTipo("NOTADECREDITO");
 
-                        await Task.Run(() =>
-                            InsertarNotaCredito(
-                                prep,
-                                rowPfm,
-                                claveAcceso,
-                                numeroPendiente,
-                                "PENDIENTE",
-                                usuarioActual,
-                                ipActual
-                            )
+                        RenumerarNota(
+                            numeroEmitiendo,
+                            numeroPendiente,
+                            numeroPendiente,
+                            usuarioActual,
+                            ipActual
                         );
+
+                        if (vieneDePendiente)
+                            LimpiarEmisionFallida(
+                                numeroNotaPendiente, usuarioActual, ipActual);
 
                         r.Exito = false;
                         r.Autorizado = false;
@@ -1028,29 +1153,17 @@ namespace LogicaNegocios.Procesos
                     if (!string.IsNullOrWhiteSpace(recepcion.EstadoEspecial) &&
                         recepcion.EstadoEspecial.StartsWith("PENDIENTE_AUTORIZACION"))
                     {
+                        RenumerarNota(
+                            numeroEmitiendo,
+                            numeroNotaReal,
+                            recepcion.EstadoEspecial,
+                            usuarioActual,
+                            ipActual
+                        );
+
                         if (vieneDePendiente)
-                        {
-                            await Task.Run(() =>
-                                _services.NotaCredito.ActualizarNumeroNota_EncabezadoYDetalle(
-                                    numeroNotaPendiente,
-                                    numeroNotaReal
-                                )
-                            );
-                        }
-                        else
-                        {
-                            await Task.Run(() =>
-                                InsertarNotaCredito(
-                                    prep,
-                                    rowPfm,
-                                    claveAcceso,
-                                    numeroNotaReal,
-                                    "PENDIENTE_AUTORIZACION",
-                                    usuarioActual,
-                                    ipActual
-                                )
-                            );
-                        }
+                            LimpiarEmisionFallida(
+                                numeroNotaPendiente, usuarioActual, ipActual);
 
                         await Task.Run(() => _services.Param.IncrementarSecuencial("04"));
 
@@ -1062,6 +1175,19 @@ namespace LogicaNegocios.Procesos
 
                         return r;
                     }
+
+                    // RECIBIDA: el secuencial real ya pertenece al documento.
+                    RenumerarNota(
+                        numeroEmitiendo,
+                        numeroNotaReal,
+                        ESTADO_EMITIENDO,
+                        usuarioActual,
+                        ipActual
+                    );
+
+                    if (vieneDePendiente)
+                        LimpiarEmisionFallida(
+                            numeroNotaPendiente, usuarioActual, ipActual);
 
                     // ==================================================
                     // 7) AUTORIZACIÓN
@@ -1083,7 +1209,14 @@ namespace LogicaNegocios.Procesos
 
                     if (!sri.Exito)
                     {
-                        InsertarNotaCredito(prep, rowPfm, claveAcceso, numeroNotaReal, "NO_AUTORIZADO", usuarioActual, ipActual);
+                        _services.NotaCredito.ActualizarNumeroYEstado(
+                            numeroNotaReal,
+                            numeroNotaReal,
+                            sri.ErrorFinal ? "NO_AUTORIZADO" : "PENDIENTE_AUTORIZACION",
+                            usuarioActual,
+                            ipActual
+                        );
+                        await Task.Run(() => _services.Param.IncrementarSecuencial("04"));
                         return ErrorNC(sri.Mensaje);
                     }
 
@@ -1092,29 +1225,13 @@ namespace LogicaNegocios.Procesos
                     // ==================================================
                     // 8) INSERTAR / ACTUALIZAR AUTORIZADO
                     // ==================================================
-                    if (vieneDePendiente)
-                    {
-                        await Task.Run(() =>
-                            _services.NotaCredito.ActualizarNumeroNota_EncabezadoYDetalle(
-                                numeroNotaPendiente,
-                                numeroNotaReal
-                            )
-                        );
-                    }
-                    else
-                    {
-                        await Task.Run(() =>
-                            InsertarNotaCredito(
-                                prep,
-                                rowPfm,
-                                claveAcceso,
-                                numeroNotaReal,
-                                "AUTORIZADO",
-                                usuarioActual,
-                                ipActual
-                            )
-                        );
-                    }
+                    _services.NotaCredito.ActualizarNumeroYEstado(
+                        numeroNotaReal,
+                        numeroNotaReal,
+                        "AUTORIZADO",
+                        usuarioActual,
+                        ipActual
+                    );
 
                     // ==================================================
                     // 9) PDF

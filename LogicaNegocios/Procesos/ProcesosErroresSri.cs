@@ -50,13 +50,19 @@ namespace LogicaNegocios.Procesos
             if (mensajesSri == null)
                 return ResultadoErrorSri.SinCodigo();
 
-            var errores = mensajesSri
-                .Where(m => m != null && !string.IsNullOrWhiteSpace(m.Identificador))
+            var mensajes = mensajesSri
+                .Where(m => m != null)
+                .ToList();
+
+            var errores = mensajes
+                .Where(m => !string.IsNullOrWhiteSpace(m.Identificador))
                 .Select(Clasificar)
                 .ToList();
 
             if (errores.Count == 0)
-                return ResultadoErrorSri.SinCodigo();
+                return mensajes.Count == 0
+                    ? ResultadoErrorSri.SinCodigo()
+                    : Clasificar(mensajes[0]);
 
             // Una clave en procesamiento tiene prioridad: jamás debe reenviarse el XML.
             return errores.FirstOrDefault(e => e.Accion == AccionErrorSri.ConsultarAutorizacion)

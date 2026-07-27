@@ -1140,6 +1140,42 @@ namespace LogicaNegocios.Procesos
                     }
 
                     // --------------------------------------------------
+                    // 4.1.bis ERROR SRI DEFINITIVO
+                    // --------------------------------------------------
+                    if (recepcion.ErrorFinal)
+                    {
+                        // El rechazo es funcional (XML, firma, RUC, cálculos, etc.),
+                        // no un problema de conectividad. Se conserva para auditoría
+                        // con el secuencial que llevaba el XML y NO se ofrece como
+                        // pendiente de reenvío automático.
+                        try
+                        {
+                            RenumerarFactura(
+                                numeroEmitiendo,
+                                numeroFacturaReal,
+                                "NO_AUTORIZADO",
+                                usuarioActual,
+                                ipActual
+                            );
+                        }
+                        catch (Exception exRenumerar)
+                        {
+                            LogFactura("ERROR marcando rechazo SRI definitivo: " + exRenumerar);
+                            return ErrorFactura(r,
+                                recepcion.Mensaje + Environment.NewLine +
+                                "La factura quedó guardada como " + numeroEmitiendo +
+                                " porque no se pudo marcar NO_AUTORIZADO.");
+                        }
+
+                        IncrementarSecuencialFactura("01");
+                        r.Exito = false;
+                        r.Autorizado = false;
+                        r.NumeroFactura = numeroFacturaReal;
+                        r.Mensaje = recepcion.Mensaje;
+                        return r;
+                    }
+
+                    // --------------------------------------------------
                     // 4.2 ERROR → PENDIENTE###
                     // --------------------------------------------------
                     if (!recepcion.Exito)

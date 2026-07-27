@@ -511,6 +511,73 @@ namespace LogicaNegocios
             _conexion.Ejecutar(sql2);
         }
 
+        public void ActualizarNumeroYEstado(
+            string numeroActual,
+            string numeroNuevo,
+            string estado,
+            string usuario,
+            string ip)
+        {
+            string sqlEncabezado = @"
+        UPDATE NOTASCREDITO SET
+            NUMERONOTA = @numeroNuevo,
+            ESTADO = @estado
+        WHERE NUMERONOTA = @numeroActual";
+
+            _log.CrearLog(
+                "Nota de crédito renumerada " + numeroActual + " -> " +
+                numeroNuevo + " [" + estado + "]",
+                usuario,
+                ip,
+                sqlEncabezado
+            );
+
+            _conexion.Ejecutar(
+                sqlEncabezado,
+                ("numeroNuevo", numeroNuevo),
+                ("estado", estado),
+                ("numeroActual", numeroActual)
+            );
+
+            string sqlDetalle = @"
+        UPDATE NOTASCREDITO_DETALLE SET
+            NUMERONOTA = @numeroNuevo
+        WHERE NUMERONOTA = @numeroActual";
+
+            _conexion.Ejecutar(
+                sqlDetalle,
+                ("numeroNuevo", numeroNuevo),
+                ("numeroActual", numeroActual)
+            );
+        }
+
+        public string ObtenerSecuencialEmitiendo()
+        {
+            const string prefijo = "EMITIENDO";
+            DataSet ds = _conexion.Seleccionar(
+                "SELECT NUMERONOTA FROM NOTASCREDITO WHERE NUMERONOTA LIKE 'EMITIENDO%'");
+            int max = 0;
+
+            if (ds != null && ds.Tables.Count > 0)
+            {
+                foreach (DataRow row in ds.Tables[0].Rows)
+                {
+                    string valor = row["NUMERONOTA"].ToString().Trim();
+                    if (!valor.StartsWith(prefijo, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    int numero;
+                    if (int.TryParse(valor.Substring(prefijo.Length).Trim(), out numero) &&
+                        numero > max)
+                    {
+                        max = numero;
+                    }
+                }
+            }
+
+            return prefijo + (max + 1).ToString("000");
+        }
+
         public int EliminarDetallePorNumeroNota(string NumeroNota)
         {
             string sql = @"
