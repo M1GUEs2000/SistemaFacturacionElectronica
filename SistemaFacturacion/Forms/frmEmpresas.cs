@@ -2,7 +2,9 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Windows.Forms;
 
 
@@ -18,7 +20,8 @@ namespace SistemaFacturacion
         {
             _services = services;
             InitializeComponent();
-
+            txtUbicacion.TextChanged += CamposFirma_TextChanged;
+            txtContrasena.TextChanged += CamposFirma_TextChanged;
         }
         public string UsuarioActual { get; set; }
         public string IPActual { get; set; }
@@ -33,6 +36,7 @@ namespace SistemaFacturacion
             btnEliminar.Visible = false;
             btnModificar.Visible = false;
             btnGuardar.Visible = false;
+            ActualizarVisibilidadVerificarFirma();
         }
         public void MostrarEmpresa(string Nombre)
         {
@@ -78,12 +82,124 @@ namespace SistemaFacturacion
             txtImagen.Text = "";
             cmbImpresion.SelectedIndex = -1;
             cmbEstadoRuc.SelectedIndex = -1;
+            ActualizarVisibilidadVerificarFirma();
         }
 
 
         private void btnBuscar_Click(object sender, EventArgs e)
         {
             MostrarEmpresa(txtNombreBuscar.Text);
+        }
+
+        private void btnSeleccionarFirma_Click(object sender, EventArgs e)
+        {
+            SeleccionarYCopiarArchivo(
+                "Firma electrónica",
+                "Certificados P12 (*.p12)|*.p12",
+                "FIRMAELECTRONICA",
+                txtUbicacion);
+        }
+
+        private void CamposFirma_TextChanged(object sender, EventArgs e)
+        {
+            ActualizarVisibilidadVerificarFirma();
+        }
+
+        private void ActualizarVisibilidadVerificarFirma()
+        {
+            btnVerificarFirma.Visible =
+                !string.IsNullOrWhiteSpace(txtUbicacion.Text) &&
+                !string.IsNullOrWhiteSpace(txtContrasena.Text);
+        }
+
+        private void btnVerificarFirma_Click(object sender, EventArgs e)
+        {
+            string rutaP12 = Path.Combine(
+                _services.Paths.General,
+                "FIRMAELECTRONICA",
+                Path.GetFileName(txtUbicacion.Text.Trim()));
+
+            try
+            {
+                var certificado = new FirmadorNativo().ValidarCertificado(
+                    rutaP12,
+                    txtContrasena.Text);
+
+                Notificaciones.Show(
+                    this,
+                    "Firma válida. Vence el " + certificado.VigenteHasta.ToString("dd/MM/yyyy") + ".",
+                    "exito");
+            }
+            catch (CryptographicException)
+            {
+                Notificaciones.Show(
+                    this,
+                    "No se pudo abrir el P12. Verifique que la contraseña corresponda al certificado.",
+                    "error");
+            }
+            catch (Exception ex)
+            {
+                Notificaciones.Show(this, "No se pudo validar la firma: " + ex.Message, "error");
+            }
+        }
+
+        private void btnSeleccionarLogo_Click(object sender, EventArgs e)
+        {
+            SeleccionarYCopiarArchivo(
+                "Logo de la empresa",
+                "Imágenes (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp",
+                "LOGOFACTURA",
+                txtImagen);
+        }
+
+        private void SeleccionarYCopiarArchivo(
+            string titulo,
+            string filtro,
+            string carpetaDestino,
+            TextBox campoDestino)
+        {
+            using (var selector = new OpenFileDialog
+            {
+                Title = titulo,
+                Filter = filtro,
+                CheckFileExists = true,
+                CheckPathExists = true,
+                Multiselect = false
+            })
+            {
+                if (selector.ShowDialog(this) != DialogResult.OK)
+                    return;
+
+                try
+                {
+                    string nombreArchivo = Path.GetFileName(selector.FileName);
+                    string carpeta = Path.Combine(_services.Paths.General, carpetaDestino);
+                    string destino = Path.Combine(carpeta, nombreArchivo);
+
+                    Directory.CreateDirectory(carpeta);
+
+                    if (!string.Equals(
+                        Path.GetFullPath(selector.FileName),
+                        Path.GetFullPath(destino),
+                        StringComparison.OrdinalIgnoreCase))
+                    {
+                        File.Copy(selector.FileName, destino, true);
+                    }
+
+                    // La base de datos guarda solo el nombre: los procesos de facturación
+                    // ya resuelven la ruta desde GENERAL\\FIRMAELECTRONICA o LOGOFACTURA.
+                    campoDestino.Text = nombreArchivo;
+                    Notificaciones.Show(this, titulo + " cargado correctamente.", "exito");
+                }
+                catch (IOException ex)
+                {
+                    Notificaciones.Show(this, "No se pudo copiar el archivo: " + ex.Message, "error");
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    Notificaciones.Show(this, "No tiene permisos para guardar el archivo: " + ex.Message, "error");
+                }
+            }
         }
 
         private void gvEmpresa_SelectionChanged(object sender, EventArgs e)
@@ -111,6 +227,7 @@ namespace SistemaFacturacion
                     txtContrasena.Text = row.Cells["CONTRASENA"].Value?.ToString();
                     txtImagen.Text = row.Cells["IMAGEN"].Value?.ToString();
                     cmbEstadoRuc.Text = row.Cells["ESTADORUC"].Value?.ToString();
+                    ActualizarVisibilidadVerificarFirma();
 
 
                     txtNombre.Enabled = false;
@@ -195,7 +312,7 @@ namespace SistemaFacturacion
             FormValidador.Requerido(txtPropietario.Text,  "Propietario",                errores);
             FormValidador.Requerido(txtEmail.Text,        "Email",                      errores);
             FormValidador.Requerido(txtRuc.Text,          "RUC",                        errores);
-            FormValidador.Requerido(txtUbicacion.Text,    "Ubicación del archivo P12",  errores);
+            FormValidador.Requerido(txtUbicacion.Text,    "Archivo P12",               errores);
             FormValidador.Requerido(txtContrasena.Text,   "Contraseña del certificado", errores);
             FormValidador.Requerido(cmbImpresion.Text,    "Impresión",                  errores);
             FormValidador.Requerido(cmbEstadoRuc.Text,    "Estado RUC",                 errores);
@@ -207,7 +324,14 @@ namespace SistemaFacturacion
 
             string ubicacion = (txtUbicacion.Text ?? "").Trim();
             if (!string.IsNullOrWhiteSpace(ubicacion) && !ubicacion.EndsWith(".p12", StringComparison.OrdinalIgnoreCase))
-                errores.Add("- La ubicación del certificado debe apuntar a un archivo .p12");
+                errores.Add("- El certificado debe ser un archivo .p12");
+
+            if (!string.IsNullOrWhiteSpace(ubicacion) && Path.GetFileName(ubicacion) != ubicacion)
+                errores.Add("- El certificado debe guardarse solo con su nombre de archivo");
+
+            string imagen = (txtImagen.Text ?? "").Trim();
+            if (!string.IsNullOrWhiteSpace(imagen) && Path.GetFileName(imagen) != imagen)
+                errores.Add("- El logo debe guardarse solo con su nombre de archivo");
 
             return !FormValidador.MostrarErrores(this, errores);
         }

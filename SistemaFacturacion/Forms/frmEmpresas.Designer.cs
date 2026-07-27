@@ -28,11 +28,14 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
             this.btnNuevo = new System.Windows.Forms.Button();
             this.pnlDatos = new System.Windows.Forms.Panel();
             this.cmbEstadoRuc = new System.Windows.Forms.ComboBox();
             this.cmbImpresion = new System.Windows.Forms.ComboBox();
+            this.btnSeleccionarLogo = new System.Windows.Forms.Button();
+            this.btnSeleccionarFirma = new System.Windows.Forms.Button();
+            this.btnVerificarFirma = new System.Windows.Forms.Button();
             this.label19 = new System.Windows.Forms.Label();
             this.label18 = new System.Windows.Forms.Label();
             this.label17 = new System.Windows.Forms.Label();
@@ -111,6 +114,9 @@
             this.pnlDatos.BackColor = System.Drawing.SystemColors.ActiveCaption;
             this.pnlDatos.Controls.Add(this.cmbEstadoRuc);
             this.pnlDatos.Controls.Add(this.cmbImpresion);
+            this.pnlDatos.Controls.Add(this.btnSeleccionarLogo);
+            this.pnlDatos.Controls.Add(this.btnSeleccionarFirma);
+            this.pnlDatos.Controls.Add(this.btnVerificarFirma);
             this.pnlDatos.Controls.Add(this.label19);
             this.pnlDatos.Controls.Add(this.label18);
             this.pnlDatos.Controls.Add(this.label17);
@@ -171,7 +177,38 @@
             this.cmbImpresion.Name = "cmbImpresion";
             this.cmbImpresion.Size = new System.Drawing.Size(186, 21);
             this.cmbImpresion.TabIndex = 47;
-            // 
+            //
+            // btnSeleccionarLogo
+            //
+            this.btnSeleccionarLogo.Location = new System.Drawing.Point(5, 230);
+            this.btnSeleccionarLogo.Name = "btnSeleccionarLogo";
+            this.btnSeleccionarLogo.Size = new System.Drawing.Size(100, 23);
+            this.btnSeleccionarLogo.TabIndex = 50;
+            this.btnSeleccionarLogo.Text = "Cargar logo";
+            this.btnSeleccionarLogo.UseVisualStyleBackColor = true;
+            this.btnSeleccionarLogo.Click += new System.EventHandler(this.btnSeleccionarLogo_Click);
+            //
+            // btnSeleccionarFirma
+            //
+            this.btnSeleccionarFirma.Location = new System.Drawing.Point(474, 230);
+            this.btnSeleccionarFirma.Name = "btnSeleccionarFirma";
+            this.btnSeleccionarFirma.Size = new System.Drawing.Size(135, 23);
+            this.btnSeleccionarFirma.TabIndex = 49;
+            this.btnSeleccionarFirma.Text = "Cargar Firma Electronica";
+            this.btnSeleccionarFirma.UseVisualStyleBackColor = true;
+            this.btnSeleccionarFirma.Click += new System.EventHandler(this.btnSeleccionarFirma_Click);
+            //
+            // btnVerificarFirma
+            //
+            this.btnVerificarFirma.Location = new System.Drawing.Point(613, 230);
+            this.btnVerificarFirma.Name = "btnVerificarFirma";
+            this.btnVerificarFirma.Size = new System.Drawing.Size(135, 23);
+            this.btnVerificarFirma.TabIndex = 50;
+            this.btnVerificarFirma.Text = "Verificar firma";
+            this.btnVerificarFirma.UseVisualStyleBackColor = true;
+            this.btnVerificarFirma.Visible = false;
+            this.btnVerificarFirma.Click += new System.EventHandler(this.btnVerificarFirma_Click);
+            //
             // label19
             // 
             this.label19.AutoSize = true;
@@ -186,27 +223,27 @@
             this.label18.AutoSize = true;
             this.label18.Location = new System.Drawing.Point(3, 185);
             this.label18.Name = "label18";
-            this.label18.Size = new System.Drawing.Size(45, 13);
+            this.label18.Size = new System.Drawing.Size(34, 13);
             this.label18.TabIndex = 45;
-            this.label18.Text = "Imagen:";
+            this.label18.Text = "Logo:";
             // 
             // label17
             // 
             this.label17.AutoSize = true;
             this.label17.Location = new System.Drawing.Point(340, 185);
             this.label17.Name = "label17";
-            this.label17.Size = new System.Drawing.Size(64, 13);
+            this.label17.Size = new System.Drawing.Size(92, 13);
             this.label17.TabIndex = 44;
-            this.label17.Text = "Contraseña:";
+            this.label17.Text = "Contraseña Firma:";
             // 
             // label16
             // 
             this.label16.AutoSize = true;
             this.label16.Location = new System.Drawing.Point(474, 185);
             this.label16.Name = "label16";
-            this.label16.Size = new System.Drawing.Size(80, 13);
+            this.label16.Size = new System.Drawing.Size(57, 13);
             this.label16.TabIndex = 43;
-            this.label16.Text = "Ubicacion P12:";
+            this.label16.Text = "Firma P12:";
             // 
             // label14
             // 
@@ -257,6 +294,7 @@
             // 
             this.txtImagen.Location = new System.Drawing.Point(5, 204);
             this.txtImagen.Name = "txtImagen";
+            this.txtImagen.ReadOnly = true;
             this.txtImagen.Size = new System.Drawing.Size(100, 20);
             this.txtImagen.TabIndex = 35;
             // 
@@ -271,6 +309,7 @@
             // 
             this.txtUbicacion.Location = new System.Drawing.Point(474, 204);
             this.txtUbicacion.Name = "txtUbicacion";
+            this.txtUbicacion.ReadOnly = true;
             this.txtUbicacion.Size = new System.Drawing.Size(274, 20);
             this.txtUbicacion.TabIndex = 33;
             // 
@@ -527,8 +566,8 @@
             // DIRECCION
             // 
             this.DIRECCION.DataPropertyName = "DIRECCION";
-            dataGridViewCellStyle2.Format = "N2";
-            this.DIRECCION.DefaultCellStyle = dataGridViewCellStyle2;
+            dataGridViewCellStyle3.Format = "N2";
+            this.DIRECCION.DefaultCellStyle = dataGridViewCellStyle3;
             this.DIRECCION.HeaderText = "DIRECCION";
             this.DIRECCION.Name = "DIRECCION";
             // 
@@ -723,5 +762,8 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn ESTADORUC;
         private System.Windows.Forms.ComboBox cmbEstadoRuc;
         private System.Windows.Forms.ComboBox cmbImpresion;
+        private System.Windows.Forms.Button btnSeleccionarFirma;
+        private System.Windows.Forms.Button btnSeleccionarLogo;
+        private System.Windows.Forms.Button btnVerificarFirma;
     }
 }
