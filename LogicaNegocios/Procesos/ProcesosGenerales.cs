@@ -44,6 +44,29 @@ namespace LogicaNegocios.Procesos
             }
             catch
             {
+                // Catch vacío legítimo: es el propio logger. Si falla el disco no hay
+                // dónde registrarlo, y tirar desde acá taparía el error real.
+            }
+        }
+
+        // ==========================================================
+        // DEBUG SRI
+        // ==========================================================
+        private void LogSri(string mensaje)
+        {
+            try
+            {
+                string archivo = Path.Combine(
+                    AppDomain.CurrentDomain.BaseDirectory, "logs", "sri_debug.log");
+                Directory.CreateDirectory(Path.GetDirectoryName(archivo));
+                File.AppendAllText(
+                    archivo,
+                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + " | " + mensaje + Environment.NewLine
+                );
+            }
+            catch
+            {
+                // Ídem LogCorreo: logger, no puede registrar su propia falla.
             }
         }
 
@@ -710,19 +733,35 @@ namespace LogicaNegocios.Procesos
                     estadoPendiente =
                         _services.Pendientes.ObtenerEstadoPendientePorTipo(tipoDocumento);
 
-                    _services.Pendientes.Insertar(
-                        estadoPendiente,
+                    // Upsert sobre numeroDocumento, no insert con estadoPendiente de
+                    // número. La emisión ya dejó la fila EMITIENDO00X con su clave de
+                    // acceso, así que acá solo hay que marcarla; insertar una fila nueva
+                    // creaba un duplicado, y como ObtenerEstadoPendientePorTipo cuenta
+                    // sobre FACTURAS_PENDIENTES y el renumerado de 4.2 cuenta sobre
+                    // FACTURACION, tarde o temprano los dos contadores caen en el mismo
+                    // número y quedan dos pendientes con el mismo NUMEROFACTURA.
+                    UpsertPendiente(
+                        numeroDocumento,
                         claveAcceso,
                         rutaXmlFirmado,
-                        DateTime.Now,
-                        0,
                         estadoPendiente,
                         tipoDocumento,
+                        0,
                         usuarioActual,
                         ipActual
                     );
                 }
-                catch { }
+                catch (Exception exUpsert)
+                {
+                    // Grave: el documento ya salió (o pudo salir) al SRI y no se pudo
+                    // marcar. La fila EMITIENDO00X del INSERT previo sigue viva, así que
+                    // no se pierde, pero queda en un estado que solo este log explica.
+                    LogSri("ERROR marcando pendiente tras excepción de recepción [" +
+                        tipoDocumento + " " + numeroDocumento + "]: " + exUpsert);
+                }
+
+                LogSri("EXCEPCIÓN en recepción SRI [" + tipoDocumento + " " +
+                    numeroDocumento + "]: " + ex);
 
                 r.Exito = false;
                 r.EstadoEspecial = estadoPendiente;
@@ -849,7 +888,14 @@ namespace LogicaNegocios.Procesos
                         ipActual
                     );
                 }
-                catch { }
+                catch (Exception exGuardar)
+                {
+                    LogSri("ERROR guardando pendiente de autorización tras excepción [" +
+                        tipoDocumento + " " + numeroDocumento + "]: " + exGuardar);
+                }
+
+                LogSri("EXCEPCIÓN en autorización SRI [" + tipoDocumento + " " +
+                    numeroDocumento + "]: " + ex);
 
                 r.Exito = false;
                 r.Mensaje = "Error en AUTORIZACIÓN SRI: " + ex.Message;
@@ -1351,7 +1397,10 @@ namespace LogicaNegocios.Procesos
                     archivo,
                     DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + " | " + mensaje + Environment.NewLine);
             }
-            catch { }
+            catch
+            {
+                // Ídem LogCorreo: logger, no puede registrar su propia falla.
+            }
         }
 
         //INTERFAZ

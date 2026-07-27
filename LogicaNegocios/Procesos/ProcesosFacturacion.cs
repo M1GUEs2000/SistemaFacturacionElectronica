@@ -1192,8 +1192,14 @@ namespace LogicaNegocios.Procesos
                                     ipActual
                                 );
                             }
-                            catch
+                            catch (Exception exBorrarViejo)
                             {
+                                // No es fatal: la factura nueva ya existe. Pero la vieja
+                                // queda viva en FACTURACION y va a aparecer duplicada en
+                                // el reporte, así que tiene que quedar rastro.
+                                LogFactura("ERROR borrando FACTURACION del pendiente viejo " +
+                                    numeroFacturaPendiente + " (nuevo: " + numeroPendiente + "): " +
+                                    exBorrarViejo);
                             }
 
                             try
@@ -1205,8 +1211,11 @@ namespace LogicaNegocios.Procesos
                                     ipActual
                                 );
                             }
-                            catch
+                            catch (Exception exBorrarPendienteViejo)
                             {
+                                LogFactura("ERROR borrando pendiente viejo " +
+                                    numeroFacturaPendiente + " (nuevo: " + numeroPendiente + "): " +
+                                    exBorrarPendienteViejo);
                             }
                         }
 
@@ -1407,6 +1416,13 @@ namespace LogicaNegocios.Procesos
 
         private void LogFactura(string mensaje)
         {
+            EscribirLogFactura(mensaje);
+        }
+
+        // Versión estática para que la use FacturacionQueueAsync, que no tiene
+        // instancia de ProcesosFacturacion.
+        private static void EscribirLogFactura(string mensaje)
+        {
             try
             {
                 string baseDir = AppDomain.CurrentDomain.BaseDirectory;
@@ -1422,6 +1438,9 @@ namespace LogicaNegocios.Procesos
             }
             catch
             {
+                // Único catch vacío legítimo del archivo: es el propio logger. Si
+                // falla el disco no hay dónde registrarlo, y tirar desde acá
+                // reemplazaría el error real por uno de logging.
             }
         }
 
@@ -2141,7 +2160,10 @@ namespace LogicaNegocios.Procesos
                     }
                     catch (Exception ex)
                     {
-
+                        // La cola no puede morir: si un trabajo revienta se registra y
+                        // se sigue con el siguiente. Sin este log, una emisión encolada
+                        // que falla desaparece sin dejar rastro en ningún lado.
+                        EscribirLogFactura("ERROR en trabajo encolado: " + ex);
                     }
 
                     lock (_lock)

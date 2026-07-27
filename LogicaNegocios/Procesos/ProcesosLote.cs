@@ -62,6 +62,26 @@ namespace LogicaNegocios.Procesos
             _services = services;
         }
 
+        // ==========================================================
+        // DEBUG LOTE
+        // ==========================================================
+        private void LogLote(string mensaje)
+        {
+            try
+            {
+                string archivo = Path.Combine(
+                    AppDomain.CurrentDomain.BaseDirectory, "logs", "lote_debug.log");
+                Directory.CreateDirectory(Path.GetDirectoryName(archivo));
+                File.AppendAllText(
+                    archivo,
+                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + " | " + mensaje + Environment.NewLine);
+            }
+            catch
+            {
+                // Catch vacío legítimo: es el propio logger.
+            }
+        }
+
         // ── Estado intermedio por documento ──────────────────────────
         private class ItemPreparado
         {
@@ -247,7 +267,12 @@ namespace LogicaNegocios.Procesos
                                     ipActual
                                 );
                             }
-                            catch { }
+                            catch (Exception exBorrar)
+                            {
+                                LogLote("ERROR borrando FACTURACION del viejo " +
+                                    item.Solicitud.NumeroViejo + " (nuevo: " + estadoPendiente +
+                                    "): " + exBorrar);
+                            }
 
                             try
                             {
@@ -258,10 +283,22 @@ namespace LogicaNegocios.Procesos
                                     ipActual
                                 );
                             }
-                            catch { }
+                            catch (Exception exBorrarPendiente)
+                            {
+                                LogLote("ERROR borrando pendiente viejo " +
+                                    item.Solicitud.NumeroViejo + " (nuevo: " + estadoPendiente +
+                                    "): " + exBorrarPendiente);
+                            }
                         }
                     }
-                    catch { }
+                    catch (Exception exItemRechazado)
+                    {
+                        // Este catch envuelve el registro completo del ítem rechazado.
+                        // Si revienta acá, el documento queda sin guardar y el lote
+                        // sigue como si nada: sin log es invisible.
+                        LogLote("ERROR registrando ítem rechazado por el SRI [" +
+                            item.Solicitud.NumeroViejo + "]: " + exItemRechazado);
+                    }
 
                     resultado.Items.Add(new ResultadoItemLote
                     {
@@ -302,7 +339,11 @@ namespace LogicaNegocios.Procesos
                             ipActual
                         );
                     }
-                    catch { }
+                    catch (Exception exBorrarViejo)
+                    {
+                        LogLote("ERROR borrando el viejo " + item.Solicitud.NumeroViejo +
+                            " tras autorizar " + item.NumeroFactura + ": " + exBorrarViejo);
+                    }
                 }
 
                 resultado.Items.Add(itemResult);
@@ -501,7 +542,15 @@ namespace LogicaNegocios.Procesos
                             ipActual
                         );
                     }
-                    catch { }
+                    catch (Exception exPendienteAut)
+                    {
+                        // El SRI ya tiene el documento con este secuencial. Si el guardado
+                        // falla, abajo se devuelve Exito=true igual y el lote lo da por
+                        // enviado: este log es lo único que delata que no quedó en BD.
+                        LogLote("ERROR guardando pendiente de autorización [" +
+                            item.NumeroFactura + "] clave " + item.ClaveAcceso + ": " +
+                            exPendienteAut);
+                    }
 
                     r.Exito     = true;
                     r.Autorizado = false;

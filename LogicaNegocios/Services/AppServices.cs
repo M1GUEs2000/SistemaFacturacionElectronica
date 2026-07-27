@@ -1,5 +1,6 @@
 ﻿namespace LogicaNegocios.Services
 {
+    using System;
     using System.Configuration;
     using System.IO;
     using AccesoDatos.Abstractions;
@@ -133,7 +134,31 @@
                     TarifaIva = Procesos.HelperIva.TarifaDesdeCodigoPorcentaje(codigo);
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                // Si esto falla, TarifaIva se queda en 0 y TODAS las facturas salen sin
+                // IVA. Se traga la excepción a propósito para no impedir el arranque,
+                // pero tiene que quedar registrado.
+                LogServicios("ERROR cargando tarifa de IVA de [" + nombreEmpresa +
+                    "]. TarifaIva queda en " + TarifaIva + ": " + ex);
+            }
+        }
+
+        private static void LogServicios(string mensaje)
+        {
+            try
+            {
+                string archivo = Path.Combine(
+                    AppDomain.CurrentDomain.BaseDirectory, "logs", "servicios_debug.log");
+                Directory.CreateDirectory(Path.GetDirectoryName(archivo));
+                File.AppendAllText(
+                    archivo,
+                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + " | " + mensaje + Environment.NewLine);
+            }
+            catch
+            {
+                // Catch vacío legítimo: es el propio logger.
+            }
         }
 
         private void InicializarCarpetas()
