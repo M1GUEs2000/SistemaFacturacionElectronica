@@ -158,6 +158,8 @@
     <Compile Include="Manejadores\ParametrosTransaccionesManejador.cs" />
     <Compile Include="Manejadores\PinPadLogManejador.cs" />
     <Compile Include="Procesos\ProcesosFacturacion.cs" />
+
+    <Compile Include="Procesos\ProcesosErroresSri.cs" />
     <Compile Include="Procesos\ProcesosICE.cs" />
     <Compile Include="Procesos\ProcesosLote.cs" />
     <Compile Include="Procesos\ProcesosGenerales.cs" />
