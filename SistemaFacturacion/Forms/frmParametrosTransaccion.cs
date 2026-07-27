@@ -121,27 +121,32 @@ namespace SistemaFacturacion
                     TextAlign = ContentAlignment.MiddleLeft
                 };
 
-                var num = new NumericUpDown
+                var cmbCuotas = new ComboBox
                 {
                     Location = new Point(colNumero, y + 4),
                     Size = new Size(100, 20),
-                    Maximum = 60,
-                    TextAlign = HorizontalAlignment.Center,
+                    DropDownStyle = ComboBoxStyle.DropDownList,
                     Tag = codigo
                 };
+                cmbCuotas.Items.AddRange(new object[] { "03", "06", "09", "12", "15", "18", "21", "24" });
 
                 DataSet dsCuota = _services.ParamTransaccion.ObtenerCuotasPorDiferido(codigo);
                 if (dsCuota != null && dsCuota.Tables.Count > 0 && dsCuota.Tables[0].Rows.Count > 0)
                 {
                     if (decimal.TryParse(dsCuota.Tables[0].Rows[0]["VALOR"].ToString(), out decimal cuotas))
-                        num.Value = Math.Min(cuotas, num.Maximum);
+                    {
+                        int cuotaNormalizada = Math.Max(3, Math.Min(24, ((int)cuotas / 3) * 3));
+                        cmbCuotas.SelectedItem = cuotaNormalizada.ToString("00");
+                    }
                 }
+                if (cmbCuotas.SelectedIndex < 0)
+                    cmbCuotas.SelectedIndex = 0;
 
                 panelDiferidos.Controls.Add(chk);
                 panelDiferidos.Controls.Add(lbl);
-                panelDiferidos.Controls.Add(num);
+                panelDiferidos.Controls.Add(cmbCuotas);
 
-                _filasDiferido.Add(new FilaDiferido { Codigo = codigo, CheckActivo = chk, NumCuotas = num });
+                _filasDiferido.Add(new FilaDiferido { Codigo = codigo, CheckActivo = chk, CmbCuotas = cmbCuotas });
 
                 y += filaAlto;
             }
@@ -189,7 +194,7 @@ namespace SistemaFacturacion
                 _services.ParamTransaccion.Actualizar(
                     fila.Codigo,
                     "CUOTA",
-                    fila.NumCuotas.Value.ToString("0"),
+                    fila.CmbCuotas.SelectedItem?.ToString() ?? "03",
                     UsuarioActual,
                     IPActual
                 );
@@ -221,7 +226,7 @@ namespace SistemaFacturacion
         {
             public string Codigo { get; set; }
             public CheckBox CheckActivo { get; set; }
-            public NumericUpDown NumCuotas { get; set; }
+            public ComboBox CmbCuotas { get; set; }
         }
 
         private class ComboItem

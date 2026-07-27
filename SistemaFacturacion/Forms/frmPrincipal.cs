@@ -365,6 +365,7 @@ namespace SistemaFacturacion
                             TarjetaTipoPago,
                             TarjetaDiferidoNombre,
                             TarjetaCuotas,
+                            TarjetaMesesGracia,
                             UsuarioActual));
                     }
                     finally
@@ -388,6 +389,7 @@ namespace SistemaFacturacion
                 SetCedulaCliente("9999999999999");
                 txtComentario.Text = "";
                 txtFormaPago.Text = "";
+                OcultarPanelTarjeta();
                 TB_DETALLEFACTURA.Clear();
                 lblTotalVP.Text = "TOTAL: 0.00";
                 btnProcesar.Visible = false;
@@ -1242,8 +1244,10 @@ namespace SistemaFacturacion
         private ComboBox _cmbTarjetaTipoPago;
         private ComboBox _cmbTarjetaDiferido;
         private ComboBox _cmbTarjetaCuotas;
+        private ComboBox _cmbTarjetaMesesGracia;
         private Label _lblTarjetaDiferido;
         private Label _lblTarjetaCuotas;
+        private Label _lblTarjetaMesesGracia;
         private int _anchoClientOriginal;
         private bool _tarjetaExpandida;
 
@@ -1252,6 +1256,7 @@ namespace SistemaFacturacion
         public string TarjetaDiferidoCodigo { get; private set; }  // T1..T7
         public string TarjetaDiferidoNombre { get; private set; }
         public int TarjetaCuotas { get; private set; }
+        public int TarjetaMesesGracia { get; private set; }
 
         private void ConstruirPanelTarjeta()
         {
@@ -1263,7 +1268,7 @@ namespace SistemaFacturacion
             {
                 Text = "PAGO CON TARJETA",
                 Font = new Font("Segoe UI", 9F, FontStyle.Bold),
-                Size = new Size(264, 200),
+                Size = new Size(264, 254),
                 Visible = false
             };
 
@@ -1312,6 +1317,26 @@ namespace SistemaFacturacion
             };
             _cmbTarjetaCuotas.SelectedIndexChanged += (s, e) => GuardarSeleccionTarjeta();
 
+            _lblTarjetaMesesGracia = new Label
+            {
+                Text = "Meses de Gracia:",
+                Location = new Point(12, 190),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 8.25F, FontStyle.Regular),
+                Visible = false
+            };
+            _cmbTarjetaMesesGracia = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Location = new Point(12, 210),
+                Size = new Size(240, 24),
+                Font = new Font("Segoe UI", 9F, FontStyle.Regular),
+                Visible = false
+            };
+            for (int i = 1; i <= 24; i++)
+                _cmbTarjetaMesesGracia.Items.Add(i.ToString("00"));
+            _cmbTarjetaMesesGracia.SelectedIndexChanged += (s, e) => GuardarSeleccionTarjeta();
+
             var lblTipoPago = new Label
             {
                 Text = "Tipo de Pago:",
@@ -1326,6 +1351,8 @@ namespace SistemaFacturacion
             _gbTarjeta.Controls.Add(_cmbTarjetaDiferido);
             _gbTarjeta.Controls.Add(_lblTarjetaCuotas);
             _gbTarjeta.Controls.Add(_cmbTarjetaCuotas);
+            _gbTarjeta.Controls.Add(_lblTarjetaMesesGracia);
+            _gbTarjeta.Controls.Add(_cmbTarjetaMesesGracia);
 
             // Ubicado a la derecha del carrito, en el área que se agrega al ensanchar
             _gbTarjeta.Location = new Point(pnlVariosProductos.Right + 12, panelFormasPago.Top);
@@ -1369,6 +1396,7 @@ namespace SistemaFacturacion
             TarjetaDiferidoCodigo = "";
             TarjetaDiferidoNombre = "";
             TarjetaCuotas = 0;
+            TarjetaMesesGracia = 0;
         }
 
         // TIPO DE PAGO: CORRIENTE es SIEMPRE el default. DIFERIDO solo se ofrece
@@ -1424,6 +1452,9 @@ namespace SistemaFacturacion
             _lblTarjetaCuotas.Visible = false;
             _cmbTarjetaCuotas.Visible = false;
             _cmbTarjetaCuotas.Items.Clear();
+            _lblTarjetaMesesGracia.Visible = false;
+            _cmbTarjetaMesesGracia.Visible = false;
+            _cmbTarjetaMesesGracia.SelectedIndex = -1;
 
             if (esDiferido)
                 CargarTarjeta_Diferidos();
@@ -1481,10 +1512,19 @@ namespace SistemaFacturacion
             else
                 _cmbTarjetaCuotas.Items.Clear();
 
+            bool aplicaMesesGracia = hayDiferido && EsDiferidoConMesesGracia(_cmbTarjetaDiferido.SelectedItem as ItemCombo);
+            _lblTarjetaMesesGracia.Visible = aplicaMesesGracia;
+            _cmbTarjetaMesesGracia.Visible = aplicaMesesGracia;
+            if (aplicaMesesGracia && _cmbTarjetaMesesGracia.SelectedIndex < 0)
+                _cmbTarjetaMesesGracia.SelectedIndex = 0; // 01 por defecto
+            else if (!aplicaMesesGracia)
+                _cmbTarjetaMesesGracia.SelectedIndex = -1;
+
             GuardarSeleccionTarjeta();
         }
 
-        // Nº DE CUOTAS: 1..N, donde N = VALOR de la fila CUOTA con el mismo CODIGO del diferido
+        // Nº DE CUOTAS: solo múltiplos de tres (03..24), limitados por la cuota
+        // configurada para el tipo de diferido.
         private void CargarTarjeta_Cuotas()
         {
             _cmbTarjetaCuotas.Items.Clear();
@@ -1498,8 +1538,9 @@ namespace SistemaFacturacion
             if (ds != null && ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
                 int.TryParse(ds.Tables[0].Rows[0]["VALOR"].ToString().Trim(), out maxCuotas);
 
-            for (int i = 1; i <= maxCuotas; i++)
-                _cmbTarjetaCuotas.Items.Add(i);
+            int limiteCuotas = Math.Min(maxCuotas, 24);
+            for (int i = 3; i <= limiteCuotas; i += 3)
+                _cmbTarjetaCuotas.Items.Add(i.ToString("00"));
 
             if (_cmbTarjetaCuotas.Items.Count > 0)
                 _cmbTarjetaCuotas.SelectedIndex = 0;
@@ -1514,14 +1555,30 @@ namespace SistemaFacturacion
                 var dif = _cmbTarjetaDiferido.SelectedItem as ItemCombo;
                 TarjetaDiferidoCodigo = dif?.Value ?? "";
                 TarjetaDiferidoNombre = dif?.Text ?? "";
-                TarjetaCuotas = _cmbTarjetaCuotas.SelectedItem is int c ? c : 0;
+                TarjetaCuotas = int.TryParse(_cmbTarjetaCuotas.SelectedItem?.ToString(), out int cuotas)
+                    ? cuotas
+                    : 0;
+                TarjetaMesesGracia = EsDiferidoConMesesGracia(dif)
+                    && int.TryParse(_cmbTarjetaMesesGracia.SelectedItem?.ToString(), out int mesesGracia)
+                    ? mesesGracia
+                    : 0;
             }
             else
             {
                 TarjetaDiferidoCodigo = "";
                 TarjetaDiferidoNombre = "";
                 TarjetaCuotas = 0;
+                TarjetaMesesGracia = 0;
             }
+        }
+
+        private static bool EsDiferidoConMesesGracia(ItemCombo diferido)
+        {
+            if (diferido == null) return false;
+
+            return diferido.Value == "07"
+                || diferido.Value == "09"
+                || diferido.Text.IndexOf("GRACIA", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private sealed class ItemCombo

@@ -70,6 +70,7 @@ namespace LogicaNegocios.Procesos
         /// <param name="tipoPago">"C" corriente / "D" diferido.</param>
         /// <param name="diferidoNombre">Nombre del tipo de diferido (solo si tipoPago="D").</param>
         /// <param name="cuotas">Plazo diferido en cuotas (solo si tipoPago="D").</param>
+        /// <param name="mesesGracia">Meses de gracia, solo para los diferidos que lo requieren.</param>
         /// <param name="usuarioSistema">Usuario que realiza el cobro (para la auditoría).</param>
         public ResultadoCobroTarjeta CobrarFactura(
             DataTable detalleFactura,
@@ -78,6 +79,7 @@ namespace LogicaNegocios.Procesos
             string tipoPago,
             string diferidoNombre,
             int cuotas,
+            int mesesGracia,
             string usuarioSistema)
         {
             var totales = _services.ProcesosFacturacion.CalcularTotalesFactura(detalleFactura);
@@ -89,6 +91,19 @@ namespace LogicaNegocios.Procesos
             string numeroFacturaPrevisto = _services.ProcesosFacturacion
                 .ObtenerNumeroFacturaPrevisto(cliente, formaPago);
 
+            string tipoCredito = diferido ? MapearTipoCredito(diferidoNombre) : null;
+            var resultado = new ResultadoCobroTarjeta { Totales = totales };
+
+            if (diferido
+                && (tipoCredito == "DiferidoConInteresesConMesesDeGracia"
+                    || tipoCredito == "DiferidoSinInteresesConMesesDeGracia")
+                && mesesGracia <= 0)
+            {
+                resultado.Aprobado = false;
+                resultado.Motivo = "Seleccione los meses de gracia para el diferido elegido.";
+                return resultado;
+            }
+
             var req = new ProcesoPagoRequest
             {
                 NumeroFactura = numeroFacturaPrevisto,
@@ -98,25 +113,24 @@ namespace LogicaNegocios.Procesos
                 IVA = totales.Iva,
                 Red = "Datafast",
                 TipoTransaccion = diferido ? "Diferido" : "Corriente",
-                TipoCredito = diferido ? MapearTipoCredito(diferidoNombre) : null,
+                TipoCredito = tipoCredito,
                 PlazoDiferido = (diferido && cuotas > 0) ? (int?)cuotas : null,
+                MesesGracia = (diferido && mesesGracia > 0) ? (int?)mesesGracia : null,
                 UsuarioSistema = usuarioSistema
             };
 
-            var resultado = new ResultadoCobroTarjeta { Totales = totales };
             try
             {
                 // Aquí adentro el wrapper YA persiste la auditoría en Access.
                 ProcesoPagoResult cobro = _services.PinPad.ProcesarPago(req);
 
                 resultado.Detalle = cobro;
-                // La guía indica usar SIEMPRE result.Exitoso (ya incorpora CodigoRespuestaAut=="00");
-                // no re-chequear a mano para no rechazar por error un cobro realmente aprobado.
-                resultado.Aprobado = cobro != null && cobro.Exitoso;
+                // La venta solo continúa si el pinpad y el autorizador responden "00".
+                // El wrapper marca Exitoso por CodigoRespuestaAut, pero un error de trama
+                // llega en CodigoRespuesta y también debe detener la emisión.
+                resultado.Aprobado = EsRespuestaAprobada(cobro);
                 resultado.PinpadLogId = cobro?.TransaccionLogId ?? 0;
-                resultado.Motivo = resultado.Aprobado
-                    ? null
-                    : (cobro?.MensajeRespuestaAut ?? cobro?.ExcepcionMensaje ?? "Sin respuesta del datafast.");
+                resultado.Motivo = resultado.Aprobado ? null : MotivoRespuestaNoAprobada(cobro);
             }
             catch (Exception ex)
             {
@@ -128,6 +142,26 @@ namespace LogicaNegocios.Procesos
             }
 
             return resultado;
+        }
+
+        private static bool EsRespuestaAprobada(ProcesoPagoResult cobro)
+        {
+            return cobro != null
+                && string.Equals((cobro.CodigoRespuesta ?? "").Trim(), "00", StringComparison.Ordinal)
+                && string.Equals((cobro.CodigoRespuestaAut ?? "").Trim(), "00", StringComparison.Ordinal);
+        }
+
+        private static string MotivoRespuestaNoAprobada(ProcesoPagoResult cobro)
+        {
+            if (!string.IsNullOrWhiteSpace(cobro?.MensajeRespuestaAut))
+                return cobro.MensajeRespuestaAut;
+
+            if (!string.IsNullOrWhiteSpace(cobro?.ExcepcionMensaje))
+                return cobro.ExcepcionMensaje;
+
+            return "Respuesta no aprobada del datafast. Código pinpad: " +
+                (cobro?.CodigoRespuesta ?? "sin respuesta") +
+                ", código autorizador: " + (cobro?.CodigoRespuestaAut ?? "sin respuesta") + ".";
         }
 
         /// <summary>
@@ -288,7 +322,7 @@ namespace LogicaNegocios.Procesos
         /// </summary>
         private static string MapearTipoCredito(string nombreDiferido)
         {
-            string n = (nombreDiferido ?? "").ToUpperInvariant();
+            string n = NormalizarTexto(nombreDiferido);
 
             bool gracia = n.Contains("GRACIA");
             bool plus = n.Contains("PLUS");
@@ -304,6 +338,20 @@ namespace LogicaNegocios.Procesos
 
             // "CORRIENTE" u otro: diferido corriente por defecto
             return "DiferidoCorriente";
+        }
+
+        private static string NormalizarTexto(string valor)
+        {
+            string descompuesto = (valor ?? "").Normalize(NormalizationForm.FormD);
+            var resultado = new StringBuilder(descompuesto.Length);
+
+            foreach (char caracter in descompuesto)
+            {
+                if (CharUnicodeInfo.GetUnicodeCategory(caracter) != UnicodeCategory.NonSpacingMark)
+                    resultado.Append(caracter);
+            }
+
+            return resultado.ToString().Normalize(NormalizationForm.FormC).ToUpperInvariant();
         }
     }
 }

@@ -354,6 +354,11 @@ namespace SistemaFacturacion
             _txtCaja.Text = LeerApp(K_CAJA, "");
             _cmbVersion.SelectedIndex = Clamp(ParseInt(LeerApp(K_VERSION, "1"), 1), 0, 2);
             _cmbSha.SelectedIndex = Clamp(ParseInt(LeerApp(K_SHA, "1"), 1), 0, 2);
+
+            // La reconfiguración de red parte de la conexión actual del equipo.
+            // Los hosts de Datafast se dejan vacíos cuando no aplican, según la guía.
+            _txtDevIp.Text = _txtIp.Text;
+            _txtDevPuertoEscucha.Text = ((int)_numPuerto.Value).ToString();
         }
 
         private void BtnGuardar_Click(object sender, EventArgs e)
