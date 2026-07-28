@@ -36,7 +36,6 @@ namespace SistemaFacturacion
 
             MostrarEmpresa("");
             CargarRucProveedor();
-            btnEliminar.Visible = false;
             btnModificar.Visible = false;
             btnGuardar.Visible = false;
             ActualizarVisibilidadVerificarFirma();
@@ -73,7 +72,6 @@ namespace SistemaFacturacion
 
         public void Limpiar()
         {
-            btnEliminar.Visible = false;
             btnModificar.Visible = false;
             btnGuardar.Visible = false;
             txtNombre.Enabled = true;
@@ -243,7 +241,6 @@ namespace SistemaFacturacion
 
 
                     txtNombre.Enabled = false;
-                    btnEliminar.Visible = true;
                     btnModificar.Visible = true;
                     btnGuardar.Visible = false;
                 }
@@ -386,61 +383,6 @@ namespace SistemaFacturacion
             catch (Exception ex)
             {
                 Notificaciones.Show(this, "Error: " + ex.Message, "error");
-            }
-        }
-
-        private void btnEliminar_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                if (gvEmpresa.SelectedRows.Count == 0)
-                {
-                    MessageBox.Show("Seleccione una empresa primero.", "Mensaje");
-                    return;
-                }
-
-                if (DialogResult.Yes == MessageBox.Show(
-                    "¿Desea cambiar el estado del RUC a INACTIVO?",
-                    "Mensaje",
-                    MessageBoxButtons.YesNo))
-                {
-                    // Estado actual desde el combo o desde el grid
-                    string estadoActual = cmbEstadoRuc.Text.Trim();
-
-                    // Solo cambiar si está activo
-                    if (estadoActual != "ACTIVO")
-                    {
-                        MessageBox.Show("La empresa ya está INACTIVA.", "Mensaje");
-                        return;
-                    }
-
-                    // ✅ Update lógico: ACTIVO -> INACTIVO
-                    int fila = _services.Empresa.ActualizarEstadoRuc(
-                        txtNombre.Text.Trim(),
-                        "INACTIVO",
-                        UsuarioActual,
-                        IPActual
-                    );
-
-                    if (fila == 1)
-                    {
-                        MostrarEmpresa("");
-                        Limpiar();
-
-                        MessageBox.Show(
-                            "Empresa marcada como INACTIVA correctamente.",
-                            "Mensaje"
-                        );
-                    }
-                    else
-                    {
-                        MessageBox.Show("No se pudo actualizar el estado.", "Mensaje");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error: " + ex.Message, "Mensaje");
             }
         }
 

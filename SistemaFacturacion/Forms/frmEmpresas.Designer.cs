@@ -67,7 +67,6 @@
             this.label3 = new System.Windows.Forms.Label();
             this.txtNombre = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
-            this.btnEliminar = new System.Windows.Forms.Button();
             this.btnModificar = new System.Windows.Forms.Button();
             this.btnGuardar = new System.Windows.Forms.Button();
             this.txtNombreBuscar = new System.Windows.Forms.TextBox();
@@ -158,7 +157,6 @@
             this.pnlDatos.Controls.Add(this.label3);
             this.pnlDatos.Controls.Add(this.txtNombre);
             this.pnlDatos.Controls.Add(this.label2);
-            this.pnlDatos.Controls.Add(this.btnEliminar);
             this.pnlDatos.Controls.Add(this.btnModificar);
             this.pnlDatos.Controls.Add(this.btnGuardar);
             this.pnlDatos.Location = new System.Drawing.Point(9, 256);
@@ -478,18 +476,6 @@
             this.label2.TabIndex = 9;
             this.label2.Text = "Nombre:";
             // 
-            // btnEliminar
-            // 
-            this.btnEliminar.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnEliminar.Location = new System.Drawing.Point(796, 103);
-            this.btnEliminar.Margin = new System.Windows.Forms.Padding(2);
-            this.btnEliminar.Name = "btnEliminar";
-            this.btnEliminar.Size = new System.Drawing.Size(136, 43);
-            this.btnEliminar.TabIndex = 8;
-            this.btnEliminar.Text = "ELIMINAR";
-            this.btnEliminar.UseVisualStyleBackColor = true;
-            this.btnEliminar.Click += new System.EventHandler(this.btnEliminar_Click);
-            // 
             // btnModificar
             // 
             this.btnModificar.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -726,7 +712,6 @@
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.TextBox txtNombre;
         private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.Button btnEliminar;
         private System.Windows.Forms.Button btnModificar;
         private System.Windows.Forms.Button btnGuardar;
         private System.Windows.Forms.TextBox txtNombreBuscar;
