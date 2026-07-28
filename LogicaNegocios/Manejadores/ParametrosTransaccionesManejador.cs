@@ -149,7 +149,7 @@ namespace LogicaNegocios
 
         /// <summary>
         /// Texto de publicidad del baucher (fila NOMBRE 'PUBLICIDAD', CODIGO 'P').
-        /// Solo devuelve el texto si la fila está ACTIVO=1; si está inactiva devuelve ""
+        /// Solo devuelve el texto si la fila está activa (en Access: ACTIVO=-1); si está inactiva devuelve ""
         /// y el baucher imprime esa línea en blanco.
         /// </summary>
         public string ObtenerPublicidad()
@@ -158,7 +158,7 @@ namespace LogicaNegocios
                            FROM PARAMETROS_TRANSACCIONES
                            WHERE NOMBRE = 'PUBLICIDAD'
                              AND CODIGO = 'P'
-                             AND ACTIVO = 1";
+                             AND ACTIVO = -1";
 
             DataSet ds = _conexion.Seleccionar(sql);
 

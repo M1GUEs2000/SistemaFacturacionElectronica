@@ -167,13 +167,17 @@ public static class Notificaciones
                 Width = 420,
                 Height = lineasToast <= 1 ? 45 : 20 + (lineasToast * 20),
                 Visible = false,
-                Tag = "toast"
+                Tag = "toast",
+                // Conserva el orden de aparición para apilar los éxitos: la
+                // aprobación de tarjeta queda arriba y el envío a cola debajo.
+                Name = "toast-exito-" + (++toastIndex).ToString("D10")
             };
 
             toast.Click += (s, e) =>
             {
                 destino.Controls.Remove(toast);
                 toast.Dispose();
+                ReubicarToastsExito(destino);
             };
 
             Label lbl = new Label
@@ -189,14 +193,13 @@ public static class Notificaciones
 
             // Posicionar ANTES de agregarlo evita el parpadeo de aparecer en la esquina
             // y saltar al centro; se muestra ya colocado.
-            int x = (destino.ClientSize.Width - toast.Width) / 2;
-            toast.Location = new Point(x, 20);
-
             destino.Controls.Add(toast);
+            ReubicarToastsExito(destino);
             toast.BringToFront();
             toast.Visible = true;
 
             LimitarToasts(destino, 2);
+            ReubicarToastsExito(destino);
 
             Timer t = new Timer { Interval = 2500 };
             t.Tick += (s, e) =>
@@ -211,6 +214,7 @@ public static class Notificaciones
                         fade.Stop();
                         destino.Controls.Remove(toast);
                         toast.Dispose();
+                        ReubicarToastsExito(destino);
                     }
                     else
                     {
@@ -518,6 +522,30 @@ public static class Notificaciones
             destino.Controls.Remove(viejo);
             viejo.Dispose();
             lista.RemoveAt(0);
+        }
+    }
+
+    // Los toasts de éxito pueden aparecer consecutivamente en el mismo flujo
+    // (p.ej. tarjeta aprobada y factura encolada). Se apilan sin alterar la
+    // posición de advertencias y errores, que mantienen su comportamiento actual.
+    private static void ReubicarToastsExito(Form destino)
+    {
+        const int margenSuperior = 20;
+        const int separacion = 8;
+
+        int y = margenSuperior;
+        var exitos = destino.Controls.OfType<Panel>()
+            .Where(p => p.Tag != null
+                && p.Tag.ToString() == "toast"
+                && p.Name.StartsWith("toast-exito-", StringComparison.Ordinal))
+            .OrderBy(p => p.Name)
+            .ToList();
+
+        foreach (var toast in exitos)
+        {
+            int x = (destino.ClientSize.Width - toast.Width) / 2;
+            toast.Location = new Point(x, y);
+            y += toast.Height + separacion;
         }
     }
 

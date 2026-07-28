@@ -395,7 +395,7 @@ namespace SistemaFacturacion
                 SetCedulaCliente("9999999999999");
                 txtComentario.Text = "";
                 txtFormaPago.Text = "";
-                OcultarPanelTarjeta();
+                OcultarPopupTarjeta();
                 TB_DETALLEFACTURA.Clear();
                 lblTotalVP.Text = "TOTAL: 0.00";
                 btnProcesar.Visible = false;
@@ -1020,7 +1020,7 @@ namespace SistemaFacturacion
             Contador = 0;
             lblTotalVP.Text = "TOTAL: 0.00";
             txtFormaPago.Text = "";
-            OcultarPanelTarjeta();
+            OcultarPopupTarjeta();
             SetCedulaCliente("");
             btnProcesar.Visible = false;
             btnLimpiar.Visible = false;
@@ -1139,6 +1139,10 @@ namespace SistemaFacturacion
                 return;
             }
 
+            // El popup es una ventana aparte: se cierra explícitamente para no
+            // dejarla viva si el cierre del principal no la arrastra.
+            OcultarPopupTarjeta();
+
             try
             {
                 _services.Log.CrearLog(
@@ -1227,11 +1231,11 @@ namespace SistemaFacturacion
             // ✔ Mostrar el nombre al usuario
             txtFormaPago.Text = nombre;
 
-            // TARJETA despliega el panel de tipo de pago / diferido / cuotas
+            // TARJETA abre el popup de tipo de pago / diferido / cuotas
             if (nombre.Trim().ToUpper() == "TARJETA")
-                MostrarPanelTarjeta();
+                MostrarPopupTarjeta();
             else
-                OcultarPanelTarjeta();
+                OcultarPopupTarjeta();
 
             // COMPRAS usa catálogo especial (ORDEN >= 9001)
             if (nombre.Trim().ToUpper() == "COMPRAS")
@@ -1240,22 +1244,15 @@ namespace SistemaFacturacion
                 ConsultaProducto();
         }
         // =====================================================================
-        //  PANEL DE TARJETA — Tipo de Pago / Tipo de Diferido / Nº de Cuotas
-        //  Se alimenta de PARAMETROS_TRANSACCIONES (ver ParametrosTransaccionesManejador).
-        //  Solo se muestra cuando la forma de pago seleccionada es TARJETA; ensancha
-        //  el form a la derecha y encadena los tres combos según lo que esté ACTIVO.
+        //  POPUP DE TARJETA — Tipo de Pago / Tipo de Diferido / Nº de Cuotas
+        //  La UI y la cascada de combos viven en frmTarjetaPopup; acá solo se
+        //  abre/cierra la ventana sobre gvProductos y se cachea la selección.
+        //  El popup no tiene botones: los valores que quedaron elegidos son los
+        //  que consume el cobro al momento de Registrar.
         // =====================================================================
 
-        private GroupBox _gbTarjeta;
-        private ComboBox _cmbTarjetaTipoPago;
-        private ComboBox _cmbTarjetaDiferido;
-        private ComboBox _cmbTarjetaCuotas;
-        private ComboBox _cmbTarjetaMesesGracia;
-        private Label _lblTarjetaDiferido;
-        private Label _lblTarjetaCuotas;
-        private Label _lblTarjetaMesesGracia;
-        private int _anchoClientOriginal;
-        private bool _tarjetaExpandida;
+        private frmTarjetaPopup _popupTarjeta;
+        private bool _reposicionPopupEnganchada;
 
         // Selección resultante — disponible para la emisión de la factura
         public string TarjetaTipoPago { get; private set; }        // "C" = corriente / "D" = diferido
@@ -1264,140 +1261,62 @@ namespace SistemaFacturacion
         public int TarjetaCuotas { get; private set; }
         public int TarjetaMesesGracia { get; private set; }
 
-        private void ConstruirPanelTarjeta()
+        private void MostrarPopupTarjeta()
         {
-            if (_gbTarjeta != null) return;
-
-            _anchoClientOriginal = this.ClientSize.Width;
-
-            _gbTarjeta = new GroupBox
+            if (_popupTarjeta != null && !_popupTarjeta.IsDisposed)
             {
-                Text = "PAGO CON TARJETA",
-                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
-                Size = new Size(264, 254),
-                Visible = false
-            };
-
-            _cmbTarjetaTipoPago = new ComboBox
-            {
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                Location = new Point(12, 48),
-                Size = new Size(240, 24),
-                Font = new Font("Segoe UI", 9F, FontStyle.Regular)
-            };
-            _cmbTarjetaTipoPago.SelectedIndexChanged += CmbTarjetaTipoPago_Changed;
-
-            _lblTarjetaDiferido = new Label
-            {
-                Text = "Tipo de Diferido:",
-                Location = new Point(12, 82),
-                AutoSize = true,
-                Font = new Font("Segoe UI", 8.25F, FontStyle.Regular),
-                Visible = false
-            };
-            _cmbTarjetaDiferido = new ComboBox
-            {
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                Location = new Point(12, 102),
-                Size = new Size(240, 24),
-                Font = new Font("Segoe UI", 9F, FontStyle.Regular),
-                Visible = false
-            };
-            _cmbTarjetaDiferido.SelectedIndexChanged += CmbTarjetaDiferido_Changed;
-
-            _lblTarjetaCuotas = new Label
-            {
-                Text = "Nº de Cuotas:",
-                Location = new Point(12, 136),
-                AutoSize = true,
-                Font = new Font("Segoe UI", 8.25F, FontStyle.Regular),
-                Visible = false
-            };
-            _cmbTarjetaCuotas = new ComboBox
-            {
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                Location = new Point(12, 156),
-                Size = new Size(240, 24),
-                Font = new Font("Segoe UI", 9F, FontStyle.Regular),
-                Visible = false
-            };
-            _cmbTarjetaCuotas.SelectedIndexChanged += (s, e) => GuardarSeleccionTarjeta();
-
-            _lblTarjetaMesesGracia = new Label
-            {
-                Text = "Meses de Gracia:",
-                Location = new Point(12, 190),
-                AutoSize = true,
-                Font = new Font("Segoe UI", 8.25F, FontStyle.Regular),
-                Visible = false
-            };
-            _cmbTarjetaMesesGracia = new ComboBox
-            {
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                Location = new Point(12, 210),
-                Size = new Size(240, 24),
-                Font = new Font("Segoe UI", 9F, FontStyle.Regular),
-                Visible = false
-            };
-            for (int i = 1; i <= 24; i++)
-                _cmbTarjetaMesesGracia.Items.Add(i.ToString("00"));
-            _cmbTarjetaMesesGracia.SelectedIndexChanged += (s, e) => GuardarSeleccionTarjeta();
-
-            var lblTipoPago = new Label
-            {
-                Text = "Tipo de Pago:",
-                Location = new Point(12, 28),
-                AutoSize = true,
-                Font = new Font("Segoe UI", 8.25F, FontStyle.Regular)
-            };
-
-            _gbTarjeta.Controls.Add(lblTipoPago);
-            _gbTarjeta.Controls.Add(_cmbTarjetaTipoPago);
-            _gbTarjeta.Controls.Add(_lblTarjetaDiferido);
-            _gbTarjeta.Controls.Add(_cmbTarjetaDiferido);
-            _gbTarjeta.Controls.Add(_lblTarjetaCuotas);
-            _gbTarjeta.Controls.Add(_cmbTarjetaCuotas);
-            _gbTarjeta.Controls.Add(_lblTarjetaMesesGracia);
-            _gbTarjeta.Controls.Add(_cmbTarjetaMesesGracia);
-
-            // Ubicado a la derecha del carrito, en el área que se agrega al ensanchar
-            _gbTarjeta.Location = new Point(pnlVariosProductos.Right + 12, panelFormasPago.Top);
-
-            this.Controls.Add(_gbTarjeta);
-            _gbTarjeta.BringToFront();
-        }
-
-        private void MostrarPanelTarjeta()
-        {
-            ConstruirPanelTarjeta();
-
-            // Ensanchar el form para que quepa el panel (una sola vez)
-            if (!_tarjetaExpandida)
-            {
-                int anchoNecesario = _gbTarjeta.Right + 12;
-                if (this.ClientSize.Width < anchoNecesario)
-                    this.ClientSize = new Size(anchoNecesario, this.ClientSize.Height);
-                _tarjetaExpandida = true;
+                _popupTarjeta.UbicarSobre(gvProductos);
+                return;
             }
 
-            _gbTarjeta.Visible = true;
-            _gbTarjeta.BringToFront();
+            // Se crea nuevo en cada apertura: así se releen los parámetros de
+            // PARAMETROS_TRANSACCIONES y no queda estado de la venta anterior.
+            _popupTarjeta = new frmTarjetaPopup(_services);
+            _popupTarjeta.SeleccionCambiada += (s, e) => CachearSeleccionTarjeta();
+            _popupTarjeta.FormClosed += PopupTarjeta_FormClosed;
 
-            CargarTarjeta_TipoPago();
+            EngancharReposicionPopup();
+
+            _popupTarjeta.UbicarSobre(gvProductos);
+            _popupTarjeta.Show(this);   // no modal, encima del principal y sin robar el foco
+
+            // El constructor del popup ya dejó CORRIENTE seleccionado antes de que
+            // hubiera nadie suscrito al evento: esa primera selección se copia acá.
+            CachearSeleccionTarjeta();
         }
 
-        private void OcultarPanelTarjeta()
+        private void OcultarPopupTarjeta()
         {
-            if (_gbTarjeta != null)
-                _gbTarjeta.Visible = false;
-
-            // Devolver el form a su ancho original
-            if (_tarjetaExpandida)
+            if (_popupTarjeta != null)
             {
-                this.ClientSize = new Size(_anchoClientOriginal, this.ClientSize.Height);
-                _tarjetaExpandida = false;
+                if (!_popupTarjeta.IsDisposed)
+                    _popupTarjeta.Close();
+
+                _popupTarjeta = null;
             }
 
+            LimpiarSeleccionTarjeta();
+        }
+
+        // Cerrar el popup con la X equivale a deshacer la elección de TARJETA:
+        // se limpia también la forma de pago para que el cajero tenga que
+        // volver a escogerla y no quede una venta con tarjeta sin parámetros.
+        // Se distingue por CloseReason: los Close() que hace el propio código
+        // (procesar, limpiar, cambio de forma de pago) NO son UserClosing y no
+        // deben pisar la forma de pago que se acaba de seleccionar.
+        private void PopupTarjeta_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            if (e.CloseReason != CloseReason.UserClosing) return;
+
+            _popupTarjeta = null;
+            LimpiarSeleccionTarjeta();
+
+            FormaPagoCodigo = "";
+            txtFormaPago.Text = "";
+        }
+
+        private void LimpiarSeleccionTarjeta()
+        {
             TarjetaTipoPago = "";
             TarjetaDiferidoCodigo = "";
             TarjetaDiferidoNombre = "";
@@ -1405,200 +1324,34 @@ namespace SistemaFacturacion
             TarjetaMesesGracia = 0;
         }
 
-        // TIPO DE PAGO: CORRIENTE es SIEMPRE el default. DIFERIDO solo se ofrece
-        // cuando en los parámetros está activo AMBOS (CODIGO 'A', ACTIVO=1).
-        // Si no está AMBOS, el combo queda bloqueado en CORRIENTE.
-        private void CargarTarjeta_TipoPago()
+        // Se copia en cada cambio de combo: cuando el cajero da Registrar ya no
+        // importa si el popup se cerró o se disposeó, los valores están acá.
+        private void CachearSeleccionTarjeta()
         {
-            _cmbTarjetaTipoPago.Items.Clear();
+            if (_popupTarjeta == null || _popupTarjeta.IsDisposed) return;
 
-            DataSet ds = _services.ParamTransaccion.ObtenerTiposPago();
-
-            string valorCorriente = "CORRIENTE";
-            string valorDiferido = "DIFERIDO";
-            bool ambosActivo = false;
-
-            if (ds != null && ds.Tables.Count > 0)
-            {
-                foreach (DataRow row in ds.Tables[0].Rows)
-                {
-                    string cod = row["CODIGO"].ToString().Trim().ToUpper();
-                    string val = row["VALOR"].ToString().Trim();
-
-                    if (cod == "C") valorCorriente = val;
-                    else if (cod == "D") valorDiferido = val;
-
-                    if (cod == "A" && Convert.ToBoolean(row["ACTIVO"]))
-                        ambosActivo = true;
-                }
-            }
-
-            // CORRIENTE siempre presente y seleccionado por default
-            _cmbTarjetaTipoPago.Items.Add(new ItemCombo(valorCorriente, "C"));
-
-            // DIFERIDO únicamente si AMBOS está activo
-            if (ambosActivo)
-                _cmbTarjetaTipoPago.Items.Add(new ItemCombo(valorDiferido, "D"));
-
-            // Solo se puede cambiar si existe la opción DIFERIDO
-            _cmbTarjetaTipoPago.Enabled = ambosActivo;
-
-            _cmbTarjetaTipoPago.SelectedIndex = 0; // CORRIENTE => combos de diferido ocultos
+            TarjetaTipoPago = _popupTarjeta.TipoPago;
+            TarjetaDiferidoCodigo = _popupTarjeta.DiferidoCodigo;
+            TarjetaDiferidoNombre = _popupTarjeta.DiferidoNombre;
+            TarjetaCuotas = _popupTarjeta.Cuotas;
+            TarjetaMesesGracia = _popupTarjeta.MesesGracia;
         }
 
-        private void CmbTarjetaTipoPago_Changed(object sender, EventArgs e)
+        // Show(owner) mantiene el popup por encima del principal, pero no lo mueve
+        // con él: hay que reubicarlo cuando el form se mueve o cambia de tamaño.
+        private void EngancharReposicionPopup()
         {
-            bool esDiferido = (_cmbTarjetaTipoPago.SelectedItem as ItemCombo)?.Value == "D";
+            if (_reposicionPopupEnganchada) return;
 
-            // Tipo de diferido: visible solo cuando el pago es DIFERIDO
-            _lblTarjetaDiferido.Visible = esDiferido;
-            _cmbTarjetaDiferido.Visible = esDiferido;
-
-            // Cuotas: ocultas hasta que se escoja un tipo de diferido
-            _lblTarjetaCuotas.Visible = false;
-            _cmbTarjetaCuotas.Visible = false;
-            _cmbTarjetaCuotas.Items.Clear();
-            _lblTarjetaMesesGracia.Visible = false;
-            _cmbTarjetaMesesGracia.Visible = false;
-            _cmbTarjetaMesesGracia.SelectedIndex = -1;
-
-            if (esDiferido)
-                CargarTarjeta_Diferidos();
-            else
-                _cmbTarjetaDiferido.Items.Clear();
-
-            GuardarSeleccionTarjeta();
+            this.LocationChanged += (s, e) => ReubicarPopupTarjeta();
+            this.SizeChanged += (s, e) => ReubicarPopupTarjeta();
+            _reposicionPopupEnganchada = true;
         }
 
-        // TIPO DE DIFERIDO: solo los activos. Se traen todos y se filtra en C# con
-        // Convert.ToBoolean, porque en Access el campo Sí/No guarda True como -1 y la
-        // consulta 'ACTIVO = 1' de ObtenerTiposDiferidoActivos no matchea nada.
-        // No se auto-selecciona: las cuotas aparecen solo cuando el usuario escoge uno.
-        private void CargarTarjeta_Diferidos()
+        private void ReubicarPopupTarjeta()
         {
-            _cmbTarjetaDiferido.Items.Clear();
-
-            DataSet ds = _services.ParamTransaccion.ObtenerTiposDiferido();
-            if (ds != null && ds.Tables.Count > 0)
-                foreach (DataRow row in ds.Tables[0].Rows)
-                {
-                    if (!Convert.ToBoolean(row["ACTIVO"])) continue;
-
-                    _cmbTarjetaDiferido.Items.Add(new ItemCombo(
-                        row["VALOR"].ToString().Trim(),
-                        row["CODIGO"].ToString().Trim()));
-                }
-
-            // Default: SIN INTERESES (si está activo); si no, el primero disponible
-            int idxDefault = -1;
-            for (int i = 0; i < _cmbTarjetaDiferido.Items.Count; i++)
-                if (((ItemCombo)_cmbTarjetaDiferido.Items[i]).Text
-                        .Equals("SIN INTERESES", StringComparison.OrdinalIgnoreCase))
-                {
-                    idxDefault = i;
-                    break;
-                }
-
-            if (idxDefault < 0 && _cmbTarjetaDiferido.Items.Count > 0)
-                idxDefault = 0;
-
-            _cmbTarjetaDiferido.SelectedIndex = idxDefault; // dispara la carga de cuotas
-        }
-
-        private void CmbTarjetaDiferido_Changed(object sender, EventArgs e)
-        {
-            bool hayDiferido = _cmbTarjetaDiferido.SelectedItem is ItemCombo;
-
-            // Cuotas: aparecen solo cuando ya hay un tipo de diferido escogido
-            _lblTarjetaCuotas.Visible = hayDiferido;
-            _cmbTarjetaCuotas.Visible = hayDiferido;
-
-            if (hayDiferido)
-                CargarTarjeta_Cuotas();
-            else
-                _cmbTarjetaCuotas.Items.Clear();
-
-            bool aplicaMesesGracia = hayDiferido && EsDiferidoConMesesGracia(_cmbTarjetaDiferido.SelectedItem as ItemCombo);
-            _lblTarjetaMesesGracia.Visible = aplicaMesesGracia;
-            _cmbTarjetaMesesGracia.Visible = aplicaMesesGracia;
-            if (aplicaMesesGracia && _cmbTarjetaMesesGracia.SelectedIndex < 0)
-                _cmbTarjetaMesesGracia.SelectedIndex = 0; // 01 por defecto
-            else if (!aplicaMesesGracia)
-                _cmbTarjetaMesesGracia.SelectedIndex = -1;
-
-            GuardarSeleccionTarjeta();
-        }
-
-        // Nº DE CUOTAS: solo múltiplos de tres (03..24), limitados por la cuota
-        // configurada para el tipo de diferido.
-        private void CargarTarjeta_Cuotas()
-        {
-            _cmbTarjetaCuotas.Items.Clear();
-
-            if (!(_cmbTarjetaDiferido.SelectedItem is ItemCombo dif))
-                return;
-
-            DataSet ds = _services.ParamTransaccion.ObtenerCuotasPorDiferido(dif.Value);
-
-            int maxCuotas = 0;
-            if (ds != null && ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
-                int.TryParse(ds.Tables[0].Rows[0]["VALOR"].ToString().Trim(), out maxCuotas);
-
-            int limiteCuotas = Math.Min(maxCuotas, 24);
-            for (int i = 3; i <= limiteCuotas; i += 3)
-                _cmbTarjetaCuotas.Items.Add(i.ToString("00"));
-
-            if (_cmbTarjetaCuotas.Items.Count > 0)
-                _cmbTarjetaCuotas.SelectedIndex = 0;
-        }
-
-        private void GuardarSeleccionTarjeta()
-        {
-            TarjetaTipoPago = (_cmbTarjetaTipoPago.SelectedItem as ItemCombo)?.Value ?? "";
-
-            if (TarjetaTipoPago == "D")
-            {
-                var dif = _cmbTarjetaDiferido.SelectedItem as ItemCombo;
-                TarjetaDiferidoCodigo = dif?.Value ?? "";
-                TarjetaDiferidoNombre = dif?.Text ?? "";
-                TarjetaCuotas = int.TryParse(_cmbTarjetaCuotas.SelectedItem?.ToString(), out int cuotas)
-                    ? cuotas
-                    : 0;
-                TarjetaMesesGracia = EsDiferidoConMesesGracia(dif)
-                    && int.TryParse(_cmbTarjetaMesesGracia.SelectedItem?.ToString(), out int mesesGracia)
-                    ? mesesGracia
-                    : 0;
-            }
-            else
-            {
-                TarjetaDiferidoCodigo = "";
-                TarjetaDiferidoNombre = "";
-                TarjetaCuotas = 0;
-                TarjetaMesesGracia = 0;
-            }
-        }
-
-        private static bool EsDiferidoConMesesGracia(ItemCombo diferido)
-        {
-            if (diferido == null) return false;
-
-            return diferido.Value == "07"
-                || diferido.Value == "09"
-                || diferido.Text.IndexOf("GRACIA", StringComparison.OrdinalIgnoreCase) >= 0;
-        }
-
-        private sealed class ItemCombo
-        {
-            public string Text { get; }
-            public string Value { get; }
-
-            public ItemCombo(string text, string value)
-            {
-                Text = text;
-                Value = value;
-            }
-
-            public override string ToString() => Text;
+            if (_popupTarjeta != null && !_popupTarjeta.IsDisposed && _popupTarjeta.Visible)
+                _popupTarjeta.UbicarSobre(gvProductos);
         }
 
         private void button3_Click(object sender, EventArgs e)

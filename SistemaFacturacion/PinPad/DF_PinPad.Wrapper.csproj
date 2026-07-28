@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>DF_PinPad.Wrapper</AssemblyName>
+    <RootNamespace>DF_PinPad.Wrapper</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Referencia a la DLL principal del pin pad (copiada a lib/) -->
+    <Reference Include="DF_PinPad">
+      <HintPath>lib\DF_PinPad.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- ADO.NET a SQL Server ya viene con .NET Framework (System.Data.SqlClient) -->
+    <Reference Include="System.Data" />
+    <Reference Include="System.Configuration" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Logging\Sql\001_CreateLogTables.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- CRÍTICO: DF_PinPad.dll busca este archivo junto a sí misma en runtime
+         (ver comentarios dentro del propio archivo .config). Sin él, cualquier
+         "new LAN(...)" lanza NullReferenceException. -->
+    <None Update="lib\DF_PinPad.dll.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- Carpeta donde DF_PinPad.dll escribe su log interno (RutaLog vacío = usar "PPLog"
+         junto al dll). Debe existir en el directorio de salida. -->
+    <None Update="lib\PPLog\.keep">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

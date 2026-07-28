@@ -44,11 +44,7 @@
       <HintPath>..\packages\BouncyCastle.Cryptography.2.6.2\lib\net461\BouncyCastle.Cryptography.dll</HintPath>
     </Reference>
     <Reference Include="DF_PinPad">
-      <HintPath>..\SistemaFacturacion\PinPad\DF_PinPad.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="DF_PinPad.Wrapper">
-      <HintPath>..\SistemaFacturacion\PinPad\DF_PinPad.Wrapper.dll</HintPath>
+      <HintPath>..\SistemaFacturacion\PinPad\lib\DF_PinPad.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="FirmaXadesNet, Version=2.0.1.0, Culture=neutral, processorArchitecture=MSIL">
@@ -199,6 +195,10 @@
     <ProjectReference Include="..\SistemaFacturacion\GenerarXml\GenerarXml.csproj">
       <Project>{F21CCB3D-9FAF-4D65-8523-04C18CBC2316}</Project>
       <Name>GenerarXml</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\SistemaFacturacion\PinPad\DF_PinPad.Wrapper.csproj">
+      <Project>{3F6E8A21-7C4B-4D9E-A2F0-5B8C1D0E9A47}</Project>
+      <Name>DF_PinPad.Wrapper</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup />

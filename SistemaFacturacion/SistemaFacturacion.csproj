@@ -75,11 +75,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="DF_PinPad">
-      <HintPath>PinPad\DF_PinPad.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="DF_PinPad.Wrapper">
-      <HintPath>PinPad\DF_PinPad.Wrapper.dll</HintPath>
+      <HintPath>PinPad\lib\DF_PinPad.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="GenerarXml, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -338,6 +334,9 @@
     <Compile Include="Forms\frmDatafast.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Forms\frmTarjetaPopup.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Forms\frmMantenimientoTablas.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -545,11 +544,11 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />
-    <None Include="PinPad\DF_PinPad.dll.config">
+    <None Include="PinPad\lib\DF_PinPad.dll.config">
       <Link>DF_PinPad.dll.config</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="PinPad\PPLog\.keep">
+    <None Include="PinPad\lib\PPLog\.keep">
       <Link>PPLog\.keep</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -574,6 +573,10 @@
     <ProjectReference Include="..\LogicaNegocios\LogicaNegocios.csproj">
       <Project>{e12ab9f5-e0b7-4ae0-9354-8d4f9dd96650}</Project>
       <Name>LogicaNegocios</Name>
+    </ProjectReference>
+    <ProjectReference Include="PinPad\DF_PinPad.Wrapper.csproj">
+      <Project>{3F6E8A21-7C4B-4D9E-A2F0-5B8C1D0E9A47}</Project>
+      <Name>DF_PinPad.Wrapper</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

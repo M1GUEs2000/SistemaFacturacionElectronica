@@ -31,7 +31,11 @@ namespace LogicaNegocios
     /// NO en SQL Server. Persiste la auditoría del pinpad en 3 tablas:
     ///   PINPAD_LOG          — cabecera (IniciarTransaccion/FinalizarTransaccion/VincularNumeroFactura)
     ///   PINPAD_AUTORIZADAS  — detalle del cobro (GuardarDetallePago)
-    ///   PINPAD_ANULACIONES  — detalle de anulación (GuardarDetalleAnulacion)
+    ///   PINPAD_ANULACIONES  — detalle de anulación (RegistrarAnulacion)
+    ///
+    /// REGLA: las dos tablas de detalle son SOLO de operaciones aprobadas. Todo lo que el
+    /// autorizador no devuelva en "00" —rechazos, errores de trama, excepciones— queda
+    /// únicamente en PINPAD_LOG, que para eso es la bitácora.
     ///
     /// MODELO SIN ID NUMÉRICO: la llave de correlación entre las 3 tablas es la NUMEROFACTURA
     /// (columna TRANSACCIONID en las tablas de detalle guarda esa misma factura). Como la
@@ -116,8 +120,17 @@ namespace LogicaNegocios
             return token;
         }
 
+        /// <summary>
+        /// ⚠️ codigoRespuesta y codigoRespuestaAut son DISTINTOS: el primero es el nivel LAN
+        /// (pinpad: 00/01/02/20/ER) y el segundo el del autorizador (00=aprobada, 51=sin cupo,
+        /// 54=vencida…). Se guardan en columnas separadas —CODIGORESPUESTA y CODIGOAUTORIZACION—
+        /// justamente para poder distinguir un rechazo del banco de un fallo de comunicación.
+        ///
+        /// No confundir CODIGOAUTORIZACION (código de respuesta del autorizador, 2 dígitos) con
+        /// AUTORIZACION (el número de autorización que devuelve un cobro aprobado).
+        /// </summary>
         public void FinalizarTransaccion(long transaccionId, string codigoRespuesta, string mensajeRespuesta,
-            bool exitoso, string excepcionMensaje)
+            bool exitoso, string excepcionMensaje, string codigoRespuestaAut = null)
         {
             string clave = ClaveDe(transaccionId);
             if (clave == null) return; // sin clave mapeada no hay fila que actualizar
@@ -126,8 +139,11 @@ namespace LogicaNegocios
 
             try
             {
+                // ⚠️ Los parámetros de Access son POSICIONALES: el orden del array debe
+                // coincidir con el orden de los @ en el SQL.
                 string sql = @"UPDATE PINPAD_LOG SET
                     CODIGORESPUESTA = @cod,
+                    CODIGOAUTORIZACION = @codAut,
                     NUMEROTARJETA = @tarjeta,
                     AUTORIZACION = @autoriz,
                     REFERENCIA = @refer,
@@ -139,6 +155,7 @@ namespace LogicaNegocios
 
                 _conexion.Ejecutar(sql,
                     ("cod", codigoRespuesta ?? ""),
+                    ("codAut", codigoRespuestaAut ?? ""),
                     ("tarjeta", datos.Tarjeta ?? ""),
                     ("autoriz", datos.Autorizacion ?? ""),
                     ("refer", datos.Referencia ?? ""),
@@ -251,31 +268,27 @@ namespace LogicaNegocios
         // DETALLE ANULACIÓN — PINPAD_ANULACIONES
         // =====================================================================
 
+        /// <summary>
+        /// NO escribe en PINPAD_ANULACIONES: solo guarda los datos del cobro original para
+        /// que FinalizarTransaccion los ponga en la cabecera de PINPAD_LOG.
+        ///
+        /// La DLL llama a este método ANTES de saber si el pinpad aceptó la anulación (su
+        /// firma la fija ISqlLogger y no trae el resultado), así que desde aquí es imposible
+        /// aplicar la regla de "solo se guarda con 00". Además la anulación entraría con
+        /// NUMEROFACTURA = "OP-..." porque AnulacionRequest no lleva factura.
+        ///
+        /// Quien inserta en PINPAD_ANULACIONES es <see cref="RegistrarAnulacion"/>, que llama
+        /// la UI DESPUÉS de verificar la respuesta y con la factura real. Una anulación
+        /// rechazada queda solo en PINPAD_LOG, igual que un cobro no aprobado.
+        /// </summary>
         public void GuardarDetalleAnulacion(long transaccionId, string referenciaOriginal, string autorizacionOriginal, string redAdquirente)
         {
-            string clave = ClaveDe(transaccionId) ?? "";
-
             // Este método no trae la tarjeta (solo referencia/autorización del cobro
             // original); la manda GuardarDetalleTarjeta. Se conserva la que ya estuviera
             // guardada porque no hay garantía de cuál de los dos llama la DLL primero.
             _datosPorToken.AddOrUpdate(transaccionId,
                 (null, autorizacionOriginal, referenciaOriginal),
                 (t, previo) => (previo.Tarjeta, autorizacionOriginal, referenciaOriginal));
-
-            try
-            {
-                string sql = @"INSERT INTO PINPAD_ANULACIONES
-                    (TRANSACCIONID, REFERENCIAORIGINAL, AUTORIZACIONORIGINAL, REDADQUIRENTE, NUMEROFACTURA)
-                    VALUES (@transId, @refer, @autoriz, @red, @factura)";
-
-                _conexion.Ejecutar(sql,
-                    ("transId", clave),
-                    ("refer", referenciaOriginal ?? ""),
-                    ("autoriz", autorizacionOriginal ?? ""),
-                    ("red", redAdquirente ?? ""),
-                    ("factura", clave));
-            }
-            catch { /* swallow */ }
         }
 
         // =====================================================================
