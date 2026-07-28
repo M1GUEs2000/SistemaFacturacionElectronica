@@ -486,6 +486,29 @@ namespace LogicaNegocios.Procesos
                 };
 
                 // ======================================================
+                // INFO ADICIONAL (RUC del proveedor)
+                // ======================================================
+                string rucProveedorRet = "";
+                try
+                {
+                    rucProveedorRet = _services.Empresa.ObtenerRucProveedor();
+                }
+                catch
+                {
+                    // sin RUC proveedor: la retención se emite igual
+                }
+                if (!string.IsNullOrWhiteSpace(rucProveedorRet))
+                {
+                    compRetencion.InfoAdicional = new InfoAdicionalRet
+                    {
+                        CampoAdicional = new List<CampoAdicionalRet>
+                        {
+                            new CampoAdicionalRet { Nombre = "RUC PROVEEDOR", Text = rucProveedorRet.Trim() }
+                        }
+                    };
+                }
+
+                // ======================================================
                 // 6. SERIALIZAR Y GUARDAR XML
                 // ======================================================
                 string carpeta = Path.Combine(_services.Paths.Retenciones, "XML");

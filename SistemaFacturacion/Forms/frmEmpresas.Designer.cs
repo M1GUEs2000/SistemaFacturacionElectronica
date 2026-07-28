@@ -29,7 +29,8 @@
         private void InitializeComponent()
         {
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
-            this.btnNuevo = new System.Windows.Forms.Button();
+            this.lblRucProveedor = new System.Windows.Forms.Label();
+            this.txtRucProveedor = new System.Windows.Forms.TextBox();
             this.pnlDatos = new System.Windows.Forms.Panel();
             this.cmbEstadoRuc = new System.Windows.Forms.ComboBox();
             this.cmbImpresion = new System.Windows.Forms.ComboBox();
@@ -94,19 +95,29 @@
             ((System.ComponentModel.ISupportInitialize)(this.gvEmpresa)).BeginInit();
             this.SuspendLayout();
             // 
-            // btnNuevo
-            // 
-            this.btnNuevo.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnNuevo.Location = new System.Drawing.Point(410, 0);
-            this.btnNuevo.Margin = new System.Windows.Forms.Padding(2);
-            this.btnNuevo.Name = "btnNuevo";
-            this.btnNuevo.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
-            this.btnNuevo.Size = new System.Drawing.Size(92, 32);
-            this.btnNuevo.TabIndex = 11;
-            this.btnNuevo.Text = "NUEVO";
-            this.btnNuevo.UseVisualStyleBackColor = true;
-            this.btnNuevo.Click += new System.EventHandler(this.btnNuevo_Click);
-            // 
+            // lblRucProveedor
+            //
+            this.lblRucProveedor.AutoSize = true;
+            this.lblRucProveedor.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblRucProveedor.Location = new System.Drawing.Point(414, 8);
+            this.lblRucProveedor.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            this.lblRucProveedor.Name = "lblRucProveedor";
+            this.lblRucProveedor.Size = new System.Drawing.Size(122, 20);
+            this.lblRucProveedor.TabIndex = 11;
+            this.lblRucProveedor.Text = "RUC Proveedor:";
+            //
+            // txtRucProveedor
+            //
+            this.txtRucProveedor.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtRucProveedor.Location = new System.Drawing.Point(540, 6);
+            this.txtRucProveedor.Margin = new System.Windows.Forms.Padding(2);
+            this.txtRucProveedor.MaxLength = 13;
+            this.txtRucProveedor.Name = "txtRucProveedor";
+            this.txtRucProveedor.ReadOnly = true;
+            this.txtRucProveedor.Size = new System.Drawing.Size(200, 26);
+            this.txtRucProveedor.TabIndex = 12;
+            this.txtRucProveedor.TabStop = false;
+            //
             // pnlDatos
             // 
             this.pnlDatos.AutoScroll = true;
@@ -682,7 +693,8 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1013, 556);
-            this.Controls.Add(this.btnNuevo);
+            this.Controls.Add(this.lblRucProveedor);
+            this.Controls.Add(this.txtRucProveedor);
             this.Controls.Add(this.pnlDatos);
             this.Controls.Add(this.txtNombreBuscar);
             this.Controls.Add(this.btnBuscar);
@@ -704,7 +716,8 @@
 
         #endregion
 
-        private System.Windows.Forms.Button btnNuevo;
+        private System.Windows.Forms.Label lblRucProveedor;
+        private System.Windows.Forms.TextBox txtRucProveedor;
         private System.Windows.Forms.Panel pnlDatos;
         private System.Windows.Forms.TextBox txtClaveIngreso;
         private System.Windows.Forms.Label label5;

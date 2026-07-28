@@ -686,22 +686,31 @@ namespace LogicaNegocios.Procesos
                     });
                 }
 
-                // infoAdicional (opcional: correo del cliente)
+                // infoAdicional (opcional: correo del cliente + RUC del proveedor)
                 InfoAdicionalNC infoAdicional = null;
+                var camposNC = new List<CampoAdicionalNC>();
+
                 if (rowCliente.Table.Columns.Contains("CORREO"))
                 {
                     string correo = rowCliente["CORREO"].ToString().Trim();
                     if (!string.IsNullOrWhiteSpace(correo))
-                    {
-                        infoAdicional = new InfoAdicionalNC
-                        {
-                            CampoAdicional = new List<CampoAdicionalNC>
-                            {
-                                new CampoAdicionalNC { Nombre = "MAIL", Text = correo }
-                            }
-                        };
-                    }
+                        camposNC.Add(new CampoAdicionalNC { Nombre = "MAIL", Text = correo });
                 }
+
+                string rucProveedorNC = "";
+                try
+                {
+                    rucProveedorNC = _services.Empresa.ObtenerRucProveedor();
+                }
+                catch
+                {
+                    // sin RUC proveedor: la NC se emite igual
+                }
+                if (!string.IsNullOrWhiteSpace(rucProveedorNC))
+                    camposNC.Add(new CampoAdicionalNC { Nombre = "RUC PROVEEDOR", Text = rucProveedorNC.Trim() });
+
+                if (camposNC.Count > 0)
+                    infoAdicional = new InfoAdicionalNC { CampoAdicional = camposNC };
 
                 var nc = new NotaCredito
                 {

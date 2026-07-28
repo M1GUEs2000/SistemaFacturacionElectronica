@@ -14,6 +14,9 @@ namespace SistemaFacturacion
     {
         private readonly AppServices _services;
 
+        // Antes se usaba btnNuevo.Visible (siempre false) como bandera; el botón ya no existe.
+        private readonly bool PermitirCrearEmpresa = false;
+
         public frmEmpresas(
             AppServices services
         )
@@ -32,11 +35,24 @@ namespace SistemaFacturacion
             CargarCombos();
 
             MostrarEmpresa("");
-            btnNuevo.Visible = false;
+            CargarRucProveedor();
             btnEliminar.Visible = false;
             btnModificar.Visible = false;
             btnGuardar.Visible = false;
             ActualizarVisibilidadVerificarFirma();
+        }
+
+        private void CargarRucProveedor()
+        {
+            try
+            {
+                txtRucProveedor.Text = _services.Empresa.ObtenerRucProveedor();
+            }
+            catch (Exception ex)
+            {
+                txtRucProveedor.Text = "";
+                MessageBox.Show("Error al cargar el RUC del proveedor: " + ex.Message, "Mensaje");
+            }
         }
         public void MostrarEmpresa(string Nombre)
         {
@@ -55,10 +71,6 @@ namespace SistemaFacturacion
             }
         }
 
-        private void btnNuevo_Click(object sender, EventArgs e)
-        {
-            Limpiar();
-        }
         public void Limpiar()
         {
             btnEliminar.Visible = false;
@@ -245,7 +257,7 @@ namespace SistemaFacturacion
 
         private void btnGuardar_Click(object sender, EventArgs e)
         {
-            if (!btnNuevo.Visible)
+            if (!PermitirCrearEmpresa)
             {
                 Notificaciones.Show(this, "No está permitido crear una nueva empresa desde este formulario.", "advertencia");
                 return;

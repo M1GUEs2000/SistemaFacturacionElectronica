@@ -305,6 +305,21 @@ WHERE NOMBRE = '" + Nombre + @"'";
         }
 
         // ======================================================
+        // RUC PROVEEDOR (solo lectura)
+        // ======================================================
+        public string ObtenerRucProveedor()
+        {
+            string sql = "SELECT TOP 1 RUCPROVEEDOR FROM EMPRESA";
+            var ds = _conexion.Seleccionar(sql);
+
+            if (ds == null || ds.Tables.Count == 0 || ds.Tables[0].Rows.Count == 0)
+                return "";
+
+            var val = ds.Tables[0].Rows[0]["RUCPROVEEDOR"];
+            return val == DBNull.Value ? "" : Convert.ToString(val).Trim();
+        }
+
+        // ======================================================
         // CREDENCIALES MODIFICADAS
         // ======================================================
         public bool ObtenerCredencialesModificadas()

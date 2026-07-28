@@ -792,6 +792,19 @@ namespace LogicaNegocios.Procesos
                     campos.Add(new CampoAdicional { Nombre = "TELEFONO", Text = telefonoCliente });
                 if (!string.IsNullOrWhiteSpace(comentario))
                     campos.Add(new CampoAdicional { Nombre = "COMENTARIO", Text = comentario });
+
+                string rucProveedor = "";
+                try
+                {
+                    rucProveedor = _services.Empresa.ObtenerRucProveedor();
+                }
+                catch (Exception exRucProv)
+                {
+                    LogFactura("ERROR obteniendo RUC Proveedor: " + exRucProv.Message);
+                }
+                if (!string.IsNullOrWhiteSpace(rucProveedor))
+                    campos.Add(new CampoAdicional { Nombre = "RUC PROVEEDOR", Text = rucProveedor.Trim() });
+
                 infoAd.CampoAdicional = campos;
 
                 factura.InfoFactura = infoFactura;
