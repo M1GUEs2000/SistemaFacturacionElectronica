@@ -13,6 +13,7 @@ namespace LogicaNegocios
     ///   NOMBRE=CUOTA         VALOR=(nº cuotas)                CODIGO=T1..T7  (ligada a su TIPODIFERIDO por mismo CODIGO)
     ///   NOMBRE=MINIMOFIRMA   VALOR=10                         CODIGO=F1
     ///   NOMBRE=MODOPAGO      VALOR=MANUAL - TOKEN MANUAL/BANDA/CHIP/FALLBACK MANUAL (CHIP)/FALLBACK BANDA (CHIP)/CTLS - TOKEN CTLS   CODIGO=01..06
+    ///   NOMBRE=PUBLICIDAD    VALOR=(texto de publicidad)      CODIGO=P       (ACTIVO=1 marca si se muestra)
     /// </summary>
     public class ParametrosTransaccionesManejador
     {
@@ -146,6 +147,27 @@ namespace LogicaNegocios
             return ObtenerValorPorNombre("MINIMOFIRMA");
         }
 
+        /// <summary>
+        /// Texto de publicidad del baucher (fila NOMBRE 'PUBLICIDAD', CODIGO 'P').
+        /// Solo devuelve el texto si la fila está ACTIVO=1; si está inactiva devuelve ""
+        /// y el baucher imprime esa línea en blanco.
+        /// </summary>
+        public string ObtenerPublicidad()
+        {
+            string sql = @"SELECT VALOR
+                           FROM PARAMETROS_TRANSACCIONES
+                           WHERE NOMBRE = 'PUBLICIDAD'
+                             AND CODIGO = 'P'
+                             AND ACTIVO = 1";
+
+            DataSet ds = _conexion.Seleccionar(sql);
+
+            if (ds.Tables.Count == 0 || ds.Tables[0].Rows.Count == 0)
+                return "";
+
+            return ds.Tables[0].Rows[0]["VALOR"].ToString().Trim();
+        }
+
         // ===========================
         // INSERTAR
         // ===========================
@@ -187,6 +209,12 @@ namespace LogicaNegocios
             );
 
             return _conexion.Ejecutar(sql, ("valor", Valor), ("codigo", Codigo), ("nombre", Nombre));
+        }
+
+        /// <summary>Actualiza el texto de publicidad (fila NOMBRE 'PUBLICIDAD', CODIGO 'P').</summary>
+        public int ActualizarPublicidad(string Valor, string Usuario, string IP)
+        {
+            return Actualizar("P", "PUBLICIDAD", Valor, Usuario, IP);
         }
 
         // ===========================

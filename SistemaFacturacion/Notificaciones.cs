@@ -157,11 +157,15 @@ public static class Notificaciones
         // ======================================================================
         if (tipo == "exito")
         {
+            // El alto crece con las líneas del mensaje: con el fijo de 45px un toast
+            // multilínea (ej. aprobación con autorización y tarjeta) se cortaba.
+            int lineasToast = (mensaje ?? "").Split('\n').Length;
+
             PanelDobleBuffer toast = new PanelDobleBuffer
             {
                 BackColor = Color.FromArgb(35, 160, 70),
                 Width = 420,
-                Height = 45,
+                Height = lineasToast <= 1 ? 45 : 20 + (lineasToast * 20),
                 Visible = false,
                 Tag = "toast"
             };

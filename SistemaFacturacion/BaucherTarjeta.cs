@@ -94,7 +94,10 @@ namespace SistemaFacturacion
                 // como espacio para escribir a mano, igual que C.I. y TELEFONO.
                 new ReportParameter("HABIENTE",   ""),
                 new ReportParameter("ROTULO",     string.IsNullOrWhiteSpace(rotulo) ? RotuloOriginal : rotulo),
-                new ReportParameter("PUBLICIDAD", nombreEmpresa)
+                // La línea final ya no es el nombre del comercio: es el texto libre de
+                // publicidad (PARAMETROS_TRANSACCIONES, NOMBRE='PUBLICIDAD', CODIGO='P').
+                // Si está vacío el reporte no imprime nada en esa línea.
+                new ReportParameter("PUBLICIDAD", Texto(services.ParamTransaccion.ObtenerPublicidad()))
             });
 
             var imp = new Impresora();

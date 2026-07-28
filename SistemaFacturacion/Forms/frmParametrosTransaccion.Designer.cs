@@ -30,6 +30,11 @@ namespace SistemaFacturacion
         {
             this.panel1 = new System.Windows.Forms.Panel();
             this.panel3 = new System.Windows.Forms.Panel();
+            this.lblPublicidad = new System.Windows.Forms.Label();
+            this.txtPublicidad = new System.Windows.Forms.TextBox();
+            this.lblContadorPublicidad = new System.Windows.Forms.Label();
+            this.chkPublicidadActiva = new System.Windows.Forms.CheckBox();
+            this.label2 = new System.Windows.Forms.Label();
             this.numBaucher = new System.Windows.Forms.NumericUpDown();
             this.panelDiferidos = new System.Windows.Forms.Panel();
             this.cmbTipoPago = new System.Windows.Forms.ComboBox();
@@ -40,7 +45,6 @@ namespace SistemaFacturacion
             this.txtFechaActualizacion = new System.Windows.Forms.TextBox();
             this.label15 = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
-            this.label2 = new System.Windows.Forms.Label();
             this.panel1.SuspendLayout();
             this.panel3.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numBaucher)).BeginInit();
@@ -54,12 +58,16 @@ namespace SistemaFacturacion
             this.panel1.Controls.Add(this.panel3);
             this.panel1.Location = new System.Drawing.Point(13, 13);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(683, 541);
+            this.panel1.Size = new System.Drawing.Size(683, 579);
             this.panel1.TabIndex = 0;
             // 
             // panel3
             // 
             this.panel3.BackColor = System.Drawing.Color.Gainsboro;
+            this.panel3.Controls.Add(this.lblPublicidad);
+            this.panel3.Controls.Add(this.txtPublicidad);
+            this.panel3.Controls.Add(this.lblContadorPublicidad);
+            this.panel3.Controls.Add(this.chkPublicidadActiva);
             this.panel3.Controls.Add(this.label2);
             this.panel3.Controls.Add(this.numBaucher);
             this.panel3.Controls.Add(this.panelDiferidos);
@@ -70,44 +78,93 @@ namespace SistemaFacturacion
             this.panel3.Controls.Add(this.label1);
             this.panel3.Location = new System.Drawing.Point(20, 16);
             this.panel3.Name = "panel3";
-            this.panel3.Size = new System.Drawing.Size(641, 511);
+            this.panel3.Size = new System.Drawing.Size(641, 548);
             this.panel3.TabIndex = 2;
+            // 
+            // lblPublicidad
+            // 
+            this.lblPublicidad.AutoSize = true;
+            this.lblPublicidad.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblPublicidad.Location = new System.Drawing.Point(25, 90);
+            this.lblPublicidad.Name = "lblPublicidad";
+            this.lblPublicidad.Size = new System.Drawing.Size(118, 13);
+            this.lblPublicidad.TabIndex = 62;
+            this.lblPublicidad.Text = "Publicidad del baucher:";
+            // 
+            // txtPublicidad
+            // 
+            this.txtPublicidad.Location = new System.Drawing.Point(160, 87);
+            this.txtPublicidad.MaxLength = 60;
+            this.txtPublicidad.Name = "txtPublicidad";
+            this.txtPublicidad.Size = new System.Drawing.Size(363, 20);
+            this.txtPublicidad.TabIndex = 63;
+            // 
+            // lblContadorPublicidad
+            // 
+            this.lblContadorPublicidad.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.5F, System.Drawing.FontStyle.Italic, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblContadorPublicidad.ForeColor = System.Drawing.Color.DarkGray;
+            this.lblContadorPublicidad.Location = new System.Drawing.Point(378, 110);
+            this.lblContadorPublicidad.Name = "lblContadorPublicidad";
+            this.lblContadorPublicidad.Size = new System.Drawing.Size(145, 13);
+            this.lblContadorPublicidad.TabIndex = 64;
+            this.lblContadorPublicidad.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            // 
+            // chkPublicidadActiva
+            // 
+            this.chkPublicidadActiva.AutoSize = true;
+            this.chkPublicidadActiva.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.chkPublicidadActiva.Location = new System.Drawing.Point(529, 90);
+            this.chkPublicidadActiva.Name = "chkPublicidadActiva";
+            this.chkPublicidadActiva.Size = new System.Drawing.Size(56, 17);
+            this.chkPublicidadActiva.TabIndex = 65;
+            this.chkPublicidadActiva.Text = "Activo";
+            this.chkPublicidadActiva.UseVisualStyleBackColor = true;
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label2.Location = new System.Drawing.Point(23, 173);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(325, 13);
+            this.label2.TabIndex = 61;
+            this.label2.Text = "Seleccione los tipos de diferidos y sus cuotas que usara su sistema:";
             // 
             // numBaucher
             // 
-            this.numBaucher.Location = new System.Drawing.Point(347, 56);
+            this.numBaucher.Location = new System.Drawing.Point(258, 133);
             this.numBaucher.Maximum = new decimal(new int[] {
             1000000,
             0,
             0,
             0});
             this.numBaucher.Name = "numBaucher";
-            this.numBaucher.Size = new System.Drawing.Size(120, 20);
+            this.numBaucher.Size = new System.Drawing.Size(265, 20);
             this.numBaucher.TabIndex = 52;
             // 
             // panelDiferidos
             // 
             this.panelDiferidos.AutoScroll = true;
             this.panelDiferidos.BackColor = System.Drawing.Color.WhiteSmoke;
-            this.panelDiferidos.Location = new System.Drawing.Point(20, 105);
+            this.panelDiferidos.Location = new System.Drawing.Point(23, 189);
             this.panelDiferidos.Name = "panelDiferidos";
-            this.panelDiferidos.Size = new System.Drawing.Size(601, 337);
+            this.panelDiferidos.Size = new System.Drawing.Size(601, 275);
             this.panelDiferidos.TabIndex = 60;
             // 
             // cmbTipoPago
             // 
             this.cmbTipoPago.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbTipoPago.FormattingEnabled = true;
-            this.cmbTipoPago.Location = new System.Drawing.Point(90, 56);
+            this.cmbTipoPago.Location = new System.Drawing.Point(160, 43);
             this.cmbTipoPago.Name = "cmbTipoPago";
-            this.cmbTipoPago.Size = new System.Drawing.Size(172, 21);
+            this.cmbTipoPago.Size = new System.Drawing.Size(363, 21);
             this.cmbTipoPago.TabIndex = 49;
             // 
             // label7
             // 
             this.label7.AutoSize = true;
             this.label7.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label7.Location = new System.Drawing.Point(347, 40);
+            this.label7.Location = new System.Drawing.Point(25, 135);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(227, 13);
             this.label7.TabIndex = 25;
@@ -116,7 +173,7 @@ namespace SistemaFacturacion
             // btnModificar
             // 
             this.btnModificar.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnModificar.Location = new System.Drawing.Point(214, 448);
+            this.btnModificar.Location = new System.Drawing.Point(214, 483);
             this.btnModificar.Name = "btnModificar";
             this.btnModificar.Size = new System.Drawing.Size(209, 47);
             this.btnModificar.TabIndex = 23;
@@ -167,27 +224,17 @@ namespace SistemaFacturacion
             // 
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label1.Location = new System.Drawing.Point(20, 60);
+            this.label1.Location = new System.Drawing.Point(25, 46);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(73, 13);
             this.label1.TabIndex = 4;
             this.label1.Text = "Tipo de pago:";
             // 
-            // label2
-            // 
-            this.label2.AutoSize = true;
-            this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label2.Location = new System.Drawing.Point(20, 89);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(325, 13);
-            this.label2.TabIndex = 61;
-            this.label2.Text = "Seleccione los tipos de diferidos y sus cuotas que usara su sistema:";
-            // 
             // frmParametrosTransaccion
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(712, 566);
+            this.ClientSize = new System.Drawing.Size(712, 604);
             this.Controls.Add(this.panel1);
             this.MaximizeBox = false;
             this.Name = "frmParametrosTransaccion";
@@ -219,5 +266,9 @@ namespace SistemaFacturacion
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.NumericUpDown numBaucher;
         private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.Label lblPublicidad;
+        private System.Windows.Forms.TextBox txtPublicidad;
+        private System.Windows.Forms.Label lblContadorPublicidad;
+        private System.Windows.Forms.CheckBox chkPublicidadActiva;
     }
 }

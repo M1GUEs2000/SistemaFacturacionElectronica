@@ -381,6 +381,12 @@ namespace SistemaFacturacion
 
                     pinpadLogId = cobro.PinpadLogId;
                     cobradoConTarjeta = true;
+
+                    Notificaciones.Show(this,
+                        "Transacción Aprobada\n" +
+                        "Número autorización: " + (cobro.Detalle?.Autorizacion ?? "") + "\n" +
+                        "Número tarjeta: " + (cobro.Detalle?.NumeroTarjeta ?? ""),
+                        "exito");
                 }
 
                 // =============================================================

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Data;
 using System.Threading;
 using AccesoDatos.Abstractions;
@@ -58,6 +59,13 @@ namespace LogicaNegocios
         private static long _secuenciaToken = 0;
         private readonly ConcurrentDictionary<long, string> _clavePorToken = new ConcurrentDictionary<long, string>();
 
+        // token -> tarjeta/autorización/referencia. Los métodos de detalle los reciben pero
+        // FinalizarTransaccion no (su firma la fija ISqlLogger), y es ahí donde se escribe
+        // la cabecera. Lo llenan TANTO GuardarDetallePago (cobro) COMO GuardarDetalleAnulacion:
+        // si solo lo llenara el cobro, las anulaciones guardarían esas 3 columnas vacías.
+        private readonly ConcurrentDictionary<long, (string Tarjeta, string Autorizacion, string Referencia)> _datosPorToken =
+            new ConcurrentDictionary<long, (string, string, string)>();
+
         public PinPadLogManejador(IConexionBD conexion)
         {
             _conexion = conexion;
@@ -114,10 +122,15 @@ namespace LogicaNegocios
             string clave = ClaveDe(transaccionId);
             if (clave == null) return; // sin clave mapeada no hay fila que actualizar
 
+            _datosPorToken.TryGetValue(transaccionId, out var datos);
+
             try
             {
                 string sql = @"UPDATE PINPAD_LOG SET
                     CODIGORESPUESTA = @cod,
+                    NUMEROTARJETA = @tarjeta,
+                    AUTORIZACION = @autoriz,
+                    REFERENCIA = @refer,
                     MENSAJERESPUESTA = @msg,
                     EXITOSO = @exito,
                     EXCEPCIONMENSAJE = @exc,
@@ -126,6 +139,9 @@ namespace LogicaNegocios
 
                 _conexion.Ejecutar(sql,
                     ("cod", codigoRespuesta ?? ""),
+                    ("tarjeta", datos.Tarjeta ?? ""),
+                    ("autoriz", datos.Autorizacion ?? ""),
+                    ("refer", datos.Referencia ?? ""),
                     ("msg", mensajeRespuesta ?? ""),
                     ("exito", exitoso),
                     ("exc", excepcionMensaje ?? ""),
@@ -171,6 +187,25 @@ namespace LogicaNegocios
             string clave = !string.IsNullOrWhiteSpace(request?.NumeroFactura)
                 ? request.NumeroFactura.Trim()
                 : (ClaveDe(transaccionId) ?? "");
+
+            _datosPorToken.AddOrUpdate(transaccionId,
+                (result?.NumeroTarjeta, result?.Autorizacion, result?.Referencia),
+                (t, previo) => (string.IsNullOrWhiteSpace(result?.NumeroTarjeta) ? previo.Tarjeta : result.NumeroTarjeta,
+                                result?.Autorizacion, result?.Referencia));
+
+            // PINPAD_AUTORIZADAS es solo de cobros APROBADOS: el wrapper llama a este método
+            // pase lo que pase, y sin este filtro entraban filas vacías o con basura
+            // (ej. "ERROR EN TRAMA" y el resto en blanco). Lo no aprobado queda en PINPAD_LOG,
+            // que para eso es la bitácora.
+            //
+            // Se piden los DOS códigos en "00" —misma regla que ProcesosTarjetas usa para
+            // decidir si emite la factura—: el del autorizador puede venir "00" cuando en
+            // realidad falló la trama del pinpad y el autorizador nunca contestó.
+            if (result == null) return;
+
+            if (!string.Equals((result.CodigoRespuesta ?? "").Trim(), "00", StringComparison.Ordinal) ||
+                !string.Equals((result.CodigoRespuestaAut ?? "").Trim(), "00", StringComparison.Ordinal))
+                return;
 
             try
             {
@@ -219,6 +254,13 @@ namespace LogicaNegocios
         public void GuardarDetalleAnulacion(long transaccionId, string referenciaOriginal, string autorizacionOriginal, string redAdquirente)
         {
             string clave = ClaveDe(transaccionId) ?? "";
+
+            // Este método no trae la tarjeta (solo referencia/autorización del cobro
+            // original); la manda GuardarDetalleTarjeta. Se conserva la que ya estuviera
+            // guardada porque no hay garantía de cuál de los dos llama la DLL primero.
+            _datosPorToken.AddOrUpdate(transaccionId,
+                (null, autorizacionOriginal, referenciaOriginal),
+                (t, previo) => (previo.Tarjeta, autorizacionOriginal, referenciaOriginal));
 
             try
             {
@@ -331,6 +373,89 @@ namespace LogicaNegocios
                 ("factura", clave));
         }
 
+        // =====================================================================
+        // CONSULTA DE AUDITORIA - PINPAD_LOG
+        // =====================================================================
+
+        public DataSet ConsultarLog(DateTime fechaDesde, DateTime fechaHasta,
+            string numeroTarjeta, string tipoOperacion)
+        {
+            string sql = @"SELECT
+                    FECHAINICIO AS [FECHA INICIO],
+                    FECHAFIN AS [FECHA FIN],
+                    TIPOOPERACION AS [TIPO OPERACION],
+                    NUMEROTARJETA AS [NUMERO TARJETA],
+                    NUMEROFACTURA AS [NUMERO FACTURA],
+                    AUTORIZACION,
+                    REFERENCIA,
+                    CODIGORESPUESTA AS [CODIGO RESPUESTA],
+                    MENSAJERESPUESTA AS [MENSAJE RESPUESTA],
+                    IIF(EXITOSO, 'SI', 'NO') AS EXITOSO,
+                    EXCEPCIONMENSAJE AS [EXCEPCION]
+                FROM PINPAD_LOG
+                WHERE FECHAINICIO >= @desde
+                  AND FECHAINICIO < @hasta";
+
+            var parametros = new List<(string nombre, object valor)>
+            {
+                ("desde", fechaDesde.Date),
+                ("hasta", fechaHasta.Date.AddDays(1))
+            };
+
+            if (!string.IsNullOrWhiteSpace(numeroTarjeta))
+            {
+                sql += " AND NUMEROTARJETA LIKE @tarjeta";
+                parametros.Add(("tarjeta", "%" + numeroTarjeta.Trim() + "%"));
+            }
+
+            if (!string.IsNullOrWhiteSpace(tipoOperacion) && tipoOperacion != "Todos")
+            {
+                sql += " AND TIPOOPERACION = @tipo";
+                parametros.Add(("tipo", tipoOperacion.Trim()));
+            }
+
+            sql += " ORDER BY FECHAINICIO DESC, FECHAFIN DESC";
+
+            return _conexion.Seleccionar(sql, parametros.ToArray());
+        }
+
+        public DataSet ConsultarTiposOperacion()
+        {
+            const string sql = @"SELECT DISTINCT TIPOOPERACION
+                                 FROM PINPAD_LOG
+                                 WHERE TIPOOPERACION IS NOT NULL
+                                   AND TIPOOPERACION <> ''
+                                 ORDER BY TIPOOPERACION";
+
+            DataSet ds = _conexion.Seleccionar(sql);
+            if (ds != null && ds.Tables.Count > 0)
+            {
+                DataRow todos = ds.Tables[0].NewRow();
+                todos["TIPOOPERACION"] = "Todos";
+                ds.Tables[0].Rows.InsertAt(todos, 0);
+            }
+
+            return ds;
+        }
+
+        public DataSet ConsultarTarjetas(string numeroTarjeta)
+        {
+            string sql = @"SELECT DISTINCT TOP 20 NUMEROTARJETA
+                           FROM PINPAD_LOG
+                           WHERE NUMEROTARJETA IS NOT NULL
+                             AND NUMEROTARJETA <> ''";
+
+            if (string.IsNullOrWhiteSpace(numeroTarjeta))
+            {
+                sql += " ORDER BY NUMEROTARJETA";
+                return _conexion.Seleccionar(sql);
+            }
+
+            sql += " AND NUMEROTARJETA LIKE @tarjeta ORDER BY NUMEROTARJETA";
+            return _conexion.Seleccionar(sql,
+                ("tarjeta", "%" + numeroTarjeta.Trim() + "%"));
+        }
+
         private static string Texto(DataRow fila, string columna)
         {
             if (!fila.Table.Columns.Contains(columna) || fila[columna] == DBNull.Value)
@@ -339,15 +464,27 @@ namespace LogicaNegocios
             return fila[columna].ToString().Trim();
         }
 
-        // =====================================================================
-        // NO USADOS — el modelo Access es de 3 tablas. Los datos de tarjeta ya
-        // quedan en PINPAD_AUTORIZADAS (via result de GuardarDetallePago).
-        // =====================================================================
-
+        /// <summary>
+        /// No hay tabla de detalle de tarjeta, pero de aquí sale el NUMEROTARJETA de la
+        /// cabecera en las ANULACIONES: es la tarjeta que realmente se pasó al anular
+        /// —la equivocada, si se equivocaron— y no la del cobro original.
+        /// </summary>
         public void GuardarDetalleTarjeta(long transaccionId,
             string numeroTarjeta, string numeroTarjetaEncriptado, string binTarjeta,
             string fechaVencimiento, string redAdquirienteCorriente, string redAdquirienteDiferido)
-        { /* no-op */ }
+        {
+            if (string.IsNullOrWhiteSpace(numeroTarjeta)) return;
+
+            // Merge: la autorización/referencia las pone GuardarDetalleAnulacion y el
+            // orden entre ambos no está garantizado.
+            _datosPorToken.AddOrUpdate(transaccionId,
+                (numeroTarjeta, null, null),
+                (t, previo) => (numeroTarjeta, previo.Autorizacion, previo.Referencia));
+        }
+
+        // =====================================================================
+        // NO USADOS — el modelo Access es de 3 tablas.
+        // =====================================================================
 
         public void GuardarDetalleConfigRed(long transaccionId, ConfiguracionRedRequest request)
         { /* no-op */ }

@@ -136,6 +136,7 @@ namespace LogicaNegocios
                              F.HORA,
                              F.NUMEROFACTURA,
                              PA.AUTORIZACION,
+                             PA.REFERENCIA,
                              PA.NUMEROTARJETA,
                              PA.NOMBREGRUPOTARJETA,
                              IIF(PAN.NUMEROFACTURA IS NOT NULL, 'ANULADA', IIF(PA.NUMEROFACTURA IS NOT NULL, 'APROBADA', 'SIN TARJETA')) AS ESTADO
@@ -180,6 +181,7 @@ namespace LogicaNegocios
             F.HORA,
             F.NUMEROFACTURA,
             PA.AUTORIZACION,
+            PA.REFERENCIA,
             PA.NUMEROTARJETA,
             PA.NOMBREGRUPOTARJETA,
             IIF(PAN.NUMEROFACTURA IS NOT NULL, 'ANULADA', IIF(PA.NUMEROFACTURA IS NOT NULL, 'APROBADA', 'SIN TARJETA')) AS ESTADO
@@ -215,6 +217,7 @@ namespace LogicaNegocios
             F.HORA,
             F.NUMEROFACTURA,
             PA.AUTORIZACION,
+            PA.REFERENCIA,
             PA.NUMEROTARJETA,
             PA.NOMBREGRUPOTARJETA,
             IIF(PAN.NUMEROFACTURA IS NOT NULL, 'ANULADA', IIF(PA.NUMEROFACTURA IS NOT NULL, 'APROBADA', 'SIN TARJETA')) AS ESTADO
@@ -379,6 +382,7 @@ namespace LogicaNegocios
             F.HORA,
             F.NUMEROFACTURA,
             PA.AUTORIZACION,
+            PA.REFERENCIA,
             PA.NUMEROTARJETA,
             PA.NOMBREGRUPOTARJETA,
             IIF(PAN.NUMEROFACTURA IS NOT NULL, 'ANULADA', IIF(PA.NUMEROFACTURA IS NOT NULL, 'APROBADA', 'SIN TARJETA')) AS ESTADO
@@ -400,6 +404,7 @@ namespace LogicaNegocios
             F.HORA,
             F.NUMEROFACTURA,
             PA.AUTORIZACION,
+            PA.REFERENCIA,
             PA.NUMEROTARJETA,
             PA.NOMBREGRUPOTARJETA,
             PA.NUMEROFACTURA,
@@ -428,6 +433,7 @@ namespace LogicaNegocios
             F.HORA,
             F.NUMEROFACTURA,
             PA.AUTORIZACION,
+            PA.REFERENCIA,
             PA.NUMEROTARJETA,
             PA.NOMBREGRUPOTARJETA,
             IIF(PAN.NUMEROFACTURA IS NOT NULL, 'ANULADA', IIF(PA.NUMEROFACTURA IS NOT NULL, 'APROBADA', 'SIN TARJETA')) AS ESTADO
@@ -449,6 +455,7 @@ namespace LogicaNegocios
             F.HORA,
             F.NUMEROFACTURA,
             PA.AUTORIZACION,
+            PA.REFERENCIA,
             PA.NUMEROTARJETA,
             PA.NOMBREGRUPOTARJETA,
             PA.NUMEROFACTURA,

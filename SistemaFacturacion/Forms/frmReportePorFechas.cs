@@ -30,7 +30,7 @@ namespace SistemaFacturacion
         // colAnular NO viene de la consulta (es un botón), pero se lista aquí para
         // que aparezca y desaparezca junto con el resto del bloque de tarjeta.
         private static readonly string[] ColumnasTarjeta =
-            { "AUTORIZACION", "NUMEROTARJETA", "NOMBREGRUPOTARJETA", "ESTADO", "colAnular" };
+            { "AUTORIZACION", "REFERENCIA", "NUMEROTARJETA", "NOMBREGRUPOTARJETA", "ESTADO", "colAnular" };
 
         private const int DeltaTarjeta = 620; // cuánto crece form/grid al expandir
         private int _anchoFormOriginal;
@@ -105,6 +105,57 @@ namespace SistemaFacturacion
                     columna.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
                     if (columna.Width < 140)
                         columna.Width = 150;
+                }
+            }
+        }
+
+        private static void RepetirDatosTarjetaPorFactura(DataTable tabla)
+        {
+            if (tabla == null ||
+                !tabla.Columns.Contains("NUMEROFACTURA") ||
+                !tabla.Columns.Contains("AUTORIZACION"))
+                return;
+
+            string[] camposTarjeta =
+            {
+                "AUTORIZACION",
+                "REFERENCIA",
+                "NUMEROTARJETA",
+                "NOMBREGRUPOTARJETA",
+                "ESTADO"
+            };
+
+            string[] camposIdentificacionTarjeta =
+            {
+                "AUTORIZACION",
+                "REFERENCIA",
+                "NUMEROTARJETA",
+                "NOMBREGRUPOTARJETA"
+            };
+
+            var datosPorFactura = tabla.AsEnumerable()
+                .Where(fila => !fila.IsNull("NUMEROFACTURA"))
+                .GroupBy(fila => fila.Field<string>("NUMEROFACTURA")?.Trim())
+                .Where(grupo => !string.IsNullOrWhiteSpace(grupo.Key));
+
+            foreach (var factura in datosPorFactura)
+            {
+                DataRow filaConTarjeta = factura.FirstOrDefault(fila =>
+                    camposIdentificacionTarjeta.Any(campo =>
+                        tabla.Columns.Contains(campo) &&
+                        !fila.IsNull(campo) &&
+                        !string.IsNullOrWhiteSpace(fila[campo].ToString())));
+
+                if (filaConTarjeta == null)
+                    continue;
+
+                foreach (DataRow fila in factura)
+                {
+                    foreach (string campo in camposTarjeta)
+                    {
+                        if (tabla.Columns.Contains(campo))
+                            fila[campo] = filaConTarjeta[campo];
+                    }
                 }
             }
         }
@@ -213,6 +264,7 @@ namespace SistemaFacturacion
             {
                 dsDatos = _services.Facturacion.ConsultarFechas(FechaDesde, FechaHasta);
 
+                RepetirDatosTarjetaPorFactura(dsDatos.Tables[0]);
                 gvReporteFecha.DataSource = dsDatos.Tables[0];
                 gvReporteFecha.Columns["CEDULA"].Visible = false;
 
@@ -230,6 +282,7 @@ namespace SistemaFacturacion
             {
                 dsDatos = _services.Facturacion.ConsultarFechasPorCliente(FechaDesde, FechaHasta, cedulaCliente);
 
+                RepetirDatosTarjetaPorFactura(dsDatos.Tables[0]);
                 gvReporteFecha.DataSource = dsDatos.Tables[0];
                 gvReporteFecha.Columns["CEDULA"].Visible = false;
 
@@ -253,6 +306,7 @@ namespace SistemaFacturacion
                     sinFormaPago ? "seleccione" : cmbFormaPago.Text
                 );
 
+                RepetirDatosTarjetaPorFactura(dsDatos.Tables[0]);
                 gvReporteFecha.DataSource = dsDatos.Tables[0];
                 gvReporteFecha.Columns["CEDULA"].Visible = false;
 
@@ -1139,6 +1193,7 @@ namespace SistemaFacturacion
                 string hasta = dtpFechaHasta.Text;
 
                 var ds = _services.Facturacion.ConsultarPendientesPorFecha(desde, hasta);
+                RepetirDatosTarjetaPorFactura(ds.Tables[0]);
                 gvReporteFecha.DataSource = ds.Tables[0];
                 gvReporteFecha.Columns["CEDULA"].Visible = false;
 
@@ -1163,6 +1218,7 @@ namespace SistemaFacturacion
                 string hasta = dtpFechaHasta.Text;
 
                 var ds = _services.Facturacion.ConsultarConsumidorFinalPorFecha(desde, hasta);
+                RepetirDatosTarjetaPorFactura(ds.Tables[0]);
                 gvReporteFecha.DataSource = ds.Tables[0];
                 gvReporteFecha.Columns["CEDULA"].Visible = false;
 
@@ -1311,6 +1367,7 @@ namespace SistemaFacturacion
 
                 dsDatos = _services.Facturacion.ConsultarFechas(FechaDesde, FechaHasta);
 
+                RepetirDatosTarjetaPorFactura(dsDatos.Tables[0]);
                 gvReporteFecha.DataSource = dsDatos.Tables[0];
                 if (gvReporteFecha.Columns.Contains("CEDULA"))
                     gvReporteFecha.Columns["CEDULA"].Visible = false;

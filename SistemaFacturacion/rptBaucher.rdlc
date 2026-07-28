@@ -1345,7 +1345,8 @@
           <PaddingRight>2pt</PaddingRight>
         </Style>
       </Textbox>
-      <!-- Publicidad = nombre de la empresa (EMPRESA.NOMBRE). -->
+      <!-- Publicidad = texto libre de PARAMETROS_TRANSACCIONES (NOMBRE='PUBLICIDAD',
+           CODIGO='P'). Si viene vacío la línea sale en blanco, sin los asteriscos. -->
       <Textbox Name="Publicidad">
         <CanGrow>true</CanGrow>
         <KeepTogether>true</KeepTogether>
@@ -1353,7 +1354,7 @@
           <Paragraph>
             <TextRuns>
               <TextRun>
-                <Value>="***" &amp; Parameters!PUBLICIDAD.Value &amp; "***"</Value>
+                <Value>=IIf(Trim(Parameters!PUBLICIDAD.Value) = "", "", "***" &amp; Parameters!PUBLICIDAD.Value &amp; "***")</Value>
                 <Style>
                   <FontSize>7pt</FontSize>
                   <FontWeight>Bold</FontWeight>

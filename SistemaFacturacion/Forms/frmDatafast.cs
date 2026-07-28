@@ -1,5 +1,6 @@
 using System;
 using System.Configuration;
+using System.Data;
 using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -57,6 +58,15 @@ namespace SistemaFacturacion
         private Label _lblEstadoTarjeta;
         private TextBox _txtTjNumero, _txtTjBin, _txtTjVence, _txtTjRedCorr, _txtTjRedDif;
 
+        // Consulta de auditoría del pinpad.
+        private DateTimePicker _dtpLogDesde, _dtpLogHasta;
+        private TextBox _txtLogTarjeta;
+        private ListBox _lstLogTarjetas;
+        private ComboBox _cmbLogTipoOperacion;
+        private Button _btnConsultarLog;
+        private DataGridView _gvLogPinPad;
+        private bool _seleccionandoLogTarjeta;
+
         public frmDatafast(AppServices services)
         {
             _services = services;
@@ -71,7 +81,7 @@ namespace SistemaFacturacion
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
-            ClientSize = new Size(470, 470);
+            ClientSize = new Size(1080, 620);
 
             var tabs = new TabControl { Dock = DockStyle.Fill };
 
@@ -86,6 +96,10 @@ namespace SistemaFacturacion
             var tabTarjeta = new TabPage("Prueba de Tarjeta");
             ConstruirTabPruebaTarjeta(tabTarjeta);
             tabs.TabPages.Add(tabTarjeta);
+
+            var tabLog = new TabPage("Log de Pinpad");
+            ConstruirTabLogPinPad(tabLog);
+            tabs.TabPages.Add(tabLog);
 
             Controls.Add(tabs);
         }
@@ -158,6 +172,212 @@ namespace SistemaFacturacion
                 AutoSize = true,
                 Font = new Font("Microsoft Sans Serif", 9F)
             });
+        }
+
+        // =========================================================
+        // PESTAÑA LOG DE PINPAD
+        // =========================================================
+        private void ConstruirTabLogPinPad(TabPage tab)
+        {
+            var panelFiltros = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 160,
+                BackColor = SystemColors.ControlDarkDark
+            };
+
+            panelFiltros.Controls.Add(new Label
+            {
+                Text = "Fecha desde:",
+                Location = new Point(18, 18),
+                AutoSize = true,
+                ForeColor = Color.White
+            });
+            _dtpLogDesde = new DateTimePicker
+            {
+                Location = new Point(108, 14),
+                Size = new Size(128, 24),
+                Format = DateTimePickerFormat.Custom,
+                CustomFormat = "yyyy/MM/dd",
+                Value = DateTime.Today
+            };
+            panelFiltros.Controls.Add(_dtpLogDesde);
+
+            panelFiltros.Controls.Add(new Label
+            {
+                Text = "Fecha hasta:",
+                Location = new Point(258, 18),
+                AutoSize = true,
+                ForeColor = Color.White
+            });
+            _dtpLogHasta = new DateTimePicker
+            {
+                Location = new Point(342, 14),
+                Size = new Size(128, 24),
+                Format = DateTimePickerFormat.Custom,
+                CustomFormat = "yyyy/MM/dd",
+                Value = DateTime.Today
+            };
+            panelFiltros.Controls.Add(_dtpLogHasta);
+
+            panelFiltros.Controls.Add(new Label
+            {
+                Text = "Tarjeta:",
+                Location = new Point(492, 18),
+                AutoSize = true,
+                ForeColor = Color.White
+            });
+            _txtLogTarjeta = new TextBox { Location = new Point(550, 14), Size = new Size(170, 24) };
+            _txtLogTarjeta.TextChanged += TxtLogTarjeta_TextChanged;
+            panelFiltros.Controls.Add(_txtLogTarjeta);
+
+            _lstLogTarjetas = new ListBox
+            {
+                Location = new Point(550, 38),
+                Size = new Size(170, 96),
+                IntegralHeight = false,
+                Visible = false
+            };
+            _lstLogTarjetas.SelectedIndexChanged += LstLogTarjetas_SelectedIndexChanged;
+            panelFiltros.Controls.Add(_lstLogTarjetas);
+
+            panelFiltros.Controls.Add(new Label
+            {
+                Text = "Tipo de operación:",
+                Location = new Point(18, 62),
+                AutoSize = true,
+                ForeColor = Color.White
+            });
+            _cmbLogTipoOperacion = new ComboBox
+            {
+                Location = new Point(138, 58),
+                Size = new Size(230, 24),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            panelFiltros.Controls.Add(_cmbLogTipoOperacion);
+
+            _btnConsultarLog = new Button
+            {
+                Text = "Consultar",
+                Location = new Point(748, 13),
+                Size = new Size(145, 38),
+                BackColor = Color.White,
+                UseVisualStyleBackColor = false
+            };
+            _btnConsultarLog.Click += BtnConsultarLog_Click;
+            panelFiltros.Controls.Add(_btnConsultarLog);
+
+            _gvLogPinPad = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                MultiSelect = false
+            };
+
+            tab.Controls.Add(_gvLogPinPad);
+            tab.Controls.Add(panelFiltros);
+            CargarTiposOperacionPinPad();
+        }
+
+        private void TxtLogTarjeta_TextChanged(object sender, EventArgs e)
+        {
+            if (_seleccionandoLogTarjeta)
+                return;
+
+            CargarSugerenciasTarjeta();
+        }
+
+        private void CargarSugerenciasTarjeta()
+        {
+            string texto = _txtLogTarjeta.Text.Trim();
+            _lstLogTarjetas.Items.Clear();
+
+            if (texto.Length == 0)
+            {
+                _lstLogTarjetas.Visible = false;
+                return;
+            }
+
+            try
+            {
+                DataSet ds = _services.PinPadLog.ConsultarTarjetas(texto);
+                if (ds == null || ds.Tables.Count == 0)
+                {
+                    _lstLogTarjetas.Visible = false;
+                    return;
+                }
+
+                foreach (DataRow fila in ds.Tables[0].Rows)
+                    _lstLogTarjetas.Items.Add(fila["NUMEROTARJETA"].ToString());
+
+                _lstLogTarjetas.Visible = _lstLogTarjetas.Items.Count > 0;
+                _lstLogTarjetas.BringToFront();
+            }
+            catch
+            {
+                _lstLogTarjetas.Visible = false;
+            }
+        }
+
+        private void LstLogTarjetas_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (_lstLogTarjetas.SelectedItem == null)
+                return;
+
+            _seleccionandoLogTarjeta = true;
+            _txtLogTarjeta.Text = _lstLogTarjetas.SelectedItem.ToString();
+            _seleccionandoLogTarjeta = false;
+            _lstLogTarjetas.Visible = false;
+            _txtLogTarjeta.Focus();
+        }
+
+        private void CargarTiposOperacionPinPad()
+        {
+            try
+            {
+                DataSet ds = _services.PinPadLog.ConsultarTiposOperacion();
+                _cmbLogTipoOperacion.DataSource = ds.Tables[0];
+                _cmbLogTipoOperacion.DisplayMember = "TIPOOPERACION";
+                _cmbLogTipoOperacion.ValueMember = "TIPOOPERACION";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("No se pudieron cargar los tipos de operación: " + ex.Message);
+            }
+        }
+
+        private void BtnConsultarLog_Click(object sender, EventArgs e)
+        {
+            if (_dtpLogHasta.Value.Date < _dtpLogDesde.Value.Date)
+            {
+                MessageBox.Show("La fecha HASTA no puede ser menor a la fecha DESDE.");
+                return;
+            }
+
+            try
+            {
+                string tipoOperacion = _cmbLogTipoOperacion.SelectedValue?.ToString()
+                    ?? _cmbLogTipoOperacion.Text;
+
+                DataSet ds = _services.PinPadLog.ConsultarLog(
+                    _dtpLogDesde.Value,
+                    _dtpLogHasta.Value,
+                    _txtLogTarjeta.Text,
+                    tipoOperacion);
+
+                _gvLogPinPad.DataSource = ds.Tables[0];
+
+                if (ds.Tables[0].Rows.Count == 0)
+                    MessageBox.Show("No se encontraron registros.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error al consultar el log de pinpad: " + ex.Message);
+            }
         }
 
         // =========================================================

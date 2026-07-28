@@ -22,6 +22,7 @@ namespace SistemaFacturacion
             _services = services;
             ConfigurarEventos();
             CargarTipoPago();
+            CargarPublicidad();
             CargarDiferidos();
             CargarMinimoFirma();
 
@@ -37,6 +38,7 @@ namespace SistemaFacturacion
         {
             btnModificar.Click += BtnModificar_Click;
             cmbTipoPago.SelectedIndexChanged += CmbTipoPago_SelectedIndexChanged;
+            txtPublicidad.TextChanged += TxtPublicidad_TextChanged;
             this.Load += frmParametrosTransaccion_Load;
         }
 
@@ -81,6 +83,44 @@ namespace SistemaFacturacion
         }
 
         // =========================================================
+        // PUBLICIDAD DEL BAUCHER (NOMBRE='PUBLICIDAD', CODIGO='P')
+        // Es la última línea del baucher de tarjeta. El checkbox es el ACTIVO de la
+        // fila: si se desmarca, ObtenerPublicidad() devuelve "" y el baucher no la
+        // imprime, pero el texto queda guardado en la BD.
+        // =========================================================
+        private void CargarPublicidad()
+        {
+            // No se usa ObtenerPublicidad(): ese filtra por ACTIVO=1 y aquí hay que
+            // mostrar el texto aunque la publicidad esté apagada.
+            DataSet ds = _services.ParamTransaccion.ConsultarPorCodigo("P");
+
+            if (ds != null && ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
+            {
+                DataRow row = ds.Tables[0].Rows[0];
+                txtPublicidad.Text = row["VALOR"].ToString().Trim();
+                chkPublicidadActiva.Checked = Convert.ToBoolean(row["ACTIVO"]);
+            }
+            else
+            {
+                txtPublicidad.Text = "";
+                chkPublicidadActiva.Checked = false;
+            }
+
+            ActualizarContadorPublicidad();
+        }
+
+        private void TxtPublicidad_TextChanged(object sender, EventArgs e)
+        {
+            ActualizarContadorPublicidad();
+        }
+
+        private void ActualizarContadorPublicidad()
+        {
+            int restantes = txtPublicidad.MaxLength - txtPublicidad.Text.Length;
+            lblContadorPublicidad.Text = "Te quedan " + restantes + " caracteres";
+        }
+
+        // =========================================================
         // TIPOS DE DIFERIDO: un checkbox (activo) + numeric (cuotas) por cada uno
         // =========================================================
         private void CargarDiferidos()
@@ -114,7 +154,7 @@ namespace SistemaFacturacion
 
                 var lbl = new Label
                 {
-                    Text = "Cuotas del diferido:",
+                    Text = "Cuota Máxima del Diferido:",
                     Location = new Point(colLabel, y + 8),
                     AutoSize = true,
                     Font = new Font("Microsoft Sans Serif", 8F),
@@ -128,14 +168,15 @@ namespace SistemaFacturacion
                     DropDownStyle = ComboBoxStyle.DropDownList,
                     Tag = codigo
                 };
-                cmbCuotas.Items.AddRange(new object[] { "03", "06", "09", "12", "15", "18", "21", "24" });
+                for (int c = 3; c <= 96; c += 3)
+                    cmbCuotas.Items.Add(c.ToString("00"));
 
                 DataSet dsCuota = _services.ParamTransaccion.ObtenerCuotasPorDiferido(codigo);
                 if (dsCuota != null && dsCuota.Tables.Count > 0 && dsCuota.Tables[0].Rows.Count > 0)
                 {
                     if (decimal.TryParse(dsCuota.Tables[0].Rows[0]["VALOR"].ToString(), out decimal cuotas))
                     {
-                        int cuotaNormalizada = Math.Max(3, Math.Min(24, ((int)cuotas / 3) * 3));
+                        int cuotaNormalizada = Math.Max(3, Math.Min(96, ((int)cuotas / 3) * 3));
                         cmbCuotas.SelectedItem = cuotaNormalizada.ToString("00");
                     }
                 }
@@ -181,6 +222,20 @@ namespace SistemaFacturacion
                 );
             }
 
+            _services.ParamTransaccion.ActualizarPublicidad(
+                txtPublicidad.Text.Trim(),
+                UsuarioActual,
+                IPActual
+            );
+
+            _services.ParamTransaccion.ActualizarActivo(
+                "P",
+                "PUBLICIDAD",
+                chkPublicidadActiva.Checked,
+                UsuarioActual,
+                IPActual
+            );
+
             foreach (var fila in _filasDiferido)
             {
                 _services.ParamTransaccion.ActualizarActivo(
@@ -218,6 +273,7 @@ namespace SistemaFacturacion
 
             MessageBox.Show("Parámetros modificados correctamente.");
             CargarTipoPago();
+            CargarPublicidad();
             CargarDiferidos();
             CargarMinimoFirma();
         }
