@@ -352,6 +352,12 @@ namespace SistemaFacturacion
 
                 if (ProcesosTarjetas.EsPagoTarjeta(formaPagoOriginal))
                 {
+                    // Se oculta mientras se espera al pinpad: al ser un Form top-level
+                    // no modal, el overlay de "esperando" de Notificaciones no lo cubre
+                    // y quedaba editable por encima. Si el cobro falla se vuelve a mostrar
+                    // (línea ~380); si se aprueba, el flujo ya lo cierra en el paso 3.
+                    _popupTarjeta?.Hide();
+
                     Notificaciones.Show(this, "Inserte / acerque la tarjeta en el datafast…", "proceso");
 
                     try
@@ -376,6 +382,13 @@ namespace SistemaFacturacion
                     if (!cobro.Aprobado)
                     {
                         Notificaciones.Show(this, "Cobro con tarjeta NO aprobado:\n" + cobro.Motivo, "error");
+
+                        if (_popupTarjeta != null && !_popupTarjeta.IsDisposed)
+                        {
+                            _popupTarjeta.UbicarSobre(gvProductos);
+                            _popupTarjeta.Show(this);
+                        }
+
                         return; // ABORTAR: la factura no se emite
                     }
 

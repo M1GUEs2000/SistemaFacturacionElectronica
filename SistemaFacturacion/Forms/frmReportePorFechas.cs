@@ -607,6 +607,16 @@ namespace SistemaFacturacion
                             EnviarCorreoFacturaPendiente(fila);
                             return;
 
+                        // ==========================================
+                        // ERROR (NO_AUTORIZADO) — solo informativo
+                        // ==========================================
+                        // El SRI rechazó el documento de forma definitiva: no hay nada
+                        // que reintentar. Lo único útil es mostrarle al cajero POR QUÉ
+                        // lo rechazó, que es lo que quedó guardado en LOG al emitir.
+                        case "NO_AUTORIZADO":
+                            MostrarErrorFactura(fila);
+                            return;
+
                         default:
                             return;
                     }
@@ -1482,6 +1492,136 @@ namespace SistemaFacturacion
             {
                 return false;
             }
+        }
+
+        // ======================================================
+        // BOTÓN "ERROR" — MOTIVO DEL RECHAZO DEL SRI
+        // ======================================================
+
+        /// <summary>
+        /// Muestra por qué el SRI rechazó la factura, leyéndolo de la tabla LOG.
+        ///
+        /// La búsqueda va por CLAVE DE ACCESO, no por número: el rechazo en recepción
+        /// se registra mientras la factura todavía se llama EMITIENDO00X y recién
+        /// después se renumera al secuencial real que muestra la grilla. La clave, en
+        /// cambio, se genera una sola vez y no cambia nunca.
+        /// </summary>
+        private void MostrarErrorFactura(DataGridViewRow fila)
+        {
+            try
+            {
+                string numeroFactura = fila.Cells["NUMEROFACTURA"]?.Value?.ToString()?.Trim() ?? "";
+
+                if (string.IsNullOrWhiteSpace(numeroFactura))
+                {
+                    Notificaciones.Show(this, "Número de Factura inválido.", "advertencia");
+                    return;
+                }
+
+                string claveAcceso = ObtenerClaveAccesoFactura(fila, numeroFactura);
+
+                // Sin clave se busca por número: sirve para los rechazos que ocurrieron
+                // en la AUTORIZACIÓN, que sí se registran con el secuencial definitivo.
+                string filtro = string.IsNullOrWhiteSpace(claveAcceso) ? numeroFactura : claveAcceso;
+
+                // El log se escribe el día de la emisión, pero un reproceso puede haber
+                // quedado registrado después: se busca desde la fecha de la factura
+                // hasta hoy en lugar de un solo día.
+                string fechaFila = fila.Cells["FECHA"]?.Value?.ToString() ?? "";
+                DateTime desde = DateTime.TryParse(fechaFila, out DateTime f)
+                    ? f.Date
+                    : DateTime.Today.AddDays(-90);
+
+                DataSet ds = _services.Log.ConsultarLog(
+                    "ERROR SRI FACTURA",
+                    filtro,
+                    desde.ToString("yyyy/MM/dd"),
+                    DateTime.Today.ToString("yyyy/MM/dd")
+                );
+
+                bool hayRegistro = ds != null &&
+                                   ds.Tables.Count > 0 &&
+                                   ds.Tables[0].Rows.Count > 0;
+
+                if (!hayRegistro)
+                {
+                    // Las facturas rechazadas ANTES de que se empezara a guardar el
+                    // motivo no tienen nada que mostrar. No es un error del reporte.
+                    Notificaciones.Show(this,
+                        "FACTURA " + numeroFactura + " — NO AUTORIZADA\n\n" +
+                        "El SRI rechazó este documento, pero no hay un detalle del\n" +
+                        "motivo registrado en el log del sistema.\n\n" +
+                        "Los rechazos anteriores a la última actualización no\n" +
+                        "guardaban el motivo.",
+                        "advertencia");
+                    return;
+                }
+
+                // ConsultarLog ordena por fecha DESC: la primera fila es el rechazo más
+                // reciente, que es el que corresponde al estado actual del documento.
+                string detalle = LimpiarTextoLogSri(ds.Tables[0].Rows[0]["TEXTO"]?.ToString() ?? "");
+
+                Notificaciones.Show(this,
+                    "FACTURA " + numeroFactura + " — NO AUTORIZADA\n\n" + detalle,
+                    "advertencia");
+            }
+            catch (Exception ex)
+            {
+                Notificaciones.Show(this,
+                    "Error consultando el motivo del rechazo:\n" + ex.Message,
+                    "error");
+            }
+        }
+
+        /// <summary>
+        /// Clave de acceso de la factura. Se pide primero a FACTURAS_PENDIENTES (la
+        /// guarda al emitir) y solo si no está se cae al nombre del XML firmado en
+        /// disco, que puede haberse borrado.
+        /// </summary>
+        private string ObtenerClaveAccesoFactura(DataGridViewRow fila, string numeroFactura)
+        {
+            try
+            {
+                DataSet ds = _services.Pendientes.ConsultarPorNumeroYTipo(numeroFactura, "FACTURA");
+
+                if (ds != null && ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0 &&
+                    ds.Tables[0].Columns.Contains("CLAVEACCESO"))
+                {
+                    string clave = ds.Tables[0].Rows[0]["CLAVEACCESO"]?.ToString()?.Trim() ?? "";
+                    if (!string.IsNullOrWhiteSpace(clave))
+                        return clave;
+                }
+            }
+            catch
+            {
+                // Si la consulta falla se intenta por disco; no vale la pena abortar
+                // el mensaje al cajero por no haber podido leer el pendiente.
+            }
+
+            return ObtenerXmlFirmadoFactura(fila, numeroFactura, out string claveDisco, out _)
+                ? claveDisco
+                : "";
+        }
+
+        /// <summary>
+        /// El log guarda "Documento: X | Clave: Y | &lt;detalle&gt;". Al cajero solo le
+        /// sirve el detalle: el número ya lo está viendo en la grilla y la clave no le
+        /// dice nada.
+        /// </summary>
+        private static string LimpiarTextoLogSri(string texto)
+        {
+            if (string.IsNullOrWhiteSpace(texto))
+                return "Sin detalle.";
+
+            int clave = texto.IndexOf("| Clave:", StringComparison.Ordinal);
+            if (clave >= 0)
+            {
+                int fin = texto.IndexOf(" | ", clave + "| Clave:".Length, StringComparison.Ordinal);
+                if (fin >= 0)
+                    return texto.Substring(fin + 3).Trim();
+            }
+
+            return texto.Trim();
         }
 
         private async void EnviarCorreoFacturaPendiente(DataGridViewRow fila)

@@ -43,6 +43,10 @@ namespace SistemaFacturacion
                                              "El usuario ingresó al sistema"
                                          );
 
+                    // Para que los errores que se loguean solos (toast rojo) sepan quién
+                    // los provocó: la mayoría de las llamadas a Show() no pasan usuario.
+                    Notificaciones.EstablecerUsuario(Nombre, IP);
+
                     frmPrincipal frmPrincipal = new frmPrincipal(Nombre, IP, _services);
                     frmPrincipal.Show();
                     this.Hide();
@@ -76,6 +80,9 @@ namespace SistemaFacturacion
                             IP,
                             "El usuario ingresó al sistema"
                         );
+
+                        // Ídem bntAceptar_Click: atribución de los errores auto-logueados.
+                        Notificaciones.EstablecerUsuario(Nombre, IP);
 
 
                         // string Fecha = DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss");

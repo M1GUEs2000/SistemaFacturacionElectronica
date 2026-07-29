@@ -20,7 +20,9 @@ namespace LogicaNegocios
             {
                 string fecha = DateTime.Now.ToString("yyyyMMdd");
                 string fechahora = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss");
-                string fileName = AppDomain.CurrentDomain.BaseDirectory + @"LOG\log" + fecha + ".txt";
+                string carpeta = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "LOG");
+                Directory.CreateDirectory(carpeta);   // sin esto tiraba en instalación nueva
+                string fileName = Path.Combine(carpeta, "log" + fecha + ".txt");
                 //crea una instancia para escribir en archivo txt sin bloquear
                 FileStream myStream = new FileStream(fileName, FileMode.Append, FileAccess.Write, FileShare.ReadWrite, 255, true);
                 //make sure you close the file
@@ -50,8 +52,10 @@ namespace LogicaNegocios
             }
             catch (Exception ex)
             {
-                Console.WriteLine("ERROR en CrearLog: " + ex.Message);
-                Console.WriteLine(sql);
+                // Console.WriteLine no se ve en una app WinForms (no hay consola): si el
+                // INSERT fallaba, el error desaparecía sin dejar rastro en ningún lado.
+                // GrabarMensaje escribe a LOG\logYYYYMMDD.txt, que sí sobrevive.
+                GrabarMensaje("ERROR en CrearLog: " + ex.Message + " | SQL: " + sql);
             }
 
             return filas;

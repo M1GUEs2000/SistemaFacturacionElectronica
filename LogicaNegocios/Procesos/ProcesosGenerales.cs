@@ -71,6 +71,35 @@ namespace LogicaNegocios.Procesos
         }
 
         // ==========================================================
+        // ERROR SRI → tabla LOG (a diferencia de LogSri, que solo escribe a
+        // disco, esto queda consultable desde el reporte: botón ERROR sobre
+        // un documento NO_AUTORIZADO/PENDIENTE busca acá por número).
+        // Un solo punto para EnviarRecepcion y ConsultarAutorizacion, así que
+        // cubre FACTURA, NOTA_CREDITO y RETENCION sin repetir la llamada en
+        // cada proceso.
+        // ==========================================================
+        private void LogErrorSriBD(string tipoDocumento, string numeroDocumento, string claveAcceso, string mensaje, string usuarioActual, string ipActual)
+        {
+            try
+            {
+                // La clave de acceso va en el texto porque es el ÚNICO identificador
+                // estable. El número NO sirve para buscar después: la recepción se llama
+                // con EMITIENDO00X y la factura se renumera a su secuencial real DESPUÉS
+                // de que este log ya se escribió, así que el reporte nunca encontraría
+                // el rechazo buscando por el número que muestra la grilla.
+                _services.Log.CrearLog(
+                    "ERROR SRI " + tipoDocumento,
+                    usuarioActual,
+                    ipActual,
+                    "Documento: " + numeroDocumento + " | Clave: " + claveAcceso + " | " + mensaje);
+            }
+            catch
+            {
+                // Ídem LogSri: logger, no puede registrar su propia falla.
+            }
+        }
+
+        // ==========================================================
         // MÉTODO ÚNICO Y REUTILIZABLE (FACTURA / NC / RETENCIÓN)
         // ==========================================================
         public ResultadoCorreo EnviarCorreoDocumento(
@@ -602,6 +631,7 @@ namespace LogicaNegocios.Procesos
                     r.Exito = false;
                     r.EstadoEspecial = estadoPendiente;
                     r.Mensaje = tipoDocumento + ": SRI sin respuesta. Registrado como " + estadoPendiente;
+                    LogErrorSriBD(tipoDocumento, numeroDocumento, claveAcceso, r.Mensaje, usuarioActual, ipActual);
                     return r;
                 }
 
@@ -640,6 +670,7 @@ namespace LogicaNegocios.Procesos
                     r.Exito = false;
                     r.SecuencialRepetido = true;
                     r.Mensaje = FormatearErrorSri(tipoDocumento, r.ErrorClasificado);
+                    LogErrorSriBD(tipoDocumento, numeroDocumento, claveAcceso, r.Mensaje, usuarioActual, ipActual);
                     return r;
                 }
 
@@ -702,6 +733,7 @@ namespace LogicaNegocios.Procesos
                     r.ErrorFinal = true;
                     r.EstadoEspecial = "NO_AUTORIZADO";
                     r.Mensaje = FormatearErrorSri(tipoDocumento, r.ErrorClasificado);
+                    LogErrorSriBD(tipoDocumento, numeroDocumento, claveAcceso, r.Mensaje, usuarioActual, ipActual);
                     return r;
                 }
 
@@ -726,6 +758,7 @@ namespace LogicaNegocios.Procesos
                 r.EstadoEspecial = estadoPendienteFinal;
                 r.Mensaje = FormatearErrorSri(tipoDocumento, r.ErrorClasificado) +
                     Environment.NewLine + "Registrado como " + estadoPendienteFinal + ".";
+                LogErrorSriBD(tipoDocumento, numeroDocumento, claveAcceso, r.Mensaje, usuarioActual, ipActual);
 
                 return r;
             }
@@ -775,6 +808,7 @@ namespace LogicaNegocios.Procesos
                     ": Error técnico en recepción SRI. Registrado como " +
                     estadoPendiente +
                     ". Detalle: " + ex.Message;
+                LogErrorSriBD(tipoDocumento, numeroDocumento, claveAcceso, r.Mensaje, usuarioActual, ipActual);
 
                 return r;
             }
@@ -851,6 +885,7 @@ namespace LogicaNegocios.Procesos
                             r.Exito = false;
                             r.ErrorFinal = true;
                             r.Mensaje = FormatearErrorSri(tipoDocumento, r.ErrorClasificado);
+                            LogErrorSriBD(tipoDocumento, numeroDocumento, claveAcceso, r.Mensaje, usuarioActual, ipActual);
                             return r;
                         }
                     }
@@ -877,6 +912,7 @@ namespace LogicaNegocios.Procesos
                             (string.IsNullOrWhiteSpace(ultimoDetalleSri)
                                 ? ""
                                 : Environment.NewLine + "Última respuesta SRI:" + Environment.NewLine + ultimoDetalleSri);
+                LogErrorSriBD(tipoDocumento, numeroDocumento, claveAcceso, r.Mensaje, usuarioActual, ipActual);
 
                 return r;
             }
@@ -906,6 +942,7 @@ namespace LogicaNegocios.Procesos
 
                 r.Exito = false;
                 r.Mensaje = "Error en AUTORIZACIÓN SRI: " + ex.Message;
+                LogErrorSriBD(tipoDocumento, numeroDocumento, claveAcceso, r.Mensaje, usuarioActual, ipActual);
                 return r;
             }
         }

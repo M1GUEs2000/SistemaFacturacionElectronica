@@ -1,7 +1,9 @@
-﻿using System;
+﻿using LogicaNegocios;
+using System;
 using System.Data;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 
@@ -18,6 +20,86 @@ public static class Notificaciones
     private static FormClosingEventHandler _handlerCierreBloqueado = null;
     private static Form _formBloqueado = null;
 
+    // =======================================
+    //  LOG DE ERRORES A BD
+    // =======================================
+    // Todo error que se le muestra al cajero queda en la tabla LOG. Antes el toast
+    // rojo era lo ÚNICO que existía: se cerraba a los 12s y no quedaba rastro de qué
+    // había fallado. Como Notificaciones es estática y no pasa por el constructor de
+    // ningún form, el manejador se inyecta una vez desde Program.Main.
+    private static LogManejador _log = null;
+    private static string _usuarioActual = "";
+    private static string _ipActual = "";
+
+    /// <summary>
+    /// Conecta las notificaciones con la tabla LOG. Llamar UNA vez al arrancar
+    /// (Program.Main), antes de mostrar cualquier form.
+    /// </summary>
+    public static void Inicializar(LogManejador log)
+    {
+        _log = log;
+    }
+
+    /// <summary>
+    /// Atribución de los errores que se loguean. La mayoría de las llamadas a Show()
+    /// no pasan usuario/ip (son parámetros opcionales), así que sin esto las filas de
+    /// LOG saldrían sin saber quién las provocó. Se llama al autenticar (frmLogin).
+    /// </summary>
+    public static void EstablecerUsuario(string usuario, string ip)
+    {
+        _usuarioActual = usuario ?? "";
+        _ipActual = ip ?? "";
+    }
+
+    /// <param name="usuario">
+    /// El que pase el llamador; si viene vacío se usa el de la sesión (EstablecerUsuario).
+    /// La mayoría de las llamadas a Show() no lo pasan.
+    /// </param>
+    private static void RegistrarError(Form destino, string mensaje, string usuario, string ip)
+    {
+        try
+        {
+            string quien = !string.IsNullOrWhiteSpace(usuario) ? usuario
+                         : !string.IsNullOrWhiteSpace(_usuarioActual) ? _usuarioActual
+                         : "SISTEMA";
+
+            string desde = !string.IsNullOrWhiteSpace(ip) ? ip : _ipActual;
+
+            // El nombre del form es lo único que ubica el error en el sistema: el
+            // mensaje del toast está redactado para el cajero, no dice desde dónde salió.
+            string origen = destino != null && !destino.IsDisposed ? destino.Name : "SIN FORM";
+
+            _log?.CrearLog("ERROR", quien, desde, "[" + origen + "] " + mensaje);
+        }
+        catch (Exception ex)
+        {
+            // Si LOG no está disponible el toast igual tiene que salir: perder el
+            // registro es malo, pero tapar el error al cajero es peor.
+            LogArchivo("ERROR registrando error en LOG: " + ex);
+        }
+    }
+
+    /// <summary>
+    /// Último recurso cuando la tabla LOG no responde. Sin esto un fallo del propio
+    /// logger no deja rastro en ningún lado.
+    /// </summary>
+    private static void LogArchivo(string mensaje)
+    {
+        try
+        {
+            string archivo = Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory, "logs", "errores_debug.log");
+            Directory.CreateDirectory(Path.GetDirectoryName(archivo));
+            File.AppendAllText(
+                archivo,
+                DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + " | " + mensaje + Environment.NewLine);
+        }
+        catch
+        {
+            // Catch vacío legítimo: es el propio logger de respaldo.
+        }
+    }
+
 
     // =======================================
     //  MOSTRAR TOAST
@@ -30,14 +112,11 @@ public static class Notificaciones
         // ===================================
         // LOG solo para "error"
         // ===================================
+        // Va acá arriba, ANTES de armar el toast: si el pintado falla el error igual
+        // quedó registrado. Los parámetros usuario/ip pisan la atribución global
+        // cuando el llamador los pasa explícitamente.
         if (tipo == "error")
-        {
-            try
-            {
-
-            }
-            catch { }
-        }
+            RegistrarError(destino, mensaje, usuario, ip);
 
         // ======================================================================
         // CONFIRMACION (GRIS) – BLOQUEANTE
