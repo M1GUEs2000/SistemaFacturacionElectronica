@@ -354,7 +354,8 @@ namespace DF_PinPad.Wrapper.Services
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
 
-            long transaccionId = _logger.IniciarTransaccion("Anulacion", request.UsuarioSistema, _settings.CajaID);
+            long transaccionId = _logger.IniciarTransaccion("Anulacion", request.UsuarioSistema,
+                _settings.CajaID, request.NumeroFactura);
             var result = new AnulacionResult { TransaccionLogId = transaccionId };
 
             try
@@ -483,6 +484,10 @@ namespace DF_PinPad.Wrapper.Services
                     $"Iniciando ConfiguracionRed. IP={request.DireccionIP}, PrincipalHost={request.PrincipalHost}:{request.PrincipalPuerto}",
                     transaccionId);
 
+                // Registrar el intento antes de comunicarse con el equipo, de modo que
+                // también quede el detalle completo cuando la llamada falle o expire.
+                _logger.GuardarDetalleConfigRed(transaccionId, request);
+
                 RespuestaProcesoConfigPinPad respuesta = lan.ProcesoConfigPinPad(envio);
 
                 _logger.GuardarTrama(transaccionId, "ENVIADA", lan.TramaEnviada);
@@ -492,7 +497,6 @@ namespace DF_PinPad.Wrapper.Services
                 result.MensajeRespuesta = respuesta?.MensajeRespuesta;
                 result.Exitoso = respuesta != null && respuesta.CodigoRespuesta == "00";
 
-                _logger.GuardarDetalleConfigRed(transaccionId, request);
                 _logger.FinalizarTransaccion(transaccionId, result.CodigoRespuesta, result.MensajeRespuesta,
                     result.Exitoso, null);
 

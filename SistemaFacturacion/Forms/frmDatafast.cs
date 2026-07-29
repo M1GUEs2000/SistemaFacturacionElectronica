@@ -2,6 +2,8 @@ using System;
 using System.Configuration;
 using System.Data;
 using System.Drawing;
+using System.Net;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using DF_PinPad.Wrapper.Config;
@@ -23,6 +25,7 @@ namespace SistemaFacturacion
     /// Las dos últimas usan la conexión YA GUARDADA (_services.PinPad); configure y
     /// guarde primero la pestaña Conexión para poder alcanzar el aparato.
     /// </summary>
+    [System.ComponentModel.DesignerCategory("Form")]
     public class frmDatafast : Form
     {
         private readonly AppServices _services;
@@ -39,6 +42,12 @@ namespace SistemaFacturacion
         private const string K_CAJA = "PinPad.CajaID";
         private const string K_VERSION = "PinPad.Version";
         private const string K_SHA = "PinPad.SHA";
+        private const string K_RED_MASCARA = "PinPad.Red.Mascara";
+        private const string K_RED_GATEWAY = "PinPad.Red.Gateway";
+        private const string K_RED_HOST_PRINCIPAL = "PinPad.Red.HostPrincipal";
+        private const string K_RED_PUERTO_PRINCIPAL = "PinPad.Red.PuertoPrincipal";
+        private const string K_RED_HOST_ALTERNO = "PinPad.Red.HostAlterno";
+        private const string K_RED_PUERTO_ALTERNO = "PinPad.Red.PuertoAlterno";
 
         private TextBox _txtIp, _txtMid, _txtTid, _txtCaja;
         private NumericUpDown _numPuerto, _numTimeout;
@@ -60,17 +69,28 @@ namespace SistemaFacturacion
 
         // Consulta de auditoría del pinpad.
         private DateTimePicker _dtpLogDesde, _dtpLogHasta;
-        private TextBox _txtLogTarjeta;
-        private ListBox _lstLogTarjetas;
+        private TextBox _txtLogTarjeta, _txtLogFactura;
+        private ListBox _lstLogTarjetas, _lstLogFacturas;
         private ComboBox _cmbLogTipoOperacion;
         private Button _btnConsultarLog;
         private DataGridView _gvLogPinPad;
-        private bool _seleccionandoLogTarjeta;
+        private Label _lblLogResultado;
+        private bool _seleccionandoLogTarjeta, _seleccionandoLogFactura;
+
+        /// <summary>
+        /// Constructor sin servicios para que el diseñador de Windows Forms pueda
+        /// crear y mostrar el formulario sin conectarse a la base ni al PinPad.
+        /// </summary>
+        public frmDatafast()
+        {
+            InicializarUI();
+        }
 
         public frmDatafast(AppServices services)
+            : this()
         {
-            _services = services;
-            InicializarUI();
+            _services = services ?? throw new ArgumentNullException(nameof(services));
+            CargarTiposOperacionPinPad();
             CargarDesdeConfig();
         }
 
@@ -78,10 +98,11 @@ namespace SistemaFacturacion
         {
             Text = "CONFIGURACIÓN DATAFAST";
             StartPosition = FormStartPosition.CenterScreen;
-            FormBorderStyle = FormBorderStyle.FixedDialog;
-            MaximizeBox = false;
+            FormBorderStyle = FormBorderStyle.Sizable;
+            MaximizeBox = true;
             MinimizeBox = false;
-            ClientSize = new Size(1080, 620);
+            ClientSize = new Size(1152, 576);
+            MinimumSize = new Size(920, 500);
 
             var tabs = new TabControl { Dock = DockStyle.Fill };
 
@@ -89,7 +110,7 @@ namespace SistemaFacturacion
             ConstruirTabConexion(tabConexion);
             tabs.TabPages.Add(tabConexion);
 
-            var tabReinicio = new TabPage("Reinicio");
+            var tabReinicio = new TabPage("Configurar red");
             ConstruirTabReinicio(tabReinicio);
             tabs.TabPages.Add(tabReinicio);
 
@@ -243,6 +264,27 @@ namespace SistemaFacturacion
 
             panelFiltros.Controls.Add(new Label
             {
+                Text = "Factura:",
+                Location = new Point(492, 62),
+                AutoSize = true,
+                ForeColor = Color.White
+            });
+            _txtLogFactura = new TextBox { Location = new Point(550, 58), Size = new Size(170, 24) };
+            _txtLogFactura.TextChanged += TxtLogFactura_TextChanged;
+            panelFiltros.Controls.Add(_txtLogFactura);
+
+            _lstLogFacturas = new ListBox
+            {
+                Location = new Point(550, 82),
+                Size = new Size(170, 70),
+                IntegralHeight = false,
+                Visible = false
+            };
+            _lstLogFacturas.SelectedIndexChanged += LstLogFacturas_SelectedIndexChanged;
+            panelFiltros.Controls.Add(_lstLogFacturas);
+
+            panelFiltros.Controls.Add(new Label
+            {
                 Text = "Tipo de operación:",
                 Location = new Point(18, 62),
                 AutoSize = true,
@@ -267,6 +309,15 @@ namespace SistemaFacturacion
             _btnConsultarLog.Click += BtnConsultarLog_Click;
             panelFiltros.Controls.Add(_btnConsultarLog);
 
+            _lblLogResultado = new Label
+            {
+                Text = "Doble clic en una fila para verla completa.",
+                Location = new Point(748, 61),
+                Size = new Size(305, 42),
+                ForeColor = Color.White
+            };
+            panelFiltros.Controls.Add(_lblLogResultado);
+
             _gvLogPinPad = new DataGridView
             {
                 Dock = DockStyle.Fill,
@@ -275,12 +326,17 @@ namespace SistemaFacturacion
                 AllowUserToDeleteRows = false,
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-                MultiSelect = false
+                MultiSelect = false,
+                RowHeadersVisible = false,
+                BackgroundColor = Color.White,
+                ClipboardCopyMode = DataGridViewClipboardCopyMode.EnableAlwaysIncludeHeaderText
             };
+            _gvLogPinPad.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(245, 248, 252);
+            _gvLogPinPad.CellDoubleClick += GvLogPinPad_CellDoubleClick;
+            ProcesosGeneralesUI.HabilitarDobleBuffer(_gvLogPinPad);
 
             tab.Controls.Add(_gvLogPinPad);
             tab.Controls.Add(panelFiltros);
-            CargarTiposOperacionPinPad();
         }
 
         private void TxtLogTarjeta_TextChanged(object sender, EventArgs e)
@@ -288,6 +344,7 @@ namespace SistemaFacturacion
             if (_seleccionandoLogTarjeta)
                 return;
 
+            _lstLogFacturas.Visible = false;
             CargarSugerenciasTarjeta();
         }
 
@@ -335,6 +392,59 @@ namespace SistemaFacturacion
             _txtLogTarjeta.Focus();
         }
 
+        private void TxtLogFactura_TextChanged(object sender, EventArgs e)
+        {
+            if (_seleccionandoLogFactura)
+                return;
+
+            _lstLogTarjetas.Visible = false;
+            CargarSugerenciasFactura();
+        }
+
+        private void CargarSugerenciasFactura()
+        {
+            string texto = _txtLogFactura.Text.Trim();
+            _lstLogFacturas.Items.Clear();
+
+            if (texto.Length == 0)
+            {
+                _lstLogFacturas.Visible = false;
+                return;
+            }
+
+            try
+            {
+                DataSet ds = _services.PinPadLog.ConsultarFacturas(texto);
+                if (ds == null || ds.Tables.Count == 0)
+                {
+                    _lstLogFacturas.Visible = false;
+                    return;
+                }
+
+                foreach (DataRow fila in ds.Tables[0].Rows)
+                    _lstLogFacturas.Items.Add(fila["NUMEROFACTURA"].ToString());
+
+                _lstLogFacturas.Visible = _lstLogFacturas.Items.Count > 0;
+                _lstLogFacturas.BringToFront();
+            }
+            catch
+            {
+                _lstLogFacturas.Visible = false;
+            }
+        }
+
+        private void LstLogFacturas_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (_lstLogFacturas.SelectedItem == null)
+                return;
+
+            _seleccionandoLogFactura = true;
+            _txtLogFactura.Text = _lstLogFacturas.SelectedItem.ToString();
+            _seleccionandoLogFactura = false;
+            _lstLogFacturas.Visible = false;
+            _txtLogFactura.Focus();
+        }
+
         private void CargarTiposOperacionPinPad()
         {
             try
@@ -367,9 +477,21 @@ namespace SistemaFacturacion
                     _dtpLogDesde.Value,
                     _dtpLogHasta.Value,
                     _txtLogTarjeta.Text,
+                    _txtLogFactura.Text,
                     tipoOperacion);
 
-                _gvLogPinPad.DataSource = ds.Tables[0];
+                _gvLogPinPad.SuspendLayout();
+                try
+                {
+                    _gvLogPinPad.DataSource = ds.Tables[0];
+                    ConfigurarGridLogPinPad();
+                    _lblLogResultado.Text = ds.Tables[0].Rows.Count +
+                        " operación(es). Doble clic para ver todos los campos.";
+                }
+                finally
+                {
+                    _gvLogPinPad.ResumeLayout(true);
+                }
 
                 if (ds.Tables[0].Rows.Count == 0)
                     MessageBox.Show("No se encontraron registros.");
@@ -377,6 +499,100 @@ namespace SistemaFacturacion
             catch (Exception ex)
             {
                 MessageBox.Show("Error al consultar el log de pinpad: " + ex.Message);
+            }
+        }
+
+        private void ConfigurarGridLogPinPad()
+        {
+            if (_gvLogPinPad.Columns.Count == 0)
+                return;
+
+            if (_gvLogPinPad.Columns.Contains("NUMERO FACTURA"))
+                _gvLogPinPad.Columns["NUMERO FACTURA"].Frozen = true;
+
+            string[] columnasLargas =
+            {
+                "EXCEPCION",
+                "PAGO TARJETA ENCRIPTADA",
+                "TRAMA ENVIADA",
+                "TRAMA RESPUESTA",
+                "EVENTOS"
+            };
+
+            foreach (string nombre in columnasLargas)
+            {
+                if (!_gvLogPinPad.Columns.Contains(nombre))
+                    continue;
+
+                DataGridViewColumn columna = _gvLogPinPad.Columns[nombre];
+                columna.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
+                columna.Width = nombre == "EVENTOS" ? 380 : 280;
+            }
+
+            foreach (DataGridViewColumn columna in _gvLogPinPad.Columns)
+            {
+                if (columna.ValueType == typeof(DateTime))
+                    columna.DefaultCellStyle.Format = "yyyy-MM-dd HH:mm:ss";
+            }
+
+            if (_gvLogPinPad.Columns.Contains("PAGO MONTO"))
+                _gvLogPinPad.Columns["PAGO MONTO"].DefaultCellStyle.Format = "N2";
+            if (_gvLogPinPad.Columns.Contains("PAGO VALOR INTERES"))
+                _gvLogPinPad.Columns["PAGO VALOR INTERES"].DefaultCellStyle.Format = "N2";
+        }
+
+        private void GvLogPinPad_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0)
+                return;
+
+            DataGridViewRow fila = _gvLogPinPad.Rows[e.RowIndex];
+            var detalle = new StringBuilder();
+
+            foreach (DataGridViewColumn columna in _gvLogPinPad.Columns)
+            {
+                object valor = fila.Cells[columna.Index].Value;
+                detalle.Append(columna.HeaderText)
+                    .Append(": ")
+                    .Append(valor == null || valor == DBNull.Value ? "" : valor.ToString())
+                    .AppendLine()
+                    .AppendLine();
+            }
+
+            using (var ventana = new Form
+            {
+                Text = "DETALLE COMPLETO DE TRANSACCIÓN PINPAD",
+                StartPosition = FormStartPosition.CenterParent,
+                Size = new Size(920, 680),
+                MinimumSize = new Size(700, 500)
+            })
+            {
+                var texto = new TextBox
+                {
+                    Dock = DockStyle.Fill,
+                    Multiline = true,
+                    ReadOnly = true,
+                    ScrollBars = ScrollBars.Both,
+                    WordWrap = false,
+                    Font = new Font("Consolas", 9F),
+                    Text = detalle.ToString()
+                };
+
+                var copiar = new Button
+                {
+                    Text = "Copiar todo",
+                    Dock = DockStyle.Bottom,
+                    Height = 38
+                };
+                copiar.Click += (s, args) =>
+                {
+                    if (texto.TextLength > 0)
+                        Clipboard.SetText(texto.Text);
+                };
+
+                ventana.Controls.Add(texto);
+                ventana.Controls.Add(copiar);
+                ventana.ShowDialog(this);
             }
         }
 
@@ -390,6 +606,16 @@ namespace SistemaFacturacion
         private void ConstruirTabReinicio(TabPage tab)
         {
             int x1 = 20, x2 = 175, y = 16, alto = 24, sep = 31, ancho = 250;
+
+            tab.Controls.Add(new Label
+            {
+                Text = "Los valores se cargan automáticamente. Presione Configurar para aplicarlos al PinPad.",
+                Location = new Point(x1, y),
+                AutoSize = true,
+                MaximumSize = new Size(650, 0),
+                ForeColor = Color.FromArgb(65, 65, 65)
+            });
+            y += 34;
 
             AgregarLabel(tab, "IP del aparato:", x1, y);
             _txtDevIp = new TextBox { Location = new Point(x2, y - 2), Size = new Size(ancho, alto) };
@@ -423,7 +649,7 @@ namespace SistemaFacturacion
             _txtDevPuertoEscucha = new TextBox { Location = new Point(x2, y - 2), Size = new Size(120, alto) };
             tab.Controls.Add(_txtDevPuertoEscucha); y += sep + 6;
 
-            _btnReinicio = new Button { Text = "Enviar al aparato", Location = new Point(x1, y), Size = new Size(160, 32) };
+            _btnReinicio = new Button { Text = "Configurar", Location = new Point(x1, y), Size = new Size(160, 32) };
             _btnReinicio.Click += BtnReinicio_Click;
             tab.Controls.Add(_btnReinicio); y += 40;
 
@@ -433,38 +659,36 @@ namespace SistemaFacturacion
 
         private async void BtnReinicio_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(_txtDevIp.Text))
+            ConfiguracionRedRequest req;
+            string errorValidacion;
+            if (!TryCrearConfiguracionRed(out req, out errorValidacion))
             {
-                MostrarEstadoEn(_lblEstadoReinicio, "La IP del aparato es obligatoria.", true);
+                MostrarEstadoEn(_lblEstadoReinicio, errorValidacion, true);
                 return;
             }
 
-            var confirmar = MessageBox.Show(
-                "Esto reescribe la configuración de RED del pinpad físico. Si los valores " +
-                "son incorrectos el aparato puede quedar inalcanzable.\n\n¿Enviar de todos modos?",
-                "Confirmar reinicio de red", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-            if (confirmar != DialogResult.Yes) return;
-
-            var req = new ConfiguracionRedRequest
-            {
-                DireccionIP = _txtDevIp.Text.Trim(),
-                Mascara = _txtDevMascara.Text.Trim(),
-                Gateway = _txtDevGateway.Text.Trim(),
-                PrincipalHost = _txtDevHostPrin.Text.Trim(),
-                PrincipalPuerto = _txtDevPuertoPrin.Text.Trim(),
-                AlternoHost = _txtDevHostAlt.Text.Trim(),
-                AlternoPuerto = _txtDevPuertoAlt.Text.Trim(),
-                PuertoEscucha = _txtDevPuertoEscucha.Text.Trim(),
-                UsuarioSistema = UsuarioActual
-            };
-
             _btnReinicio.Enabled = false;
-            MostrarEstadoEn(_lblEstadoReinicio, "Enviando configuración al aparato…", false);
+            MostrarEstadoEn(_lblEstadoReinicio, "Configurando el PinPad…", false);
             try
             {
                 ConfiguracionRedResult r = await Task.Run(() => _services.PinPad.ConfigurarRedPinPad(req));
                 if (r != null && r.Exitoso)
-                    MostrarEstadoEn(_lblEstadoReinicio, "✔ Configuración aplicada. Código: " + (r.CodigoRespuesta ?? "00"), false);
+                {
+                    try
+                    {
+                        GuardarConexionConfigurada(req);
+                        MostrarEstadoEn(_lblEstadoReinicio,
+                            "✔ Configuración aplicada. Conexión actualizada a " +
+                            req.DireccionIP + ":" + req.PuertoEscucha +
+                            ". Código: " + (r.CodigoRespuesta ?? "00"), false);
+                    }
+                    catch (Exception ex)
+                    {
+                        MostrarEstadoEn(_lblEstadoReinicio,
+                            "⚠ El PinPad aceptó la configuración, pero no se pudo guardar la nueva conexión: " +
+                            ex.Message, true);
+                    }
+                }
                 else
                     MostrarEstadoEn(_lblEstadoReinicio, "✖ No aplicada. " +
                         (r?.MensajeRespuesta ?? r?.ExcepcionMensaje ?? "Verifique conexión con el aparato."), true);
@@ -477,6 +701,79 @@ namespace SistemaFacturacion
             {
                 _btnReinicio.Enabled = true;
             }
+        }
+
+        private void GuardarConexionConfigurada(ConfiguracionRedRequest request)
+        {
+            int puertoEscucha = ParseInt(request.PuertoEscucha, 0);
+
+            // Reflejar inmediatamente en la pestaña Conexión los datos que acaba
+            // de aceptar el aparato.
+            _txtIp.Text = request.DireccionIP;
+            _numPuerto.Value = Clamp(puertoEscucha, _numPuerto.Minimum, _numPuerto.Maximum);
+
+            var config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+            EscribirApp(config, K_IP, request.DireccionIP);
+            EscribirApp(config, K_PUERTO, request.PuertoEscucha);
+            EscribirApp(config, K_RED_MASCARA, request.Mascara);
+            EscribirApp(config, K_RED_GATEWAY, request.Gateway);
+            EscribirApp(config, K_RED_HOST_PRINCIPAL, request.PrincipalHost);
+            EscribirApp(config, K_RED_PUERTO_PRINCIPAL, request.PrincipalPuerto);
+            EscribirApp(config, K_RED_HOST_ALTERNO, request.AlternoHost);
+            EscribirApp(config, K_RED_PUERTO_ALTERNO, request.AlternoPuerto);
+            config.Save(ConfigurationSaveMode.Modified);
+
+            // El siguiente cobro ya utilizará la IP y el puerto de escucha nuevos.
+            _services.RecargarPinPad();
+        }
+
+        private bool TryCrearConfiguracionRed(out ConfiguracionRedRequest request, out string error)
+        {
+            request = null;
+            error = null;
+
+            string ip = _txtDevIp.Text.Trim();
+            string mascara = _txtDevMascara.Text.Trim();
+            string gateway = _txtDevGateway.Text.Trim();
+            string hostPrincipal = _txtDevHostPrin.Text.Trim();
+            string puertoPrincipal = _txtDevPuertoPrin.Text.Trim();
+            string hostAlterno = _txtDevHostAlt.Text.Trim();
+            string puertoAlterno = _txtDevPuertoAlt.Text.Trim();
+            string puertoEscucha = _txtDevPuertoEscucha.Text.Trim();
+
+            if (!EsIPv4(ip))
+                error = "La IP del aparato no es una dirección IPv4 válida.";
+            else if (!EsIPv4(mascara))
+                error = "La máscara no es una dirección IPv4 válida.";
+            else if (!EsIPv4(gateway))
+                error = "El gateway no es una dirección IPv4 válida.";
+            else if (!EsIPv4(hostPrincipal))
+                error = "El host principal no es una dirección IPv4 válida.";
+            else if (!EsPuertoValido(puertoPrincipal))
+                error = "El puerto principal debe estar entre 1 y 65535.";
+            else if (!EsIPv4(hostAlterno))
+                error = "El host alterno no es una dirección IPv4 válida.";
+            else if (!EsPuertoValido(puertoAlterno))
+                error = "El puerto alterno debe estar entre 1 y 65535.";
+            else if (!EsPuertoValido(puertoEscucha))
+                error = "El puerto de escucha debe estar entre 1 y 65535.";
+
+            if (error != null)
+                return false;
+
+            request = new ConfiguracionRedRequest
+            {
+                DireccionIP = ip,
+                Mascara = mascara,
+                Gateway = gateway,
+                PrincipalHost = hostPrincipal,
+                PrincipalPuerto = puertoPrincipal,
+                AlternoHost = hostAlterno,
+                AlternoPuerto = puertoAlterno,
+                PuertoEscucha = puertoEscucha,
+                UsuarioSistema = UsuarioActual
+            };
+            return true;
         }
 
         // =========================================================
@@ -576,8 +873,13 @@ namespace SistemaFacturacion
             _cmbSha.SelectedIndex = Clamp(ParseInt(LeerApp(K_SHA, "1"), 1), 0, 2);
 
             // La reconfiguración de red parte de la conexión actual del equipo.
-            // Los hosts de Datafast se dejan vacíos cuando no aplican, según la guía.
             _txtDevIp.Text = _txtIp.Text;
+            _txtDevMascara.Text = LeerApp(K_RED_MASCARA, "255.255.255.0");
+            _txtDevGateway.Text = LeerApp(K_RED_GATEWAY, DerivarGateway(_txtDevIp.Text));
+            _txtDevHostPrin.Text = LeerApp(K_RED_HOST_PRINCIPAL, "200.0.67.188");
+            _txtDevPuertoPrin.Text = LeerApp(K_RED_PUERTO_PRINCIPAL, "3000");
+            _txtDevHostAlt.Text = LeerApp(K_RED_HOST_ALTERNO, _txtDevHostPrin.Text);
+            _txtDevPuertoAlt.Text = LeerApp(K_RED_PUERTO_ALTERNO, _txtDevPuertoPrin.Text);
             _txtDevPuertoEscucha.Text = ((int)_numPuerto.Value).ToString();
         }
 
@@ -604,6 +906,11 @@ namespace SistemaFacturacion
 
                 // Aplicar en caliente al servicio de cobro
                 _services.RecargarPinPad();
+
+                // Mantener sincronizados los valores que se enviarán desde Configurar red.
+                _txtDevIp.Text = _txtIp.Text.Trim();
+                _txtDevGateway.Text = DerivarGateway(_txtDevIp.Text);
+                _txtDevPuertoEscucha.Text = ((int)_numPuerto.Value).ToString();
 
                 MostrarEstado("Configuración guardada y aplicada.", false);
             }
@@ -709,6 +1016,31 @@ namespace SistemaFacturacion
             if (valor < min) return min;
             if (valor > max) return max;
             return valor;
+        }
+
+        private static bool EsIPv4(string valor)
+        {
+            IPAddress ip;
+            return IPAddress.TryParse(valor, out ip) &&
+                   ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork;
+        }
+
+        private static bool EsPuertoValido(string valor)
+        {
+            int puerto;
+            return int.TryParse(valor, out puerto) && puerto >= 1 && puerto <= 65535;
+        }
+
+        private static string DerivarGateway(string direccionIp)
+        {
+            IPAddress ip;
+            if (!IPAddress.TryParse(direccionIp, out ip) ||
+                ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
+                return string.Empty;
+
+            byte[] octetos = ip.GetAddressBytes();
+            octetos[3] = 1;
+            return new IPAddress(octetos).ToString();
         }
     }
 }

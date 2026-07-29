@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
+using System.Text;
 using System.Threading;
 using AccesoDatos.Abstractions;
 using DF_PinPad.Wrapper.Logging;
@@ -28,22 +29,16 @@ namespace LogicaNegocios
 
     /// <summary>
     /// Implementación de <see cref="ISqlLogger"/> respaldada en Access (la misma .accdb del POS),
-    /// NO en SQL Server. Persiste la auditoría del pinpad en 3 tablas:
-    ///   PINPAD_LOG          — cabecera (IniciarTransaccion/FinalizarTransaccion/VincularNumeroFactura)
-    ///   PINPAD_AUTORIZADAS  — detalle del cobro (GuardarDetallePago)
-    ///   PINPAD_ANULACIONES  — detalle de anulación (RegistrarAnulacion)
+    /// NO en SQL Server. PINPAD_LOG es la cabecera de cada operación y TRANSACCIONID
+    /// relaciona sus detalles, tramas y eventos. NUMEROFACTURA es una relación comercial:
+    /// varias operaciones (cobro, intentos y anulación) pueden pertenecer a la misma factura.
     ///
-    /// REGLA: las dos tablas de detalle son SOLO de operaciones aprobadas. Todo lo que el
-    /// autorizador no devuelva en "00" —rechazos, errores de trama, excepciones— queda
-    /// únicamente en PINPAD_LOG, que para eso es la bitácora.
+    /// REGLA: PINPAD_AUTORIZADAS y PINPAD_ANULACIONES son SOLO de operaciones aprobadas.
+    /// Los intentos rechazados permanecen en PINPAD_LOG, eventos, tramas y detalle técnico.
     ///
-    /// MODELO SIN ID NUMÉRICO: la llave de correlación entre las 3 tablas es la NUMEROFACTURA
-    /// (columna TRANSACCIONID en las tablas de detalle guarda esa misma factura). Como la
-    /// interfaz ISqlLogger identifica cada operación con un `long` (no un string) y hay
-    /// operaciones SIN factura (leer tarjeta, consultar config, anular), se usa un TOKEN
-    /// interno (contador) mapeado EN MEMORIA a la "clave de fila" que va en NUMEROFACTURA:
-    /// la factura real si la hay, o un marcador único "OP-{ticks}-{token}" si no.
-    /// FinalizarTransaccion / VincularNumeroFactura resuelven la clave por ese token.
+    /// MODELO SIN AUTONUMÉRICO: ISqlLogger exige devolver un long, por lo que se mantiene
+    /// un token efímero en memoria. En base se genera un TRANSACCIONID textual único "TX-..."
+    /// que nunca se confunde con el número de factura.
     ///
     /// REGLA CRÍTICA: todos los métodos TRAGAN sus propias excepciones. El wrapper
     /// (PinPadService) llama a GuardarDetallePago/FinalizarTransaccion DESPUÉS de que la
@@ -57,11 +52,13 @@ namespace LogicaNegocios
     {
         private readonly IConexionBD _conexion;
 
-        // token -> clave de fila (lo que va en NUMEROFACTURA). Correlaciona en memoria el
-        // INSERT inicial con los UPDATE/INSERT posteriores, que la interfaz solo identifica
-        // por `long`. Estático el contador (uniquidad entre instancias); el mapa por instancia.
+        // El token satisface el contrato de ISqlLogger durante la ejecución. TRANSACCIONID
+        // es la llave persistente, y NUMEROFACTURA se conserva en un mapa separado.
         private static long _secuenciaToken = 0;
-        private readonly ConcurrentDictionary<long, string> _clavePorToken = new ConcurrentDictionary<long, string>();
+        private readonly ConcurrentDictionary<long, string> _transaccionPorToken =
+            new ConcurrentDictionary<long, string>();
+        private readonly ConcurrentDictionary<long, string> _facturaPorToken =
+            new ConcurrentDictionary<long, string>();
 
         // token -> tarjeta/autorización/referencia. Los métodos de detalle los reciben pero
         // FinalizarTransaccion no (su firma la fija ISqlLogger), y es ahí donde se escribe
@@ -80,9 +77,23 @@ namespace LogicaNegocios
             return Interlocked.Increment(ref _secuenciaToken);
         }
 
-        private string ClaveDe(long token)
+        private string TransaccionDe(long token)
         {
-            return _clavePorToken.TryGetValue(token, out string clave) ? clave : null;
+            return _transaccionPorToken.TryGetValue(token, out string transaccionId)
+                ? transaccionId
+                : null;
+        }
+
+        private string FacturaDe(long token)
+        {
+            return _facturaPorToken.TryGetValue(token, out string numeroFactura)
+                ? numeroFactura
+                : "";
+        }
+
+        private static string NuevaTransaccionId()
+        {
+            return "TX-" + Guid.NewGuid().ToString("N");
         }
 
         // =====================================================================
@@ -92,27 +103,25 @@ namespace LogicaNegocios
         public long IniciarTransaccion(string tipoOperacion, string usuarioSistema, string cajaId = null, string numeroFactura = null)
         {
             long token = NuevoToken();
-
-            // Clave de fila: la factura real si viene; si no (leer tarjeta, consultar config,
-            // anular), un marcador único e irrepetible entre corridas para poder ubicar la
-            // fila en el UPDATE de FinalizarTransaccion.
-            string clave = string.IsNullOrWhiteSpace(numeroFactura)
-                ? ("OP-" + DateTime.Now.Ticks + "-" + token)
-                : numeroFactura.Trim();
-            _clavePorToken[token] = clave;
+            string transaccionId = NuevaTransaccionId();
+            string factura = (numeroFactura ?? "").Trim();
+            _transaccionPorToken[token] = transaccionId;
+            _facturaPorToken[token] = factura;
 
             try
             {
                 string sql = @"INSERT INTO PINPAD_LOG
-                    (FECHAINICIO, TIPOOPERACION, USUARIOSISTEMA, CAJAID, NUMEROFACTURA, MAQUINAORIGEN)
-                    VALUES (@fecha, @tipo, @usuario, @caja, @factura, @maquina)";
+                    (TRANSACCIONID, FECHAINICIO, TIPOOPERACION, USUARIOSISTEMA,
+                     CAJAID, NUMEROFACTURA, MAQUINAORIGEN)
+                    VALUES (@transId, @fecha, @tipo, @usuario, @caja, @factura, @maquina)";
 
                 _conexion.Ejecutar(sql,
+                    ("transId", transaccionId),
                     ("fecha", DateTime.Now),
                     ("tipo", tipoOperacion ?? ""),
                     ("usuario", usuarioSistema ?? ""),
                     ("caja", cajaId ?? ""),
-                    ("factura", clave),
+                    ("factura", factura),
                     ("maquina", Environment.MachineName ?? ""));
             }
             catch { /* swallow: auditoría no bloquea el cobro */ }
@@ -132,8 +141,8 @@ namespace LogicaNegocios
         public void FinalizarTransaccion(long transaccionId, string codigoRespuesta, string mensajeRespuesta,
             bool exitoso, string excepcionMensaje, string codigoRespuestaAut = null)
         {
-            string clave = ClaveDe(transaccionId);
-            if (clave == null) return; // sin clave mapeada no hay fila que actualizar
+            string transaccionDb = TransaccionDe(transaccionId);
+            if (transaccionDb == null) return;
 
             _datosPorToken.TryGetValue(transaccionId, out var datos);
 
@@ -151,7 +160,7 @@ namespace LogicaNegocios
                     EXITOSO = @exito,
                     EXCEPCIONMENSAJE = @exc,
                     FECHAFIN = @fin
-                    WHERE NUMEROFACTURA = @factura";
+                    WHERE TRANSACCIONID = @transId";
 
                 _conexion.Ejecutar(sql,
                     ("cod", codigoRespuesta ?? ""),
@@ -163,32 +172,39 @@ namespace LogicaNegocios
                     ("exito", exitoso),
                     ("exc", excepcionMensaje ?? ""),
                     ("fin", DateTime.Now),
-                    ("factura", clave));
+                    ("transId", transaccionDb));
             }
             catch { /* swallow: auditoría no bloquea el cobro */ }
         }
 
         public void VincularNumeroFactura(long transaccionId, string numeroFactura)
         {
-            string claveAnterior = ClaveDe(transaccionId);
-            if (claveAnterior == null || string.IsNullOrWhiteSpace(numeroFactura)) return;
+            string transaccionDb = TransaccionDe(transaccionId);
+            if (transaccionDb == null || string.IsNullOrWhiteSpace(numeroFactura)) return;
 
-            string claveNueva = numeroFactura.Trim();
-            if (claveNueva == claveAnterior) return;
+            string facturaAnterior = FacturaDe(transaccionId);
+            string facturaNueva = numeroFactura.Trim();
+            if (facturaNueva == facturaAnterior) return;
 
             try
             {
-                // Renombrar la factura en todas las tablas que la usan como llave (el
-                // secuencial previsto pudo cambiar por reintento del SRI).
                 _conexion.Ejecutar(
-                    "UPDATE PINPAD_LOG SET NUMEROFACTURA = @nueva WHERE NUMEROFACTURA = @vieja",
-                    ("nueva", claveNueva), ("vieja", claveAnterior));
+                    "UPDATE PINPAD_LOG SET NUMEROFACTURA = @factura WHERE TRANSACCIONID = @transId",
+                    ("factura", facturaNueva), ("transId", transaccionDb));
 
                 _conexion.Ejecutar(
-                    "UPDATE PINPAD_AUTORIZADAS SET NUMEROFACTURA = @nueva, TRANSACCIONID = @nueva WHERE NUMEROFACTURA = @vieja",
-                    ("nueva", claveNueva), ("vieja", claveAnterior));
+                    "UPDATE PINPAD_AUTORIZADAS SET NUMEROFACTURA = @factura WHERE TRANSACCIONID = @transId",
+                    ("factura", facturaNueva), ("transId", transaccionDb));
 
-                _clavePorToken[transaccionId] = claveNueva;
+                _conexion.Ejecutar(
+                    "UPDATE PINPAD_PAGO_EXTENDIDO SET NUMEROFACTURA = @factura WHERE TRANSACCIONID = @transId",
+                    ("factura", facturaNueva), ("transId", transaccionDb));
+
+                _conexion.Ejecutar(
+                    "UPDATE PINPAD_ANULACIONES SET NUMEROFACTURA = @factura WHERE TRANSACCIONID = @transId",
+                    ("factura", facturaNueva), ("transId", transaccionDb));
+
+                _facturaPorToken[transaccionId] = facturaNueva;
             }
             catch { /* swallow */ }
         }
@@ -199,16 +215,19 @@ namespace LogicaNegocios
 
         public void GuardarDetallePago(long transaccionId, ProcesoPagoRequest request, ProcesoPagoResult result)
         {
-            // La factura es la llave (TRANSACCIONID = NUMEROFACTURA). Preferimos la del
-            // request; si no viniera, la clave mapeada por el token.
-            string clave = !string.IsNullOrWhiteSpace(request?.NumeroFactura)
+            string transaccionDb = TransaccionDe(transaccionId);
+            if (transaccionDb == null) return;
+
+            string factura = !string.IsNullOrWhiteSpace(request?.NumeroFactura)
                 ? request.NumeroFactura.Trim()
-                : (ClaveDe(transaccionId) ?? "");
+                : FacturaDe(transaccionId);
 
             _datosPorToken.AddOrUpdate(transaccionId,
                 (result?.NumeroTarjeta, result?.Autorizacion, result?.Referencia),
                 (t, previo) => (string.IsNullOrWhiteSpace(result?.NumeroTarjeta) ? previo.Tarjeta : result.NumeroTarjeta,
                                 result?.Autorizacion, result?.Referencia));
+
+            GuardarPagoExtendido(transaccionDb, factura, result);
 
             // PINPAD_AUTORIZADAS es solo de cobros APROBADOS: el wrapper llama a este método
             // pase lo que pase, y sin este filtro entraban filas vacías o con basura
@@ -240,7 +259,7 @@ namespace LogicaNegocios
                      @modo, @habiente, @tarjeta, @vence, @factura)";
 
                 _conexion.Ejecutar(sql,
-                    ("transId", clave),
+                    ("transId", transaccionDb),
                     ("monto", request?.Monto ?? 0m),
                     ("tipoTrans", request?.TipoTransaccion ?? ""),
                     ("red", request?.Red ?? ""),
@@ -259,9 +278,51 @@ namespace LogicaNegocios
                     ("habiente", result?.TarjetaHabiente ?? ""),
                     ("tarjeta", result?.NumeroTarjeta ?? ""),
                     ("vence", result?.FechaVencimiento ?? ""),
-                    ("factura", clave));
+                    ("factura", factura));
             }
             catch { /* swallow */ }
+        }
+
+        private void GuardarPagoExtendido(string transaccionId, string numeroFactura, ProcesoPagoResult result)
+        {
+            if (result == null) return;
+
+            object valorInteres = DBNull.Value;
+            if (decimal.TryParse(result.ValorInteres,
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out decimal interes))
+            {
+                valorInteres = interes;
+            }
+
+            try
+            {
+                string sql = @"INSERT INTO PINPAD_PAGO_EXTENDIDO
+                    (TRANSACCIONID, NUMEROFACTURA, NUMEROTARJETAENCRIPTADO,
+                     VALORINTERES, MENSAJEPUBLICIDAD, APLICACIONEMV, AID,
+                     CRIPTOGRAMA, VERIFICACIONPIN, ARQC, TVR, TSI, FECHAREGISTRO)
+                    VALUES
+                    (@transId, @factura, @tarjetaEnc,
+                     @interes, @publicidad, @aplicacion, @aid,
+                     @criptograma, @pin, @arqc, @tvr, @tsi, @fecha)";
+
+                _conexion.Ejecutar(sql,
+                    ("transId", transaccionId),
+                    ("factura", numeroFactura ?? ""),
+                    ("tarjetaEnc", result.NumeroTarjetaEncriptado ?? ""),
+                    ("interes", valorInteres),
+                    ("publicidad", result.MensajePublicidad ?? ""),
+                    ("aplicacion", result.AplicacionEMV ?? ""),
+                    ("aid", result.AID ?? ""),
+                    ("criptograma", result.Criptograma ?? ""),
+                    ("pin", result.VerificacionPIN ?? ""),
+                    ("arqc", result.ARQC ?? ""),
+                    ("tvr", result.TVR ?? ""),
+                    ("tsi", result.TSI ?? ""),
+                    ("fecha", DateTime.Now));
+            }
+            catch { /* la auditoría extendida no bloquea el cobro */ }
         }
 
         // =====================================================================
@@ -274,8 +335,7 @@ namespace LogicaNegocios
         ///
         /// La DLL llama a este método ANTES de saber si el pinpad aceptó la anulación (su
         /// firma la fija ISqlLogger y no trae el resultado), así que desde aquí es imposible
-        /// aplicar la regla de "solo se guarda con 00". Además la anulación entraría con
-        /// NUMEROFACTURA = "OP-..." porque AnulacionRequest no lleva factura.
+        /// aplicar la regla de "solo se guarda con 00".
         ///
         /// Quien inserta en PINPAD_ANULACIONES es <see cref="RegistrarAnulacion"/>, que llama
         /// la UI DESPUÉS de verificar la respuesta y con la factura real. Una anulación
@@ -361,17 +421,15 @@ namespace LogicaNegocios
         /// <summary>
         /// Registra la anulación CON EL NÚMERO REAL DE FACTURA.
         ///
-        /// Es indispensable hacerlo desde aquí: AnulacionRequest no lleva número de
-        /// factura, así que la fila que graba sola la DLL cae en el caso "operación sin
-        /// factura" de IniciarTransaccion y queda con NUMEROFACTURA = "OP-...". El reporte
-        /// calcula el estado ANULADA uniendo PINPAD_ANULACIONES.NUMEROFACTURA con la
-        /// factura, así que sin esta fila el cobro anulado seguiría viéndose APROBADA.
+        /// El reporte calcula el estado ANULADA uniendo PINPAD_ANULACIONES.NUMEROFACTURA
+        /// con la factura, así que esta fila se crea únicamente tras una respuesta aprobada.
         /// </summary>
-        public void RegistrarAnulacion(string numeroFactura, string referenciaOriginal,
+        public void RegistrarAnulacion(long transaccionId, string numeroFactura, string referenciaOriginal,
             string autorizacionOriginal, string redAdquirente)
         {
-            string clave = (numeroFactura ?? "").Trim();
-            if (clave.Length == 0)
+            string transaccionDb = TransaccionDe(transaccionId);
+            string factura = (numeroFactura ?? "").Trim();
+            if (transaccionDb == null || factura.Length == 0)
                 return;
 
             string sql = @"INSERT INTO PINPAD_ANULACIONES
@@ -379,11 +437,11 @@ namespace LogicaNegocios
                 VALUES (@transId, @refer, @autoriz, @red, @factura)";
 
             _conexion.Ejecutar(sql,
-                ("transId", clave),
+                ("transId", transaccionDb),
                 ("refer", referenciaOriginal ?? ""),
                 ("autoriz", autorizacionOriginal ?? ""),
                 ("red", redAdquirente ?? ""),
-                ("factura", clave));
+                ("factura", factura));
         }
 
         // =====================================================================
@@ -391,23 +449,75 @@ namespace LogicaNegocios
         // =====================================================================
 
         public DataSet ConsultarLog(DateTime fechaDesde, DateTime fechaHasta,
-            string numeroTarjeta, string tipoOperacion)
+            string numeroTarjeta, string numeroFactura, string tipoOperacion)
         {
             string sql = @"SELECT
-                    FECHAINICIO AS [FECHA INICIO],
-                    FECHAFIN AS [FECHA FIN],
-                    TIPOOPERACION AS [TIPO OPERACION],
-                    NUMEROTARJETA AS [NUMERO TARJETA],
-                    NUMEROFACTURA AS [NUMERO FACTURA],
-                    AUTORIZACION,
-                    REFERENCIA,
-                    CODIGORESPUESTA AS [CODIGO RESPUESTA],
-                    MENSAJERESPUESTA AS [MENSAJE RESPUESTA],
-                    IIF(EXITOSO, 'SI', 'NO') AS EXITOSO,
-                    EXCEPCIONMENSAJE AS [EXCEPCION]
-                FROM PINPAD_LOG
-                WHERE FECHAINICIO >= @desde
-                  AND FECHAINICIO < @hasta";
+                    L.TRANSACCIONID AS [TRANSACCION ID],
+                    L.NUMEROFACTURA AS [NUMERO FACTURA],
+                    L.TIPOOPERACION AS [TIPO OPERACION],
+                    L.FECHAINICIO AS [FECHA INICIO],
+                    L.FECHAFIN AS [FECHA FIN],
+                    L.CODIGORESPUESTA AS [CODIGO RESPUESTA],
+                    L.CODIGOAUTORIZACION AS [CODIGO AUTORIZADOR],
+                    L.MENSAJERESPUESTA AS [MENSAJE RESPUESTA],
+                    IIF(L.EXITOSO, 'SI', 'NO') AS EXITOSO,
+                    L.NUMEROTARJETA AS [NUMERO TARJETA],
+                    L.AUTORIZACION AS [AUTORIZACION],
+                    L.REFERENCIA AS [REFERENCIA],
+                    L.EXCEPCIONMENSAJE AS [EXCEPCION],
+                    L.CAJAID AS [CAJA ID],
+                    L.USUARIOSISTEMA AS [USUARIO],
+                    L.MAQUINAORIGEN AS [MAQUINA],
+
+                    PA.MONTO AS [PAGO MONTO],
+                    PA.TIPOTRANSACCION AS [PAGO TIPO],
+                    PA.RED AS [PAGO RED],
+                    PA.REDADQUIRENTE AS [PAGO RED ADQUIRENTE],
+                    PA.LOTE AS [LOTE],
+                    PA.TID AS [PAGO TID],
+                    PA.MID AS [PAGO MID],
+                    PA.CODIGOADQUIRENTE AS [PAGO CODIGO ADQUIRENTE],
+                    PA.NOMBREADQUIRENTE AS [PAGO NOMBRE ADQUIRENTE],
+                    PA.NOMBREGRUPOTARJETA AS [PAGO GRUPO TARJETA],
+                    PA.MODOLECTURA AS [PAGO MODO LECTURA],
+                    PA.TARJETAHABIENTE AS [PAGO TARJETAHABIENTE],
+                    PA.FECHAVENCIMIENTO AS [PAGO VENCIMIENTO],
+
+                    PE.NUMEROTARJETAENCRIPTADO AS [PAGO TARJETA ENCRIPTADA],
+                    PE.VALORINTERES AS [PAGO VALOR INTERES],
+                    PE.MENSAJEPUBLICIDAD AS [PAGO PUBLICIDAD],
+                    PE.APLICACIONEMV AS [EMV APLICACION],
+                    PE.AID AS [EMV AID],
+                    PE.CRIPTOGRAMA AS [EMV CRIPTOGRAMA],
+                    PE.VERIFICACIONPIN AS [EMV VERIFICACION PIN],
+                    PE.ARQC AS [EMV ARQC],
+                    PE.TVR AS [EMV TVR],
+                    PE.TSI AS [EMV TSI],
+                    PE.FECHAREGISTRO AS [PAGO FECHA DETALLE],
+
+                    PAN.REDADQUIRENTE AS [ANULACION RED ADQUIRENTE],
+
+                    T.DIRECCION AS [TRAMA DIRECCION],
+                    T.TRAMAHEX AS [TRAMA CONTENIDO],
+                    T.FECHAHORA AS [TRAMA FECHA],
+
+                    E.FECHAHORA AS [EVENTO FECHA],
+                    E.TIPOEVENTO AS [EVENTO TIPO],
+                    E.ORIGEN AS [EVENTO ORIGEN],
+                    E.MENSAJE AS [EVENTO MENSAJE]
+                FROM (((((PINPAD_LOG AS L
+                    LEFT JOIN PINPAD_AUTORIZADAS AS PA
+                        ON L.TRANSACCIONID = PA.TRANSACCIONID)
+                    LEFT JOIN PINPAD_PAGO_EXTENDIDO AS PE
+                        ON L.TRANSACCIONID = PE.TRANSACCIONID)
+                    LEFT JOIN PINPAD_ANULACIONES AS PAN
+                        ON L.TRANSACCIONID = PAN.TRANSACCIONID)
+                    LEFT JOIN PINPAD_TRAMAS AS T
+                        ON L.TRANSACCIONID = T.TRANSACCIONID)
+                    LEFT JOIN PINPAD_EVENTOS AS E
+                        ON L.TRANSACCIONID = E.TRANSACCIONID)
+                WHERE L.FECHAINICIO >= @desde
+                  AND L.FECHAINICIO < @hasta";
 
             var parametros = new List<(string nombre, object valor)>
             {
@@ -417,19 +527,131 @@ namespace LogicaNegocios
 
             if (!string.IsNullOrWhiteSpace(numeroTarjeta))
             {
-                sql += " AND NUMEROTARJETA LIKE @tarjeta";
+                sql += " AND L.NUMEROTARJETA LIKE @tarjeta";
                 parametros.Add(("tarjeta", "%" + numeroTarjeta.Trim() + "%"));
+            }
+
+            if (!string.IsNullOrWhiteSpace(numeroFactura))
+            {
+                sql += " AND L.NUMEROFACTURA LIKE @factura";
+                parametros.Add(("factura", "%" + numeroFactura.Trim() + "%"));
             }
 
             if (!string.IsNullOrWhiteSpace(tipoOperacion) && tipoOperacion != "Todos")
             {
-                sql += " AND TIPOOPERACION = @tipo";
+                sql += " AND L.TIPOOPERACION = @tipo";
                 parametros.Add(("tipo", tipoOperacion.Trim()));
             }
 
-            sql += " ORDER BY FECHAINICIO DESC, FECHAFIN DESC";
+            sql += " ORDER BY L.FECHAFIN DESC, L.FECHAINICIO DESC, T.DIRECCION, E.FECHAHORA";
 
-            return _conexion.Seleccionar(sql, parametros.ToArray());
+            return ConsolidarEventos(_conexion.Seleccionar(sql, parametros.ToArray()));
+        }
+
+        private static DataSet ConsolidarEventos(DataSet datos)
+        {
+            if (datos == null || datos.Tables.Count == 0)
+                return datos;
+
+            DataTable origen = datos.Tables[0];
+            if (!origen.Columns.Contains("EVENTO MENSAJE"))
+                return datos;
+
+            DataTable salida = origen.Clone();
+            salida.TableName = "PINPAD_LOG_COMPLETO";
+            salida.Columns.Remove("TRAMA DIRECCION");
+            salida.Columns.Remove("TRAMA CONTENIDO");
+            salida.Columns.Remove("TRAMA FECHA");
+            salida.Columns.Remove("EVENTO FECHA");
+            salida.Columns.Remove("EVENTO TIPO");
+            salida.Columns.Remove("EVENTO ORIGEN");
+            salida.Columns.Remove("EVENTO MENSAJE");
+            salida.Columns.Add("TRAMA ENVIADA", typeof(string));
+            salida.Columns.Add("TRAMA ENVIADA FECHA", typeof(DateTime));
+            salida.Columns.Add("TRAMA RESPUESTA", typeof(string));
+            salida.Columns.Add("TRAMA RESPUESTA FECHA", typeof(DateTime));
+            salida.Columns.Add("EVENTOS", typeof(string));
+
+            var filasPorTransaccion = new Dictionary<string, DataRow>();
+            var eventosPorTransaccion = new Dictionary<string, StringBuilder>();
+            var firmasEventos = new Dictionary<string, HashSet<string>>();
+
+            foreach (DataRow fila in origen.Rows)
+            {
+                string transaccionId = Texto(fila, "TRANSACCION ID");
+                string clave = string.IsNullOrWhiteSpace(transaccionId)
+                    ? "LEGACY-" + Texto(fila, "FECHA INICIO") + "|" +
+                        Texto(fila, "TIPO OPERACION") + "|" + Texto(fila, "NUMERO FACTURA")
+                    : transaccionId;
+
+                if (!filasPorTransaccion.TryGetValue(clave, out DataRow consolidada))
+                {
+                    consolidada = salida.NewRow();
+                    foreach (DataColumn columna in salida.Columns)
+                    {
+                        if (columna.ColumnName != "EVENTOS" &&
+                            columna.ColumnName != "TRAMA ENVIADA" &&
+                            columna.ColumnName != "TRAMA ENVIADA FECHA" &&
+                            columna.ColumnName != "TRAMA RESPUESTA" &&
+                            columna.ColumnName != "TRAMA RESPUESTA FECHA")
+                        {
+                            consolidada[columna.ColumnName] = fila[columna.ColumnName];
+                        }
+                    }
+
+                    salida.Rows.Add(consolidada);
+                    filasPorTransaccion[clave] = consolidada;
+                    eventosPorTransaccion[clave] = new StringBuilder();
+                    firmasEventos[clave] = new HashSet<string>();
+                }
+
+                string direccionTrama = Texto(fila, "TRAMA DIRECCION").ToUpperInvariant();
+                if (direccionTrama == "ENVIADA")
+                {
+                    consolidada["TRAMA ENVIADA"] = fila["TRAMA CONTENIDO"];
+                    consolidada["TRAMA ENVIADA FECHA"] = fila["TRAMA FECHA"];
+                }
+                else if (direccionTrama == "RESPUESTA")
+                {
+                    consolidada["TRAMA RESPUESTA"] = fila["TRAMA CONTENIDO"];
+                    consolidada["TRAMA RESPUESTA FECHA"] = fila["TRAMA FECHA"];
+                }
+
+                string mensajeEvento = Texto(fila, "EVENTO MENSAJE");
+                string tipoEvento = Texto(fila, "EVENTO TIPO");
+                string origenEvento = Texto(fila, "EVENTO ORIGEN");
+                if (mensajeEvento.Length == 0 && tipoEvento.Length == 0 && origenEvento.Length == 0)
+                    continue;
+
+                string firmaEvento = Texto(fila, "EVENTO FECHA") + "|" +
+                    tipoEvento + "|" + origenEvento + "|" + mensajeEvento;
+                if (!firmasEventos[clave].Add(firmaEvento))
+                    continue;
+
+                StringBuilder eventos = eventosPorTransaccion[clave];
+                if (eventos.Length > 0)
+                    eventos.AppendLine();
+
+                if (fila["EVENTO FECHA"] != DBNull.Value)
+                {
+                    eventos.Append('[')
+                        .Append(Convert.ToDateTime(fila["EVENTO FECHA"]).ToString("yyyy-MM-dd HH:mm:ss"))
+                        .Append("] ");
+                }
+
+                if (tipoEvento.Length > 0)
+                    eventos.Append(tipoEvento);
+                if (origenEvento.Length > 0)
+                    eventos.Append(" | ").Append(origenEvento);
+                if (mensajeEvento.Length > 0)
+                    eventos.Append(" | ").Append(mensajeEvento);
+
+                consolidada["EVENTOS"] = eventos.ToString();
+            }
+
+            var resultado = new DataSet();
+            resultado.Tables.Add(salida);
+            return resultado;
         }
 
         public DataSet ConsultarTiposOperacion()
@@ -469,6 +691,24 @@ namespace LogicaNegocios
                 ("tarjeta", "%" + numeroTarjeta.Trim() + "%"));
         }
 
+        public DataSet ConsultarFacturas(string numeroFactura)
+        {
+            string sql = @"SELECT DISTINCT TOP 20 NUMEROFACTURA
+                           FROM PINPAD_LOG
+                           WHERE NUMEROFACTURA IS NOT NULL
+                             AND NUMEROFACTURA <> ''";
+
+            if (string.IsNullOrWhiteSpace(numeroFactura))
+            {
+                sql += " ORDER BY NUMEROFACTURA";
+                return _conexion.Seleccionar(sql);
+            }
+
+            sql += " AND NUMEROFACTURA LIKE @factura ORDER BY NUMEROFACTURA";
+            return _conexion.Seleccionar(sql,
+                ("factura", "%" + numeroFactura.Trim() + "%"));
+        }
+
         private static string Texto(DataRow fila, string columna)
         {
             if (!fila.Table.Columns.Contains(columna) || fila[columna] == DBNull.Value)
@@ -478,37 +718,142 @@ namespace LogicaNegocios
         }
 
         /// <summary>
-        /// No hay tabla de detalle de tarjeta, pero de aquí sale el NUMEROTARJETA de la
-        /// cabecera en las ANULACIONES: es la tarjeta que realmente se pasó al anular
-        /// —la equivocada, si se equivocaron— y no la del cobro original.
+        /// Registra todos los datos devueltos por ConsultaTarjeta/LecturaTarjeta y conserva
+        /// el número visible en la cabecera para facilitar la búsqueda desde la pantalla.
         /// </summary>
         public void GuardarDetalleTarjeta(long transaccionId,
             string numeroTarjeta, string numeroTarjetaEncriptado, string binTarjeta,
             string fechaVencimiento, string redAdquirienteCorriente, string redAdquirienteDiferido)
         {
-            if (string.IsNullOrWhiteSpace(numeroTarjeta)) return;
+            string transaccionDb = TransaccionDe(transaccionId);
+            if (transaccionDb == null) return;
 
-            // Merge: la autorización/referencia las pone GuardarDetalleAnulacion y el
-            // orden entre ambos no está garantizado.
-            _datosPorToken.AddOrUpdate(transaccionId,
-                (numeroTarjeta, null, null),
-                (t, previo) => (numeroTarjeta, previo.Autorizacion, previo.Referencia));
+            if (!string.IsNullOrWhiteSpace(numeroTarjeta))
+            {
+                _datosPorToken.AddOrUpdate(transaccionId,
+                    (numeroTarjeta, null, null),
+                    (t, previo) => (numeroTarjeta, previo.Autorizacion, previo.Referencia));
+            }
+
+            try
+            {
+                string sql = @"INSERT INTO PINPAD_DETALLE_TARJETA
+                    (TRANSACCIONID, NUMEROTARJETA, NUMEROTARJETAENCRIPTADO,
+                     BINTARJETA, FECHAVENCIMIENTO, REDADQUIRIENTECORRIENTE,
+                     REDADQUIRIENTEDIFERIDO, FECHAREGISTRO)
+                    VALUES
+                    (@transId, @tarjeta, @tarjetaEnc,
+                     @bin, @vence, @redCorriente,
+                     @redDiferido, @fecha)";
+
+                _conexion.Ejecutar(sql,
+                    ("transId", transaccionDb),
+                    ("tarjeta", numeroTarjeta ?? ""),
+                    ("tarjetaEnc", numeroTarjetaEncriptado ?? ""),
+                    ("bin", binTarjeta ?? ""),
+                    ("vence", fechaVencimiento ?? ""),
+                    ("redCorriente", redAdquirienteCorriente ?? ""),
+                    ("redDiferido", redAdquirienteDiferido ?? ""),
+                    ("fecha", DateTime.Now));
+            }
+            catch { /* la auditoría no bloquea la operación */ }
         }
 
         // =====================================================================
-        // NO USADOS — el modelo Access es de 3 tablas.
+        // DETALLES TÉCNICOS, TRAMAS Y EVENTOS
         // =====================================================================
 
         public void GuardarDetalleConfigRed(long transaccionId, ConfiguracionRedRequest request)
-        { /* no-op */ }
+        {
+            string transaccionDb = TransaccionDe(transaccionId);
+            if (transaccionDb == null || request == null) return;
+
+            try
+            {
+                string sql = @"INSERT INTO PINPAD_DETALLE_CONFIG_RED
+                    (TRANSACCIONID, DIRECCIONIP, MASCARA, GATEWAY,
+                     PRINCIPALHOST, PRINCIPALPUERTO, ALTERNOHOST,
+                     ALTERNOPUERTO, PUERTOESCUCHA, FECHAREGISTRO)
+                    VALUES
+                    (@transId, @ip, @mascara, @gateway,
+                     @hostPrincipal, @puertoPrincipal, @hostAlterno,
+                     @puertoAlterno, @puertoEscucha, @fecha)";
+
+                _conexion.Ejecutar(sql,
+                    ("transId", transaccionDb),
+                    ("ip", request.DireccionIP ?? ""),
+                    ("mascara", request.Mascara ?? ""),
+                    ("gateway", request.Gateway ?? ""),
+                    ("hostPrincipal", request.PrincipalHost ?? ""),
+                    ("puertoPrincipal", request.PrincipalPuerto ?? ""),
+                    ("hostAlterno", request.AlternoHost ?? ""),
+                    ("puertoAlterno", request.AlternoPuerto ?? ""),
+                    ("puertoEscucha", request.PuertoEscucha ?? ""),
+                    ("fecha", DateTime.Now));
+            }
+            catch { /* la auditoría no bloquea la configuración */ }
+        }
 
         public void GuardarDetalleProcesoControl(long transaccionId, string lote, string referencia)
-        { /* no-op */ }
+        {
+            string transaccionDb = TransaccionDe(transaccionId);
+            if (transaccionDb == null) return;
+
+            try
+            {
+                string sql = @"INSERT INTO PINPAD_DETALLE_PROCESO_CONTROL
+                    (TRANSACCIONID, LOTE, REFERENCIA, FECHAREGISTRO)
+                    VALUES (@transId, @lote, @referencia, @fecha)";
+
+                _conexion.Ejecutar(sql,
+                    ("transId", transaccionDb),
+                    ("lote", lote ?? ""),
+                    ("referencia", referencia ?? ""),
+                    ("fecha", DateTime.Now));
+            }
+            catch { /* la auditoría no bloquea el proceso */ }
+        }
 
         public void GuardarTrama(long transaccionId, string direccion, string tramaHex)
-        { /* no-op */ }
+        {
+            string transaccionDb = TransaccionDe(transaccionId);
+            if (transaccionDb == null || string.IsNullOrWhiteSpace(direccion)) return;
+
+            try
+            {
+                string sql = @"INSERT INTO PINPAD_TRAMAS
+                    (TRANSACCIONID, DIRECCION, TRAMAHEX, FECHAHORA)
+                    VALUES (@transId, @direccion, @trama, @fecha)";
+
+                _conexion.Ejecutar(sql,
+                    ("transId", transaccionDb),
+                    ("direccion", direccion.Trim()),
+                    ("trama", tramaHex ?? ""),
+                    ("fecha", DateTime.Now));
+            }
+            catch { /* la auditoría no bloquea la operación */ }
+        }
 
         public void RegistrarEvento(string tipoEvento, string origen, string mensaje, long? transaccionId = null)
-        { /* no-op */ }
+        {
+            string transaccionDb = transaccionId.HasValue
+                ? TransaccionDe(transaccionId.Value)
+                : null;
+
+            try
+            {
+                string sql = @"INSERT INTO PINPAD_EVENTOS
+                    (TRANSACCIONID, FECHAHORA, TIPOEVENTO, ORIGEN, MENSAJE)
+                    VALUES (@transId, @fecha, @tipo, @origen, @mensaje)";
+
+                _conexion.Ejecutar(sql,
+                    ("transId", (object)transaccionDb ?? DBNull.Value),
+                    ("fecha", DateTime.Now),
+                    ("tipo", tipoEvento ?? ""),
+                    ("origen", origen ?? ""),
+                    ("mensaje", mensaje ?? ""));
+            }
+            catch { /* la auditoría nunca debe tumbar la operación */ }
+        }
     }
 }

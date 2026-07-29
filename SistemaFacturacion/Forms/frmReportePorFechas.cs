@@ -48,9 +48,13 @@ namespace SistemaFacturacion
             gvReporteFecha.CellClick += gvReporteFecha_CellClick;
 
             // Un solo hook: tras cada rebind del DataSource (consulta, ver
-            // pendientes, ver consumidor, recarga) se aplica la visibilidad de
-            // las columnas de tarjeta según el estado del expander.
-            gvReporteFecha.DataBindingComplete += (s, e) => AplicarVisibilidadTarjeta();
+            // pendientes, ver consumidor, recarga) se restaura la presentación
+            // del grid sin alterar el orden real de las columnas del DataTable.
+            gvReporteFecha.DataBindingComplete += (s, e) =>
+            {
+                AplicarVisibilidadTarjeta();
+                ConfigurarColumnasPrincipales();
+            };
         }
 
         // ======================================================
@@ -107,6 +111,24 @@ namespace SistemaFacturacion
                         columna.Width = 150;
                 }
             }
+        }
+
+        private void ConfigurarColumnasPrincipales()
+        {
+            if (!gvReporteFecha.Columns.Contains("FECHA") ||
+                !gvReporteFecha.Columns.Contains("NUMEROFACTURA"))
+                return;
+
+            DataGridViewColumn fecha = gvReporteFecha.Columns["FECHA"];
+            DataGridViewColumn numeroFactura = gvReporteFecha.Columns["NUMEROFACTURA"];
+
+            // Solo cambia su ubicación visual; las operaciones continúan
+            // accediendo a las celdas por nombre.
+            fecha.DisplayIndex = 0;
+            numeroFactura.DisplayIndex = 1;
+
+            fecha.Frozen = true;
+            numeroFactura.Frozen = true;
         }
 
         private static void RepetirDatosTarjetaPorFactura(DataTable tabla)
@@ -1748,6 +1770,9 @@ namespace SistemaFacturacion
                 // ==========================================
                 var req = new AnulacionRequest
                 {
+                    // No forma parte de la trama: permite que incluso una anulación
+                    // rechazada quede vinculada a la factura en PINPAD_LOG.
+                    NumeroFactura = numeroFactura,
                     // El selector de red es el mismo que se mandó al cobrar, no el adquirente.
                     Red = string.IsNullOrWhiteSpace(datos.Red) ? "Datafast" : datos.Red,
                     Autorizacion = datos.Autorizacion,
@@ -1774,10 +1799,10 @@ namespace SistemaFacturacion
                 // ==========================================
                 // REGISTRO CON LA FACTURA REAL
                 // ==========================================
-                // La DLL ya grabó su propia fila, pero bajo un marcador "OP-..." porque
-                // AnulacionRequest no lleva factura. Sin este registro el reporte seguiría
-                // mostrando el cobro como APROBADA.
+                // PINPAD_LOG ya quedó vinculado con la factura. Esta segunda fila marca
+                // la operación aprobada para que el reporte muestre el cobro como ANULADA.
                 _services.PinPadLog.RegistrarAnulacion(
+                    res.TransaccionLogId,
                     numeroFactura,
                     datos.Referencia,
                     datos.Autorizacion,

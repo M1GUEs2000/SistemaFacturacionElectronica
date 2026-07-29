@@ -174,6 +174,10 @@ namespace DF_PinPad.Wrapper.Models
     // =====================================================================
     public class AnulacionRequest
     {
+        /// <summary>Número de la factura cuyo cobro se está anulando. Se usa únicamente
+        /// para correlacionar la auditoría; no se envía en la trama al pinpad.</summary>
+        public string NumeroFactura { get; set; }
+
         /// <summary>"Datafast", "Medianet" o "Austro".</summary>
         public string Red { get; set; } = "Datafast";
 
