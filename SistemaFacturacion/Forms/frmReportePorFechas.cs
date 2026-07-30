@@ -1845,6 +1845,17 @@ namespace SistemaFacturacion
                 return;
             }
 
+            // ==========================================
+            // PLAZO MÁXIMO PARA ANULAR
+            // ==========================================
+            // Va antes de todo: si el plazo venció no tiene sentido consultar el cobro
+            // ni abrir la confirmación.
+            if (PlazoAnulacionVencido(fila, out string motivoPlazo))
+            {
+                Notificaciones.Show(this, motivoPlazo, "advertencia");
+                return;
+            }
+
             try
             {
                 // ==========================================
@@ -1983,6 +1994,95 @@ namespace SistemaFacturacion
                 // y recargar sacaría al usuario de las vistas de pendientes/consumidor.
                 Notificaciones.CerrarProceso(this);
             }
+        }
+
+        // ======================================================
+        // PLAZO MÁXIMO PARA ANULAR
+        // ======================================================
+
+        /// <summary>
+        /// Indica si ya se venció el plazo para anular el cobro de la fila, según el
+        /// parámetro configurado en Parámetros de Transacciones (días o minutos).
+        ///
+        /// Devuelve false — o sea, deja anular — cuando no hay plazo configurado o
+        /// cuando la fila no tiene una fecha legible: el parámetro es opcional y no se
+        /// bloquea una operación válida por un dato que el reporte no pudo interpretar.
+        /// </summary>
+        private bool PlazoAnulacionVencido(DataGridViewRow fila, out string mensaje)
+        {
+            mensaje = "";
+
+            int minutosPermitidos = _services.ParamTransaccion.ObtenerPlazoAnulacionEnMinutos();
+            if (minutosPermitidos <= 0)
+                return false;
+
+            if (!TryObtenerFechaHoraFila(fila, out DateTime emision))
+                return false;
+
+            int minutosTranscurridos = (int)(DateTime.Now - emision).TotalMinutes;
+            if (minutosTranscurridos <= minutosPermitidos)
+                return false;
+
+            mensaje =
+                "⚠ PLAZO DE ANULACIÓN VENCIDO\n\n" +
+                "Factura:        " + (fila.Cells["NUMEROFACTURA"]?.Value?.ToString()?.Trim() ?? "") + "\n" +
+                "Emitida:        " + emision.ToString("yyyy/MM/dd HH:mm") + "\n" +
+                "Transcurrido:   " + DescribirDuracion(minutosTranscurridos) + "\n" +
+                "Plazo máximo:   " + DescribirDuracion(minutosPermitidos) + "\n\n" +
+                "El cobro de esta tarjeta ya no se puede anular.";
+
+            return true;
+        }
+
+        /// <summary>
+        /// Fecha y hora de emisión de la fila, combinando las columnas FECHA y HORA.
+        /// Sin columna HORA el plazo se mide desde la medianoche de ese día.
+        /// </summary>
+        private static bool TryObtenerFechaHoraFila(DataGridViewRow fila, out DateTime emision)
+        {
+            emision = DateTime.MinValue;
+
+            DataGridView grid = fila?.DataGridView;
+            if (grid == null || !grid.Columns.Contains("FECHA"))
+                return false;
+
+            object celdaFecha = fila.Cells["FECHA"].Value;
+
+            if (celdaFecha is DateTime fechaTipada)
+                emision = fechaTipada.Date;
+            else if (!DateTime.TryParse(celdaFecha?.ToString(), out emision))
+                return false;
+            else
+                emision = emision.Date;
+
+            if (!grid.Columns.Contains("HORA"))
+                return true;
+
+            object celdaHora = fila.Cells["HORA"].Value;
+
+            if (celdaHora is TimeSpan horaTipada)
+                emision = emision.Add(horaTipada);
+            else if (celdaHora is DateTime horaComoFecha)
+                emision = emision.Add(horaComoFecha.TimeOfDay);
+            else if (TimeSpan.TryParse(celdaHora?.ToString(), out TimeSpan hora))
+                emision = emision.Add(hora);
+
+            return true;
+        }
+
+        /// <summary>Convierte minutos a un texto legible para el cajero: "2 día(s) 3 h" / "45 min".</summary>
+        private static string DescribirDuracion(int minutos)
+        {
+            if (minutos < 60)
+                return minutos + " min";
+
+            if (minutos < 1440)
+                return (minutos / 60) + " h " + (minutos % 60) + " min";
+
+            int dias = minutos / 1440;
+            int horas = (minutos % 1440) / 60;
+
+            return dias + " día(s) " + horas + " h";
         }
     }
 }

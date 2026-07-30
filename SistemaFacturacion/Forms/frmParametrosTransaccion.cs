@@ -1,3 +1,4 @@
+using LogicaNegocios;
 using LogicaNegocios.Services;
 using System;
 using System.Collections.Generic;
@@ -16,6 +17,13 @@ namespace SistemaFacturacion
 
         private readonly List<FilaDiferido> _filasDiferido = new List<FilaDiferido>();
 
+        // Valor guardado de cada unidad del plazo de anulación. Se conservan aparte para que,
+        // al cambiar de DÍAS a MINUTOS y volver, se reponga lo que hay en la BD y no lo que
+        // quedó seleccionado en pantalla.
+        private string _plazoAnulacionDias = "";
+        private string _plazoAnulacionMinutos = "";
+        private bool _cargandoAnulacion;
+
         public frmParametrosTransaccion(AppServices services)
         {
             InitializeComponent();
@@ -25,6 +33,7 @@ namespace SistemaFacturacion
             CargarPublicidad();
             CargarDiferidos();
             CargarMinimoFirma();
+            CargarPlazoAnulacion();
 
             txtFechaActualizacion.ReadOnly = true;
         }
@@ -39,6 +48,7 @@ namespace SistemaFacturacion
             btnModificar.Click += BtnModificar_Click;
             cmbTipoPago.SelectedIndexChanged += CmbTipoPago_SelectedIndexChanged;
             txtPublicidad.TextChanged += TxtPublicidad_TextChanged;
+            cmbUnidadAnulacion.SelectedIndexChanged += CmbUnidadAnulacion_SelectedIndexChanged;
             this.Load += frmParametrosTransaccion_Load;
         }
 
@@ -59,7 +69,7 @@ namespace SistemaFacturacion
         }
 
         // =========================================================
-        // TIPO DE PAGO (CORRIENTE / DIFERIDO / AMBOS) — la fila ACTIVO=1 es el modo vigente
+        // TIPO DE PAGO (CORRIENTE / DIFERIDO / AMBOS) — la fila ACTIVO=-1 es el modo vigente
         // =========================================================
         private void CargarTipoPago()
         {
@@ -90,7 +100,7 @@ namespace SistemaFacturacion
         // =========================================================
         private void CargarPublicidad()
         {
-            // No se usa ObtenerPublicidad(): ese filtra por ACTIVO=1 y aquí hay que
+            // No se usa ObtenerPublicidad(): ese filtra por ACTIVO=-1 y aquí hay que
             // mostrar el texto aunque la publicidad esté apagada.
             DataSet ds = _services.ParamTransaccion.ConsultarPorCodigo("P");
 
@@ -201,13 +211,80 @@ namespace SistemaFacturacion
         }
 
         // =========================================================
+        // PLAZO MÁXIMO PARA ANULACIONES
+        // Dos filas excluyentes en BD (MAXIMOANULACIONDIAS / MAXIMOANULACIONMINUTOS):
+        // el combo de unidad decide cuál queda activa y el otro combo su valor.
+        // =========================================================
+        private void CargarPlazoAnulacion()
+        {
+            _cargandoAnulacion = true;
+
+            _plazoAnulacionDias = "";
+            _plazoAnulacionMinutos = "";
+            string unidadActiva = "";
+
+            DataSet ds = _services.ParamTransaccion.ObtenerPlazosAnulacion();
+            if (ds != null && ds.Tables.Count > 0)
+            {
+                foreach (DataRow row in ds.Tables[0].Rows)
+                {
+                    string nombre = row["NOMBRE"].ToString().Trim();
+                    string valor = row["VALOR"].ToString().Trim();
+
+                    if (nombre == ParametrosTransaccionesManejador.AnulacionDias)
+                        _plazoAnulacionDias = valor;
+                    else
+                        _plazoAnulacionMinutos = valor;
+
+                    if (Convert.ToBoolean(row["ACTIVO"]))
+                        unidadActiva = nombre;
+                }
+            }
+
+            cmbUnidadAnulacion.Items.Clear();
+            cmbUnidadAnulacion.Items.Add(new ComboItem("Días", ParametrosTransaccionesManejador.AnulacionDias));
+            cmbUnidadAnulacion.Items.Add(new ComboItem("Minutos", ParametrosTransaccionesManejador.AnulacionMinutos));
+
+            // Sin unidad activa en BD se asume minutos, que es el plazo más restrictivo.
+            cmbUnidadAnulacion.SelectedIndex =
+                unidadActiva == ParametrosTransaccionesManejador.AnulacionDias ? 0 : 1;
+
+            _cargandoAnulacion = false;
+            AplicarUnidadPlazo();
+        }
+
+        private void CmbUnidadAnulacion_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (_cargandoAnulacion) return;
+            AplicarUnidadPlazo();
+        }
+
+        /// <summary>Ajusta el tope del plazo según la unidad elegida y repone el valor guardado de esa unidad.</summary>
+        private void AplicarUnidadPlazo()
+        {
+            bool enDias = cmbUnidadAnulacion.SelectedItem is ComboItem unidad
+                && unidad.Value == ParametrosTransaccionesManejador.AnulacionDias;
+
+            // 3 días o 1440 minutos (24 h) — el tope se aplica antes del valor
+            // porque NumericUpDown recorta cualquier Value que exceda el Maximum.
+            numPlazoAnulacion.Maximum = enDias ? 3 : 1440;
+
+            string guardado = enDias ? _plazoAnulacionDias : _plazoAnulacionMinutos;
+            numPlazoAnulacion.Value = int.TryParse(guardado, out int valor)
+                && valor >= numPlazoAnulacion.Minimum
+                && valor <= numPlazoAnulacion.Maximum
+                    ? valor
+                    : numPlazoAnulacion.Minimum;
+        }
+
+        // =========================================================
         // BOTÓN MODIFICAR — guarda tipo de pago vigente, activos/cuotas de cada diferido y mínimo de firma
         // =========================================================
         private void BtnModificar_Click(object sender, EventArgs e)
         {
             if (!(cmbTipoPago.SelectedItem is ComboItem tipoPago))
             {
-                MessageBox.Show("Seleccione el Tipo de Pago.");
+                Notificaciones.Show(this, "Seleccione el Tipo de Pago.", "advertencia");
                 return;
             }
 
@@ -271,11 +348,22 @@ namespace SistemaFacturacion
                 IPActual
             );
 
-            MessageBox.Show("Parámetros modificados correctamente.");
+            if (cmbUnidadAnulacion.SelectedItem is ComboItem unidadAnulacion)
+            {
+                _services.ParamTransaccion.GuardarPlazoAnulacion(
+                    unidadAnulacion.Value,
+                    ((int)numPlazoAnulacion.Value).ToString(),
+                    UsuarioActual,
+                    IPActual
+                );
+            }
+
+            Notificaciones.Show(this, "Parámetros modificados correctamente.", "exito");
             CargarTipoPago();
             CargarPublicidad();
             CargarDiferidos();
             CargarMinimoFirma();
+            CargarPlazoAnulacion();
         }
 
         private class FilaDiferido

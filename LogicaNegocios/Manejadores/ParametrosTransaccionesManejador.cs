@@ -7,16 +7,26 @@ namespace LogicaNegocios
     /// <summary>
     /// Manejador de la tabla lookup PARAMETROS_TRANSACCIONES (NOMBRE / VALOR / CODIGO / ACTIVO).
     ///
+    /// ACTIVO es booleano de Access: verdadero = -1, falso = 0.
+    ///
     /// Relación entre registros (por CODIGO compartido):
-    ///   NOMBRE=TIPOPAGO      VALOR=DIFERIDO/CORRIENTE/AMBOS   CODIGO=D/C/A   (ACTIVO=1 marca el modo vigente)
-    ///   NOMBRE=TIPODIFERIDO  VALOR=SIN INTERESES...           CODIGO=T1..T7  (ACTIVO=1 marca los habilitados en el sistema)
+    ///   NOMBRE=TIPOPAGO      VALOR=DIFERIDO/CORRIENTE/AMBOS   CODIGO=D/C/A   (ACTIVO=-1 marca el modo vigente)
+    ///   NOMBRE=TIPODIFERIDO  VALOR=SIN INTERESES...           CODIGO=T1..T7  (ACTIVO=-1 marca los habilitados en el sistema)
     ///   NOMBRE=CUOTA         VALOR=(nº cuotas)                CODIGO=T1..T7  (ligada a su TIPODIFERIDO por mismo CODIGO)
     ///   NOMBRE=MINIMOFIRMA   VALOR=10                         CODIGO=F1
     ///   NOMBRE=MODOPAGO      VALOR=MANUAL - TOKEN MANUAL/BANDA/CHIP/FALLBACK MANUAL (CHIP)/FALLBACK BANDA (CHIP)/CTLS - TOKEN CTLS   CODIGO=01..06
-    ///   NOMBRE=PUBLICIDAD    VALOR=(texto de publicidad)      CODIGO=P       (ACTIVO=1 marca si se muestra)
+    ///   NOMBRE=PUBLICIDAD    VALOR=(texto de publicidad)      CODIGO=P       (ACTIVO=-1 marca si se muestra)
+    ///   NOMBRE=MAXIMOANULACIONDIAS     VALOR=(nº días)        CODIGO=MAD     (excluyente con MAXIMOANULACIONMINUTOS)
+    ///   NOMBRE=MAXIMOANULACIONMINUTOS  VALOR=(nº minutos)     CODIGO=MAM     (excluyente con MAXIMOANULACIONDIAS)
     /// </summary>
     public class ParametrosTransaccionesManejador
     {
+        // Plazo máximo de anulación: solo una de las dos unidades puede estar activa a la vez.
+        public const string AnulacionDias = "MAXIMOANULACIONDIAS";
+        public const string AnulacionMinutos = "MAXIMOANULACIONMINUTOS";
+        private const string CodigoAnulacionDias = "MAD";
+        private const string CodigoAnulacionMinutos = "MAM";
+
         private readonly IConexionBD _conexion;
         private readonly LogManejador _log;
 
@@ -70,7 +80,7 @@ namespace LogicaNegocios
         // FILTROS RELACIONADOS
         // ===========================
 
-        /// <summary>Opciones de TIPO DE PAGO (CORRIENTE / DIFERIDO / AMBOS). La marcada ACTIVO=1 es el modo vigente.</summary>
+        /// <summary>Opciones de TIPO DE PAGO (CORRIENTE / DIFERIDO / AMBOS). La marcada ACTIVO=-1 es el modo vigente.</summary>
         public DataSet ObtenerTiposPago()
         {
             return ConsultarPorNombre("TIPOPAGO");
@@ -82,13 +92,13 @@ namespace LogicaNegocios
             return ConsultarPorNombre("TIPODIFERIDO");
         }
 
-        /// <summary>Tipos de diferido habilitados (ACTIVO=1) — lo que debe ofrecer el resto del sistema.</summary>
+        /// <summary>Tipos de diferido habilitados (ACTIVO=-1) — lo que debe ofrecer el resto del sistema.</summary>
         public DataSet ObtenerTiposDiferidoActivos()
         {
             string sql = @"SELECT NOMBRE, VALOR, CODIGO, ACTIVO
                            FROM PARAMETROS_TRANSACCIONES
                            WHERE NOMBRE = 'TIPODIFERIDO'
-                             AND ACTIVO = 1
+                             AND ACTIVO = -1
                            ORDER BY CODIGO";
 
             return _conexion.Seleccionar(sql);
@@ -114,13 +124,13 @@ namespace LogicaNegocios
             return ConsultarPorNombre("MODOPAGO");
         }
 
-        /// <summary>Modos de pago habilitados (ACTIVO=1) — lo que debe ofrecer el resto del sistema.</summary>
+        /// <summary>Modos de pago habilitados (ACTIVO=-1) — lo que debe ofrecer el resto del sistema.</summary>
         public DataSet ObtenerModosPagoActivos()
         {
             string sql = @"SELECT NOMBRE, VALOR, CODIGO, ACTIVO
                            FROM PARAMETROS_TRANSACCIONES
                            WHERE NOMBRE = 'MODOPAGO'
-                             AND ACTIVO = 1
+                             AND ACTIVO = -1
                            ORDER BY CODIGO";
 
             return _conexion.Seleccionar(sql);
@@ -166,6 +176,81 @@ namespace LogicaNegocios
                 return "";
 
             return ds.Tables[0].Rows[0]["VALOR"].ToString().Trim();
+        }
+
+        // ===========================
+        // PLAZO MÁXIMO DE ANULACIÓN
+        // ===========================
+
+        /// <summary>
+        /// Las dos filas del plazo de anulación (días y minutos) con su VALOR y ACTIVO.
+        /// Sirve para poblar el formulario mostrando el valor guardado de ambas unidades.
+        /// </summary>
+        public DataSet ObtenerPlazosAnulacion()
+        {
+            string sql = @"SELECT NOMBRE, VALOR, CODIGO, ACTIVO
+                           FROM PARAMETROS_TRANSACCIONES
+                           WHERE NOMBRE IN (@dias, @minutos)
+                           ORDER BY NOMBRE";
+
+            return _conexion.Seleccionar(sql, ("dias", AnulacionDias), ("minutos", AnulacionMinutos));
+        }
+
+        /// <summary>
+        /// Unidad vigente del plazo de anulación: <see cref="AnulacionDias"/>,
+        /// <see cref="AnulacionMinutos"/> o "" si ninguna está activa.
+        /// </summary>
+        public string ObtenerUnidadAnulacionActiva()
+        {
+            string sql = @"SELECT NOMBRE
+                           FROM PARAMETROS_TRANSACCIONES
+                           WHERE NOMBRE IN (@dias, @minutos)
+                             AND ACTIVO = -1";
+
+            DataSet ds = _conexion.Seleccionar(sql, ("dias", AnulacionDias), ("minutos", AnulacionMinutos));
+
+            if (ds.Tables.Count == 0 || ds.Tables[0].Rows.Count == 0)
+                return "";
+
+            return ds.Tables[0].Rows[0]["NOMBRE"].ToString().Trim();
+        }
+
+        /// <summary>
+        /// Plazo máximo de anulación expresado en minutos, sin importar la unidad configurada.
+        /// Devuelve 0 si no hay unidad activa o el valor guardado no es numérico (= no se permite anular).
+        /// </summary>
+        public int ObtenerPlazoAnulacionEnMinutos()
+        {
+            string unidad = ObtenerUnidadAnulacionActiva();
+            if (unidad.Length == 0)
+                return 0;
+
+            if (!int.TryParse(ObtenerValorPorNombre(unidad), out int valor) || valor <= 0)
+                return 0;
+
+            return unidad == AnulacionDias ? valor * 24 * 60 : valor;
+        }
+
+        /// <summary>
+        /// Guarda el plazo de anulación en la unidad indicada y garantiza la exclusión mutua:
+        /// activa la fila de esa unidad y desactiva la otra.
+        /// </summary>
+        /// <param name="Nombre"><see cref="AnulacionDias"/> o <see cref="AnulacionMinutos"/>.</param>
+        public int GuardarPlazoAnulacion(string Nombre, string Valor, string Usuario, string IP)
+        {
+            if (Nombre != AnulacionDias && Nombre != AnulacionMinutos)
+                throw new ArgumentException("Unidad de plazo de anulación no válida: " + Nombre, nameof(Nombre));
+
+            bool enDias = Nombre == AnulacionDias;
+            string codigo = enDias ? CodigoAnulacionDias : CodigoAnulacionMinutos;
+            string otroNombre = enDias ? AnulacionMinutos : AnulacionDias;
+            string otroCodigo = enDias ? CodigoAnulacionMinutos : CodigoAnulacionDias;
+
+            int filas = Actualizar(codigo, Nombre, Valor, Usuario, IP);
+            ActualizarActivo(codigo, Nombre, true, Usuario, IP);
+            ActualizarActivo(otroCodigo, otroNombre, false, Usuario, IP);
+
+            return filas;
         }
 
         // ===========================

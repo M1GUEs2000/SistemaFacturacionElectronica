@@ -38,6 +38,9 @@ namespace SistemaFacturacion
             this.numBaucher = new System.Windows.Forms.NumericUpDown();
             this.panelDiferidos = new System.Windows.Forms.Panel();
             this.cmbTipoPago = new System.Windows.Forms.ComboBox();
+            this.lblPlazoAnulacion = new System.Windows.Forms.Label();
+            this.numPlazoAnulacion = new System.Windows.Forms.NumericUpDown();
+            this.cmbUnidadAnulacion = new System.Windows.Forms.ComboBox();
             this.label7 = new System.Windows.Forms.Label();
             this.btnModificar = new System.Windows.Forms.Button();
             this.panel4 = new System.Windows.Forms.Panel();
@@ -48,6 +51,7 @@ namespace SistemaFacturacion
             this.panel1.SuspendLayout();
             this.panel3.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numBaucher)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numPlazoAnulacion)).BeginInit();
             this.panel4.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -72,6 +76,9 @@ namespace SistemaFacturacion
             this.panel3.Controls.Add(this.numBaucher);
             this.panel3.Controls.Add(this.panelDiferidos);
             this.panel3.Controls.Add(this.cmbTipoPago);
+            this.panel3.Controls.Add(this.lblPlazoAnulacion);
+            this.panel3.Controls.Add(this.numPlazoAnulacion);
+            this.panel3.Controls.Add(this.cmbUnidadAnulacion);
             this.panel3.Controls.Add(this.label7);
             this.panel3.Controls.Add(this.btnModificar);
             this.panel3.Controls.Add(this.panel4);
@@ -157,8 +164,49 @@ namespace SistemaFacturacion
             this.cmbTipoPago.FormattingEnabled = true;
             this.cmbTipoPago.Location = new System.Drawing.Point(160, 43);
             this.cmbTipoPago.Name = "cmbTipoPago";
-            this.cmbTipoPago.Size = new System.Drawing.Size(363, 21);
+            this.cmbTipoPago.Size = new System.Drawing.Size(154, 21);
             this.cmbTipoPago.TabIndex = 49;
+            // 
+            // lblPlazoAnulacion
+            // 
+            this.lblPlazoAnulacion.AutoSize = true;
+            this.lblPlazoAnulacion.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblPlazoAnulacion.Location = new System.Drawing.Point(330, 46);
+            this.lblPlazoAnulacion.Name = "lblPlazoAnulacion";
+            this.lblPlazoAnulacion.Size = new System.Drawing.Size(110, 13);
+            this.lblPlazoAnulacion.TabIndex = 66;
+            this.lblPlazoAnulacion.Text = "Plazo máx. anulación:";
+            // 
+            // numPlazoAnulacion
+            // 
+            this.numPlazoAnulacion.Location = new System.Drawing.Point(554, 44);
+            this.numPlazoAnulacion.Maximum = new decimal(new int[] {
+            1440,
+            0,
+            0,
+            0});
+            this.numPlazoAnulacion.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.numPlazoAnulacion.Name = "numPlazoAnulacion";
+            this.numPlazoAnulacion.Size = new System.Drawing.Size(70, 20);
+            this.numPlazoAnulacion.TabIndex = 67;
+            this.numPlazoAnulacion.Value = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            // 
+            // cmbUnidadAnulacion
+            // 
+            this.cmbUnidadAnulacion.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbUnidadAnulacion.FormattingEnabled = true;
+            this.cmbUnidadAnulacion.Location = new System.Drawing.Point(446, 43);
+            this.cmbUnidadAnulacion.Name = "cmbUnidadAnulacion";
+            this.cmbUnidadAnulacion.Size = new System.Drawing.Size(90, 21);
+            this.cmbUnidadAnulacion.TabIndex = 68;
             // 
             // label7
             // 
@@ -244,6 +292,7 @@ namespace SistemaFacturacion
             this.panel3.ResumeLayout(false);
             this.panel3.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numBaucher)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numPlazoAnulacion)).EndInit();
             this.panel4.ResumeLayout(false);
             this.panel4.PerformLayout();
             this.ResumeLayout(false);
@@ -270,5 +319,8 @@ namespace SistemaFacturacion
         private System.Windows.Forms.TextBox txtPublicidad;
         private System.Windows.Forms.Label lblContadorPublicidad;
         private System.Windows.Forms.CheckBox chkPublicidadActiva;
+        private System.Windows.Forms.Label lblPlazoAnulacion;
+        private System.Windows.Forms.NumericUpDown numPlazoAnulacion;
+        private System.Windows.Forms.ComboBox cmbUnidadAnulacion;
     }
 }
