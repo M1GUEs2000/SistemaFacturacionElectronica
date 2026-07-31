@@ -108,7 +108,7 @@
             this.txtTelefono.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.5F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtTelefono.Location = new System.Drawing.Point(94, 234);
             this.txtTelefono.Name = "txtTelefono";
-            this.txtTelefono.Size = new System.Drawing.Size(300, 22);
+            this.txtTelefono.Size = new System.Drawing.Size(328, 22);
             this.txtTelefono.TabIndex = 4;
             // 
             // panel4
@@ -206,7 +206,7 @@
             this.txtDireccion.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.5F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtDireccion.Location = new System.Drawing.Point(94, 189);
             this.txtDireccion.Name = "txtDireccion";
-            this.txtDireccion.Size = new System.Drawing.Size(300, 22);
+            this.txtDireccion.Size = new System.Drawing.Size(328, 22);
             this.txtDireccion.TabIndex = 3;
             // 
             // txtCorreo
@@ -214,7 +214,7 @@
             this.txtCorreo.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.5F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtCorreo.Location = new System.Drawing.Point(94, 147);
             this.txtCorreo.Name = "txtCorreo";
-            this.txtCorreo.Size = new System.Drawing.Size(300, 22);
+            this.txtCorreo.Size = new System.Drawing.Size(328, 22);
             this.txtCorreo.TabIndex = 2;
             // 
             // txtNombre
@@ -222,7 +222,7 @@
             this.txtNombre.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.5F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtNombre.Location = new System.Drawing.Point(94, 106);
             this.txtNombre.Name = "txtNombre";
-            this.txtNombre.Size = new System.Drawing.Size(300, 22);
+            this.txtNombre.Size = new System.Drawing.Size(328, 22);
             this.txtNombre.TabIndex = 1;
             // 
             // txtCedula
@@ -230,7 +230,7 @@
             this.txtCedula.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.5F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtCedula.Location = new System.Drawing.Point(94, 66);
             this.txtCedula.Name = "txtCedula";
-            this.txtCedula.Size = new System.Drawing.Size(300, 22);
+            this.txtCedula.Size = new System.Drawing.Size(328, 22);
             this.txtCedula.TabIndex = 0;
             // 
             // dataGridView1

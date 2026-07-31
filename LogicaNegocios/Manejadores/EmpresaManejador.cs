@@ -198,7 +198,8 @@ INSERT INTO EMPRESA(
             string Imagen,
             string EstadoRuc,
             string Usuario,
-            string IP
+            string IP,
+            string RucProveedor = null
         )
         {
             if (!string.IsNullOrEmpty(Nombre))
@@ -206,8 +207,15 @@ INSERT INTO EMPRESA(
             if (!string.IsNullOrEmpty(UsuarioLogin))
                 UsuarioLogin = UsuarioLogin.Replace("'", "''");
 
+            // null = el llamador no envía el dato, se conserva el valor actual en BD.
+            string setRucProveedor = RucProveedor == null
+                ? ""
+                : "    RUCPROVEEDOR = '" + RucProveedor.Replace("'", "''") + @"',
+";
+
             string sql = @"
 UPDATE EMPRESA SET
+" + setRucProveedor + @"
     DIRECCION = '" + Direccion + @"',
     USUARIO = '" + UsuarioLogin + @"',
     CLAVEINGRESO = '" + ClaveIngreso + @"',

@@ -57,7 +57,7 @@
             this.panel1.Controls.Add(this.panel3);
             this.panel1.Location = new System.Drawing.Point(13, 13);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(569, 322);
+            this.panel1.Size = new System.Drawing.Size(740, 322);
             this.panel1.TabIndex = 0;
             // 
             // panel3
@@ -80,7 +80,7 @@
             this.panel3.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.panel3.Location = new System.Drawing.Point(12, 13);
             this.panel3.Name = "panel3";
-            this.panel3.Size = new System.Drawing.Size(541, 291);
+            this.panel3.Size = new System.Drawing.Size(717, 291);
             this.panel3.TabIndex = 2;
             // 
             // label6
@@ -98,7 +98,7 @@
             this.txtTelefono.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtTelefono.Location = new System.Drawing.Point(94, 236);
             this.txtTelefono.Name = "txtTelefono";
-            this.txtTelefono.Size = new System.Drawing.Size(198, 23);
+            this.txtTelefono.Size = new System.Drawing.Size(405, 23);
             this.txtTelefono.TabIndex = 4;
             // 
             // panel4
@@ -107,7 +107,7 @@
             this.panel4.Controls.Add(this.label5);
             this.panel4.Location = new System.Drawing.Point(0, 0);
             this.panel4.Name = "panel4";
-            this.panel4.Size = new System.Drawing.Size(541, 39);
+            this.panel4.Size = new System.Drawing.Size(717, 39);
             this.panel4.TabIndex = 15;
             // 
             // label5
@@ -124,7 +124,7 @@
             // btnModificar
             // 
             this.btnModificar.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnModificar.Location = new System.Drawing.Point(324, 141);
+            this.btnModificar.Location = new System.Drawing.Point(524, 151);
             this.btnModificar.Name = "btnModificar";
             this.btnModificar.Size = new System.Drawing.Size(172, 47);
             this.btnModificar.TabIndex = 13;
@@ -134,7 +134,7 @@
             // btnEliminar
             // 
             this.btnEliminar.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnEliminar.Location = new System.Drawing.Point(324, 208);
+            this.btnEliminar.Location = new System.Drawing.Point(524, 218);
             this.btnEliminar.Name = "btnEliminar";
             this.btnEliminar.Size = new System.Drawing.Size(172, 47);
             this.btnEliminar.TabIndex = 12;
@@ -144,7 +144,7 @@
             // btnGuardar
             // 
             this.btnGuardar.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnGuardar.Location = new System.Drawing.Point(324, 72);
+            this.btnGuardar.Location = new System.Drawing.Point(524, 82);
             this.btnGuardar.Name = "btnGuardar";
             this.btnGuardar.Size = new System.Drawing.Size(172, 47);
             this.btnGuardar.TabIndex = 11;
@@ -196,7 +196,7 @@
             this.txtDireccion.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtDireccion.Location = new System.Drawing.Point(94, 192);
             this.txtDireccion.Name = "txtDireccion";
-            this.txtDireccion.Size = new System.Drawing.Size(198, 23);
+            this.txtDireccion.Size = new System.Drawing.Size(405, 23);
             this.txtDireccion.TabIndex = 3;
             // 
             // txtCorreo
@@ -204,7 +204,7 @@
             this.txtCorreo.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtCorreo.Location = new System.Drawing.Point(94, 150);
             this.txtCorreo.Name = "txtCorreo";
-            this.txtCorreo.Size = new System.Drawing.Size(198, 23);
+            this.txtCorreo.Size = new System.Drawing.Size(405, 23);
             this.txtCorreo.TabIndex = 2;
             // 
             // txtNombre
@@ -212,7 +212,7 @@
             this.txtNombre.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtNombre.Location = new System.Drawing.Point(94, 109);
             this.txtNombre.Name = "txtNombre";
-            this.txtNombre.Size = new System.Drawing.Size(198, 23);
+            this.txtNombre.Size = new System.Drawing.Size(405, 23);
             this.txtNombre.TabIndex = 1;
             // 
             // txtCedula
@@ -220,14 +220,14 @@
             this.txtCedula.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtCedula.Location = new System.Drawing.Point(94, 69);
             this.txtCedula.Name = "txtCedula";
-            this.txtCedula.Size = new System.Drawing.Size(198, 23);
+            this.txtCedula.Size = new System.Drawing.Size(405, 23);
             this.txtCedula.TabIndex = 0;
             // 
             // frmClientesDatos
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(593, 350);
+            this.ClientSize = new System.Drawing.Size(765, 350);
             this.Controls.Add(this.panel1);
             this.MaximizeBox = false;
             this.Name = "frmClientesDatos";

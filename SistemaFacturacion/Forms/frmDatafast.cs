@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Drawing;
@@ -69,13 +70,15 @@ namespace SistemaFacturacion
 
         // Consulta de auditoría del pinpad.
         private DateTimePicker _dtpLogDesde, _dtpLogHasta;
-        private TextBox _txtLogTarjeta, _txtLogFactura;
-        private ListBox _lstLogTarjetas, _lstLogFacturas;
+        private TextBox _txtLogTarjeta, _txtLogFactura, _txtLogAutorizacion, _txtLogReferencia;
         private ComboBox _cmbLogTipoOperacion;
         private Button _btnConsultarLog;
         private DataGridView _gvLogPinPad;
         private Label _lblLogResultado;
-        private bool _seleccionandoLogTarjeta, _seleccionandoLogFactura;
+
+        // Listas de autocompletado del panel de filtros; se registran aquí para poder
+        // ocultar las demás cuando se despliega una.
+        private readonly List<ListBox> _listasSugerenciasLog = new List<ListBox>();
 
         /// <summary>
         /// Constructor sin servicios para que el diseñador de Windows Forms pueda
@@ -200,109 +203,111 @@ namespace SistemaFacturacion
         // =========================================================
         private void ConstruirTabLogPinPad(TabPage tab)
         {
+            // Rejilla de filtros: tres filas y dos columnas fijas (la primera fila usa una
+            // tercera para el tipo de operación). Las columnas comparten X y ancho para que
+            // los campos de abajo queden alineados entre sí.
+            const int colALabel = 18, colACampo = 130;
+            const int colBLabel = 330, colBCampo = 452;
+            const int colCLabel = 652, colCCampo = 770;
+            const int anchoCampo = 180;
+            const int fila1 = 16, fila2 = 56, fila3 = 96;
+            const int altoCampo = 24;
+
             var panelFiltros = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 160,
+                Height = 186,
                 BackColor = SystemColors.ControlDarkDark
             };
 
-            panelFiltros.Controls.Add(new Label
-            {
-                Text = "Fecha desde:",
-                Location = new Point(18, 18),
-                AutoSize = true,
-                ForeColor = Color.White
-            });
+            AgregarLabelFiltro(panelFiltros, "Fecha desde:", colALabel, fila1);
             _dtpLogDesde = new DateTimePicker
             {
-                Location = new Point(108, 14),
-                Size = new Size(128, 24),
+                Location = new Point(colACampo, fila1),
+                Size = new Size(anchoCampo, altoCampo),
                 Format = DateTimePickerFormat.Custom,
                 CustomFormat = "yyyy/MM/dd",
                 Value = DateTime.Today
             };
             panelFiltros.Controls.Add(_dtpLogDesde);
 
-            panelFiltros.Controls.Add(new Label
-            {
-                Text = "Fecha hasta:",
-                Location = new Point(258, 18),
-                AutoSize = true,
-                ForeColor = Color.White
-            });
+            AgregarLabelFiltro(panelFiltros, "Fecha hasta:", colBLabel, fila1);
             _dtpLogHasta = new DateTimePicker
             {
-                Location = new Point(342, 14),
-                Size = new Size(128, 24),
+                Location = new Point(colBCampo, fila1),
+                Size = new Size(anchoCampo, altoCampo),
                 Format = DateTimePickerFormat.Custom,
                 CustomFormat = "yyyy/MM/dd",
                 Value = DateTime.Today
             };
             panelFiltros.Controls.Add(_dtpLogHasta);
 
-            panelFiltros.Controls.Add(new Label
-            {
-                Text = "Tarjeta:",
-                Location = new Point(492, 18),
-                AutoSize = true,
-                ForeColor = Color.White
-            });
-            _txtLogTarjeta = new TextBox { Location = new Point(550, 14), Size = new Size(170, 24) };
-            _txtLogTarjeta.TextChanged += TxtLogTarjeta_TextChanged;
-            panelFiltros.Controls.Add(_txtLogTarjeta);
-
-            _lstLogTarjetas = new ListBox
-            {
-                Location = new Point(550, 38),
-                Size = new Size(170, 96),
-                IntegralHeight = false,
-                Visible = false
-            };
-            _lstLogTarjetas.SelectedIndexChanged += LstLogTarjetas_SelectedIndexChanged;
-            panelFiltros.Controls.Add(_lstLogTarjetas);
-
-            panelFiltros.Controls.Add(new Label
-            {
-                Text = "Factura:",
-                Location = new Point(492, 62),
-                AutoSize = true,
-                ForeColor = Color.White
-            });
-            _txtLogFactura = new TextBox { Location = new Point(550, 58), Size = new Size(170, 24) };
-            _txtLogFactura.TextChanged += TxtLogFactura_TextChanged;
-            panelFiltros.Controls.Add(_txtLogFactura);
-
-            _lstLogFacturas = new ListBox
-            {
-                Location = new Point(550, 82),
-                Size = new Size(170, 70),
-                IntegralHeight = false,
-                Visible = false
-            };
-            _lstLogFacturas.SelectedIndexChanged += LstLogFacturas_SelectedIndexChanged;
-            panelFiltros.Controls.Add(_lstLogFacturas);
-
-            panelFiltros.Controls.Add(new Label
-            {
-                Text = "Tipo de operación:",
-                Location = new Point(18, 62),
-                AutoSize = true,
-                ForeColor = Color.White
-            });
+            AgregarLabelFiltro(panelFiltros, "Tipo de operación:", colCLabel, fila1);
             _cmbLogTipoOperacion = new ComboBox
             {
-                Location = new Point(138, 58),
-                Size = new Size(230, 24),
+                Location = new Point(colCCampo, fila1),
+                Size = new Size(anchoCampo, altoCampo),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
             panelFiltros.Controls.Add(_cmbLogTipoOperacion);
 
+            AgregarLabelFiltro(panelFiltros, "Núm. tarjeta:", colALabel, fila2);
+            _txtLogTarjeta = new TextBox
+            {
+                Location = new Point(colACampo, fila2),
+                Size = new Size(anchoCampo, altoCampo)
+            };
+            panelFiltros.Controls.Add(_txtLogTarjeta);
+
+            AgregarLabelFiltro(panelFiltros, "Núm. autorización:", colBLabel, fila2);
+            _txtLogAutorizacion = new TextBox
+            {
+                Location = new Point(colBCampo, fila2),
+                Size = new Size(anchoCampo, altoCampo)
+            };
+            panelFiltros.Controls.Add(_txtLogAutorizacion);
+
+            AgregarLabelFiltro(panelFiltros, "Núm. factura:", colALabel, fila3);
+            _txtLogFactura = new TextBox
+            {
+                Location = new Point(colACampo, fila3),
+                Size = new Size(anchoCampo, altoCampo)
+            };
+            panelFiltros.Controls.Add(_txtLogFactura);
+
+            AgregarLabelFiltro(panelFiltros, "Núm. referencia:", colBLabel, fila3);
+            _txtLogReferencia = new TextBox
+            {
+                Location = new Point(colBCampo, fila3),
+                Size = new Size(anchoCampo, altoCampo)
+            };
+            panelFiltros.Controls.Add(_txtLogReferencia);
+
+            // Autocompletado de los cuatro campos de texto. Las listas se despliegan sobre
+            // la fila siguiente y se traen al frente al mostrarse.
+            AgregarSugerencias(panelFiltros, _txtLogTarjeta,
+                new Rectangle(colACampo, fila2 + altoCampo + 2, anchoCampo, 90),
+                texto => _services.PinPadLog.ConsultarTarjetas(texto), "NUMEROTARJETA");
+
+            AgregarSugerencias(panelFiltros, _txtLogAutorizacion,
+                new Rectangle(colBCampo, fila2 + altoCampo + 2, anchoCampo, 90),
+                texto => _services.PinPadLog.ConsultarAutorizaciones(texto), "AUTORIZACION");
+
+            AgregarSugerencias(panelFiltros, _txtLogFactura,
+                new Rectangle(colACampo, fila3 + altoCampo + 2, anchoCampo, 60),
+                texto => _services.PinPadLog.ConsultarFacturas(texto), "NUMEROFACTURA");
+
+            AgregarSugerencias(panelFiltros, _txtLogReferencia,
+                new Rectangle(colBCampo, fila3 + altoCampo + 2, anchoCampo, 60),
+                texto => _services.PinPadLog.ConsultarReferencias(texto), "REFERENCIA");
+
+            // Botón justo debajo del tipo de operación (columna C, fila 2) y la leyenda
+            // bajo él, alineada con la fila 3.
             _btnConsultarLog = new Button
             {
                 Text = "Consultar",
-                Location = new Point(748, 13),
-                Size = new Size(145, 38),
+                Location = new Point(colCCampo, fila2 - 3),
+                Size = new Size(anchoCampo, 34),
                 BackColor = Color.White,
                 UseVisualStyleBackColor = false
             };
@@ -312,8 +317,8 @@ namespace SistemaFacturacion
             _lblLogResultado = new Label
             {
                 Text = "Doble clic en una fila para verla completa.",
-                Location = new Point(748, 61),
-                Size = new Size(305, 42),
+                Location = new Point(colCCampo, fila3 + 4),
+                Size = new Size(300, 40),
                 ForeColor = Color.White
             };
             panelFiltros.Controls.Add(_lblLogResultado);
@@ -339,110 +344,96 @@ namespace SistemaFacturacion
             tab.Controls.Add(panelFiltros);
         }
 
-        private void TxtLogTarjeta_TextChanged(object sender, EventArgs e)
+        /// <summary>Etiqueta blanca sobre el panel oscuro, centrada respecto a su campo.</summary>
+        private static void AgregarLabelFiltro(Panel panel, string texto, int x, int y)
         {
-            if (_seleccionandoLogTarjeta)
-                return;
-
-            _lstLogFacturas.Visible = false;
-            CargarSugerenciasTarjeta();
+            panel.Controls.Add(new Label
+            {
+                Text = texto,
+                Location = new Point(x, y + 4),
+                AutoSize = true,
+                ForeColor = Color.White
+            });
         }
 
-        private void CargarSugerenciasTarjeta()
+        /// <summary>
+        /// Engancha un campo de texto con su lista de sugerencias: al escribir consulta los
+        /// valores distintos de la columna y los despliega; al elegir uno lo copia al campo.
+        /// El indicador `seleccionando` evita que el TextChanged que dispara esa copia
+        /// vuelva a lanzar la consulta.
+        /// </summary>
+        private void AgregarSugerencias(Panel panel, TextBox campo, Rectangle area,
+            Func<string, DataSet> consulta, string columna)
         {
-            string texto = _txtLogTarjeta.Text.Trim();
-            _lstLogTarjetas.Items.Clear();
-
-            if (texto.Length == 0)
+            var lista = new ListBox
             {
-                _lstLogTarjetas.Visible = false;
-                return;
-            }
+                Bounds = area,
+                IntegralHeight = false,
+                Visible = false
+            };
 
-            try
+            bool seleccionando = false;
+
+            campo.TextChanged += (s, e) =>
             {
-                DataSet ds = _services.PinPadLog.ConsultarTarjetas(texto);
-                if (ds == null || ds.Tables.Count == 0)
+                if (seleccionando)
+                    return;
+
+                OcultarSugerenciasLog(lista);
+                lista.Items.Clear();
+
+                string texto = campo.Text.Trim();
+                if (texto.Length == 0)
                 {
-                    _lstLogTarjetas.Visible = false;
+                    lista.Visible = false;
                     return;
                 }
 
-                foreach (DataRow fila in ds.Tables[0].Rows)
-                    _lstLogTarjetas.Items.Add(fila["NUMEROTARJETA"].ToString());
-
-                _lstLogTarjetas.Visible = _lstLogTarjetas.Items.Count > 0;
-                _lstLogTarjetas.BringToFront();
-            }
-            catch
-            {
-                _lstLogTarjetas.Visible = false;
-            }
-        }
-
-        private void LstLogTarjetas_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (_lstLogTarjetas.SelectedItem == null)
-                return;
-
-            _seleccionandoLogTarjeta = true;
-            _txtLogTarjeta.Text = _lstLogTarjetas.SelectedItem.ToString();
-            _seleccionandoLogTarjeta = false;
-            _lstLogTarjetas.Visible = false;
-            _txtLogTarjeta.Focus();
-        }
-
-        private void TxtLogFactura_TextChanged(object sender, EventArgs e)
-        {
-            if (_seleccionandoLogFactura)
-                return;
-
-            _lstLogTarjetas.Visible = false;
-            CargarSugerenciasFactura();
-        }
-
-        private void CargarSugerenciasFactura()
-        {
-            string texto = _txtLogFactura.Text.Trim();
-            _lstLogFacturas.Items.Clear();
-
-            if (texto.Length == 0)
-            {
-                _lstLogFacturas.Visible = false;
-                return;
-            }
-
-            try
-            {
-                DataSet ds = _services.PinPadLog.ConsultarFacturas(texto);
-                if (ds == null || ds.Tables.Count == 0)
+                try
                 {
-                    _lstLogFacturas.Visible = false;
-                    return;
+                    DataSet ds = consulta(texto);
+                    if (ds == null || ds.Tables.Count == 0)
+                    {
+                        lista.Visible = false;
+                        return;
+                    }
+
+                    foreach (DataRow fila in ds.Tables[0].Rows)
+                        lista.Items.Add(fila[columna].ToString());
+
+                    lista.Visible = lista.Items.Count > 0;
+                    lista.BringToFront();
                 }
+                catch
+                {
+                    lista.Visible = false;
+                }
+            };
 
-                foreach (DataRow fila in ds.Tables[0].Rows)
-                    _lstLogFacturas.Items.Add(fila["NUMEROFACTURA"].ToString());
-
-                _lstLogFacturas.Visible = _lstLogFacturas.Items.Count > 0;
-                _lstLogFacturas.BringToFront();
-            }
-            catch
+            lista.SelectedIndexChanged += (s, e) =>
             {
-                _lstLogFacturas.Visible = false;
-            }
+                if (lista.SelectedItem == null)
+                    return;
+
+                seleccionando = true;
+                campo.Text = lista.SelectedItem.ToString();
+                seleccionando = false;
+                lista.Visible = false;
+                campo.Focus();
+            };
+
+            _listasSugerenciasLog.Add(lista);
+            panel.Controls.Add(lista);
         }
 
-        private void LstLogFacturas_SelectedIndexChanged(object sender, EventArgs e)
+        /// <summary>Solo una lista de sugerencias visible a la vez: se pisan entre filas.</summary>
+        private void OcultarSugerenciasLog(ListBox excepto)
         {
-            if (_lstLogFacturas.SelectedItem == null)
-                return;
-
-            _seleccionandoLogFactura = true;
-            _txtLogFactura.Text = _lstLogFacturas.SelectedItem.ToString();
-            _seleccionandoLogFactura = false;
-            _lstLogFacturas.Visible = false;
-            _txtLogFactura.Focus();
+            foreach (ListBox lista in _listasSugerenciasLog)
+            {
+                if (lista != excepto)
+                    lista.Visible = false;
+            }
         }
 
         private void CargarTiposOperacionPinPad()
@@ -478,7 +469,9 @@ namespace SistemaFacturacion
                     _dtpLogHasta.Value,
                     _txtLogTarjeta.Text,
                     _txtLogFactura.Text,
-                    tipoOperacion);
+                    tipoOperacion,
+                    _txtLogAutorizacion.Text,
+                    _txtLogReferencia.Text);
 
                 _gvLogPinPad.SuspendLayout();
                 try

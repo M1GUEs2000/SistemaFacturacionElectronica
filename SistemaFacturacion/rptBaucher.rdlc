@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
   rptBaucher.rdlc — Baucher de consumo con tarjeta (Datafast).
 
@@ -252,7 +252,7 @@
                 <Value>=Parameters!MODOLECTURA.Value</Value>
                 <Style>
                   <FontSize>7pt</FontSize>
-                  <Color>Red</Color>
+                  <Color>Black</Color>
                 </Style>
               </TextRun>
             </TextRuns>
@@ -1064,7 +1064,7 @@
                 <Style>
                   <FontSize>8pt</FontSize>
                   <FontWeight>Bold</FontWeight>
-                  <Color>Red</Color>
+                  <Color>Black</Color>
                 </Style>
               </TextRun>
             </TextRuns>
@@ -1102,7 +1102,7 @@
                 <Style>
                   <FontSize>8pt</FontSize>
                   <FontWeight>Bold</FontWeight>
-                  <Color>Red</Color>
+                  <Color>Black</Color>
                 </Style>
               </TextRun>
             </TextRuns>
@@ -1228,7 +1228,7 @@
                 <Value>EL ESTABLECIMIENTO VERIFICA QUE LA FIRMA DEL CLIENTE ES AUTENTICA</Value>
                 <Style>
                   <FontSize>6.5pt</FontSize>
-                  <Color>Red</Color>
+                  <Color>Black</Color>
                 </Style>
               </TextRun>
             </TextRuns>

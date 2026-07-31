@@ -93,9 +93,9 @@ namespace SistemaFacturacion
         }
 
         // =========================================================
-        // PUBLICIDAD DEL BAUCHER (NOMBRE='PUBLICIDAD', CODIGO='P')
-        // Es la última línea del baucher de tarjeta. El checkbox es el ACTIVO de la
-        // fila: si se desmarca, ObtenerPublicidad() devuelve "" y el baucher no la
+        // PUBLICIDAD DEL VOUCHER (NOMBRE='PUBLICIDAD', CODIGO='P')
+        // Es la última línea del voucher de tarjeta. El checkbox es el ACTIVO de la
+        // fila: si se desmarca, ObtenerPublicidad() devuelve "" y el voucher no la
         // imprime, pero el texto queda guardado en la BD.
         // =========================================================
         private void CargarPublicidad()
@@ -207,7 +207,7 @@ namespace SistemaFacturacion
         {
             string valor = _services.ParamTransaccion.ObtenerMinimoFirma();
             if (decimal.TryParse(valor, out decimal minimo))
-                numBaucher.Value = minimo;
+                numVoucher.Value = minimo;
         }
 
         // =========================================================
@@ -343,7 +343,7 @@ namespace SistemaFacturacion
             _services.ParamTransaccion.Actualizar(
                 "F1",
                 "MINIMOFIRMA",
-                numBaucher.Value.ToString("0.##"),
+                numVoucher.Value.ToString("0.##"),
                 UsuarioActual,
                 IPActual
             );

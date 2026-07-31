@@ -331,6 +331,10 @@ namespace SistemaFacturacion
             if (!string.IsNullOrWhiteSpace(ruc) && (ruc.Length != 13 || !ruc.All(char.IsDigit)))
                 errores.Add("- El RUC debe tener exactamente 13 dígitos numéricos");
 
+            string rucProveedor = (txtRucProveedor.Text ?? "").Trim();
+            if (!string.IsNullOrWhiteSpace(rucProveedor) && (rucProveedor.Length != 13 || !rucProveedor.All(char.IsDigit)))
+                errores.Add("- El RUC del proveedor debe tener exactamente 13 dígitos numéricos");
+
             string ubicacion = (txtUbicacion.Text ?? "").Trim();
             if (!string.IsNullOrWhiteSpace(ubicacion) && !ubicacion.EndsWith(".p12", StringComparison.OrdinalIgnoreCase))
                 errores.Add("- El certificado debe ser un archivo .p12");
@@ -350,6 +354,10 @@ namespace SistemaFacturacion
             if (!Validar()) return;
             try
             {
+                // Vacío = no enviar el dato, para no borrar el RUC del proveedor sin querer.
+                string rucProveedor = txtRucProveedor.Text.Trim();
+                if (rucProveedor.Length == 0) rucProveedor = null;
+
                 int fila = _services.Empresa.Actualizar(
                     txtNombre.Text,
                     txtDireccion.Text,
@@ -370,13 +378,15 @@ namespace SistemaFacturacion
                     txtImagen.Text,
                     cmbEstadoRuc.Text.Trim(),
                     UsuarioActual,
-                    IPActual
+                    IPActual,
+                    rucProveedor
                 );
 
                 if (fila == 1)
                 {
                     MostrarEmpresa(txtNombre.Text.Trim());
                     Limpiar();
+                    CargarRucProveedor();
                     Notificaciones.Show(this, "Empresa actualizada correctamente.", "exito");
                 }
             }

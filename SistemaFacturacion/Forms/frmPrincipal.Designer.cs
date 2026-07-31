@@ -74,6 +74,8 @@
             this.label5 = new System.Windows.Forms.Label();
             this.lblImpresion = new System.Windows.Forms.Label();
             this.lblFactura = new System.Windows.Forms.Label();
+            this.lblAmbienteTitulo = new System.Windows.Forms.Label();
+            this.lblAmbiente = new System.Windows.Forms.Label();
             this.gvTransacccionesFacturadas = new System.Windows.Forms.DataGridView();
             this.CNT = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.VLR = new System.Windows.Forms.DataGridViewTextBoxColumn();
@@ -316,6 +318,8 @@
             this.pnlVariosProductos.Controls.Add(this.label5);
             this.pnlVariosProductos.Controls.Add(this.lblImpresion);
             this.pnlVariosProductos.Controls.Add(this.lblFactura);
+            this.pnlVariosProductos.Controls.Add(this.lblAmbienteTitulo);
+            this.pnlVariosProductos.Controls.Add(this.lblAmbiente);
             this.pnlVariosProductos.Controls.Add(this.gvTransacccionesFacturadas);
             this.pnlVariosProductos.Controls.Add(this.label4);
             this.pnlVariosProductos.Controls.Add(this.reportViewer1);
@@ -418,18 +422,18 @@
             this.label6.AutoSize = true;
             this.label6.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label6.ForeColor = System.Drawing.Color.Blue;
-            this.label6.Location = new System.Drawing.Point(460, 31);
+            this.label6.Location = new System.Drawing.Point(460, 22);
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(81, 17);
+            this.label6.Size = new System.Drawing.Size(70, 17);
             this.label6.TabIndex = 27;
-            this.label6.Text = "IMPRIMIR:";
+            this.label6.Text = "Imprimir:";
             // 
             // label5
             // 
             this.label5.AutoSize = true;
             this.label5.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label5.ForeColor = System.Drawing.Color.Blue;
-            this.label5.Location = new System.Drawing.Point(460, 12);
+            this.label5.Location = new System.Drawing.Point(460, 3);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(98, 17);
             this.label5.TabIndex = 26;
@@ -440,7 +444,7 @@
             this.lblImpresion.AutoSize = true;
             this.lblImpresion.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblImpresion.ForeColor = System.Drawing.Color.Blue;
-            this.lblImpresion.Location = new System.Drawing.Point(555, 31);
+            this.lblImpresion.Location = new System.Drawing.Point(555, 22);
             this.lblImpresion.Name = "lblImpresion";
             this.lblImpresion.Size = new System.Drawing.Size(52, 17);
             this.lblImpresion.TabIndex = 25;
@@ -451,11 +455,33 @@
             this.lblFactura.AutoSize = true;
             this.lblFactura.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblFactura.ForeColor = System.Drawing.Color.Blue;
-            this.lblFactura.Location = new System.Drawing.Point(555, 12);
+            this.lblFactura.Location = new System.Drawing.Point(555, 3);
             this.lblFactura.Name = "lblFactura";
             this.lblFactura.Size = new System.Drawing.Size(43, 17);
             this.lblFactura.TabIndex = 24;
             this.lblFactura.Text = "label";
+            // 
+            // lblAmbienteTitulo
+            // 
+            this.lblAmbienteTitulo.AutoSize = true;
+            this.lblAmbienteTitulo.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblAmbienteTitulo.ForeColor = System.Drawing.Color.Blue;
+            this.lblAmbienteTitulo.Location = new System.Drawing.Point(460, 41);
+            this.lblAmbienteTitulo.Name = "lblAmbienteTitulo";
+            this.lblAmbienteTitulo.Size = new System.Drawing.Size(80, 17);
+            this.lblAmbienteTitulo.TabIndex = 30;
+            this.lblAmbienteTitulo.Text = "Ambiente:";
+            // 
+            // lblAmbiente
+            // 
+            this.lblAmbiente.AutoSize = true;
+            this.lblAmbiente.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblAmbiente.ForeColor = System.Drawing.Color.Blue;
+            this.lblAmbiente.Location = new System.Drawing.Point(555, 41);
+            this.lblAmbiente.Name = "lblAmbiente";
+            this.lblAmbiente.Size = new System.Drawing.Size(26, 17);
+            this.lblAmbiente.TabIndex = 31;
+            this.lblAmbiente.Text = "---";
             // 
             // gvTransacccionesFacturadas
             // 
@@ -976,6 +1002,8 @@
         private System.Windows.Forms.Label lblFactura;
         private System.Windows.Forms.Label lblImpresion;
         private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.Label lblAmbienteTitulo;
+        private System.Windows.Forms.Label lblAmbiente;
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.Button btnClientes;
         private System.Windows.Forms.Label lblNumeroFactura;

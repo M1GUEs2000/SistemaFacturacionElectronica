@@ -46,6 +46,7 @@ namespace SistemaFacturacion
             if (totales == null) throw new ArgumentNullException(nameof(totales));
 
             string nombreEmpresa = Campo(empresa, "NOMBRE");
+            string modoLectura = services.ProcesosTarjetas.DescribirModoLectura(cobro.ModoLectura);
 
             var rdlc = new LocalReport { ReportPath = @"rptBaucher.rdlc" };
 
@@ -62,8 +63,7 @@ namespace SistemaFacturacion
                 // --- Terminal ----------------------------------------------
                 new ReportParameter("TID", Texto(cobro.TID)),
                 new ReportParameter("MID", Texto(cobro.MID)),
-                new ReportParameter("MODOLECTURA",
-                    services.ProcesosTarjetas.DescribirModoLectura(cobro.ModoLectura)),
+                new ReportParameter("MODOLECTURA", modoLectura),
 
                 // --- Transacción -------------------------------------------
                 new ReportParameter("GRUPOTARJETA", Texto(cobro.NombreGrupoTarjeta)),
@@ -79,8 +79,11 @@ namespace SistemaFacturacion
 
                 // --- Montos ------------------------------------------------
                 // La tarifa del rótulo sale de PARAMETROS_FACTURAS (CODIGOPORCENTAJE),
-                // no está fija en 12: hoy son 15.
-                new ReportParameter("TARIFAIVA",   services.TarifaIva.ToString("0.##", CultureInfo.CurrentCulture)),
+                // no está fija en 12: hoy son 15. TarifaIva viene como FRACCIÓN (0.15)
+                // porque el resto del sistema la usa de multiplicador; aquí se pasa a
+                // porcentaje para que el rótulo diga "TARIFA 15" y no "TARIFA 0,15".
+                new ReportParameter("TARIFAIVA",
+                    (services.TarifaIva * 100m).ToString("0.##", CultureInfo.CurrentCulture)),
                 new ReportParameter("BASEGRAVADA", Monto(totales.BaseImponible)),
                 new ReportParameter("BASE0",       Monto(totales.Base0)),
                 new ReportParameter("SUBTOTAL",    Monto(totales.Base0 + totales.BaseImponible)),
@@ -89,10 +92,12 @@ namespace SistemaFacturacion
 
                 // --- Pie y firma -------------------------------------------
                 new ReportParameter("RED",        Texto(cobro.RedAdquirente)),
-                // El pinpad devuelve en TarjetaHabiente el modo de lectura ("CONTACTLESS"),
-                // no el nombre del cliente. Se imprime en blanco: la línea NOMBRE queda
-                // como espacio para escribir a mano, igual que C.I. y TELEFONO.
-                new ReportParameter("HABIENTE",   ""),
+                // Mismo dato que se audita en PINPAD_AUTORIZADAS.TARJETAHABIENTE (se graba
+                // desde este mismo ProcesoPagoResult), por eso se toma del objeto y no de
+                // la BD. Ojo: en contactless el pinpad devuelve aquí el modo de lectura y
+                // no el nombre; en ese caso la línea NOMBRE se deja en blanco para escribir
+                // a mano, igual que C.I. y TELEFONO.
+                new ReportParameter("HABIENTE",   NombreHabiente(cobro, modoLectura)),
                 new ReportParameter("ROTULO",     string.IsNullOrWhiteSpace(rotulo) ? RotuloOriginal : rotulo),
                 // La línea final ya no es el nombre del comercio: es el texto libre de
                 // publicidad (PARAMETROS_TRANSACCIONES, NOMBRE='PUBLICIDAD', CODIGO='P').
@@ -122,6 +127,27 @@ namespace SistemaFacturacion
         private static string Texto(string valor)
         {
             return (valor ?? "").Trim();
+        }
+
+        /// <summary>
+        /// Nombre del tarjetahabiente para la línea NOMBRE del baucher.
+        ///
+        /// El pinpad no siempre manda el nombre en TarjetaHabiente: cuando la lectura es
+        /// contactless repite ahí el modo de lectura ("CONTACTLESS"). Si el valor coincide
+        /// con el modo —crudo o ya descrito— se devuelve vacío para no imprimir un rótulo
+        /// técnico donde el cliente debe firmar su nombre.
+        /// </summary>
+        private static string NombreHabiente(ProcesoPagoResult cobro, string modoDescrito)
+        {
+            string habiente = Texto(cobro.TarjetaHabiente);
+            if (habiente.Length == 0)
+                return "";
+
+            if (string.Equals(habiente, Texto(cobro.ModoLectura), StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(habiente, Texto(modoDescrito), StringComparison.OrdinalIgnoreCase))
+                return "";
+
+            return habiente;
         }
 
         /// <summary>Monto con el formato del baucher ("$ 21,40").</summary>

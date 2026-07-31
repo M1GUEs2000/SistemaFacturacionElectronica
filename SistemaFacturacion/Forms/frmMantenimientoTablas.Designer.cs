@@ -101,13 +101,13 @@
             // 
             // button2
             // 
-            this.button2.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.button2.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.button2.Location = new System.Drawing.Point(257, 119);
             this.button2.Margin = new System.Windows.Forms.Padding(2);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(207, 58);
             this.button2.TabIndex = 5;
-            this.button2.Text = "PARAMETROS SECUENCIALES SRI";
+            this.button2.Text = "NÚMEROS DE FACTURA NC, RETENCIÓN, ETC.";
             this.button2.UseVisualStyleBackColor = true;
             this.button2.Click += new System.EventHandler(this.button2_Click);
             // 
@@ -146,7 +146,7 @@
             this.btnPinpad.Text = "PINPAD";
             this.btnPinpad.UseVisualStyleBackColor = true;
             this.btnPinpad.Click += new System.EventHandler(this.btnPinpad_Click);
-            //
+            // 
             // frmMantenimientoTablas
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);

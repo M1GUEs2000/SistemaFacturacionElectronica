@@ -112,10 +112,8 @@
             this.txtRucProveedor.Margin = new System.Windows.Forms.Padding(2);
             this.txtRucProveedor.MaxLength = 13;
             this.txtRucProveedor.Name = "txtRucProveedor";
-            this.txtRucProveedor.ReadOnly = true;
             this.txtRucProveedor.Size = new System.Drawing.Size(200, 26);
             this.txtRucProveedor.TabIndex = 12;
-            this.txtRucProveedor.TabStop = false;
             //
             // pnlDatos
             // 

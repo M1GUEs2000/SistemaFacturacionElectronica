@@ -448,8 +448,14 @@ namespace LogicaNegocios
         // CONSULTA DE AUDITORIA - PINPAD_LOG
         // =====================================================================
 
+        /// <summary>
+        /// Bitácora completa filtrada. AUTORIZACION y REFERENCIA se buscan sobre PINPAD_LOG
+        /// (no sobre PINPAD_AUTORIZADAS) para que también aparezcan las anulaciones, que
+        /// guardan ahí los datos del cobro original.
+        /// </summary>
         public DataSet ConsultarLog(DateTime fechaDesde, DateTime fechaHasta,
-            string numeroTarjeta, string numeroFactura, string tipoOperacion)
+            string numeroTarjeta, string numeroFactura, string tipoOperacion,
+            string autorizacion = null, string referencia = null)
         {
             string sql = @"SELECT
                     L.TRANSACCIONID AS [TRANSACCION ID],
@@ -535,6 +541,26 @@ namespace LogicaNegocios
             {
                 sql += " AND L.NUMEROFACTURA LIKE @factura";
                 parametros.Add(("factura", "%" + numeroFactura.Trim() + "%"));
+            }
+
+            // Se busca en la cabecera Y en el detalle del cobro: las filas anteriores a que
+            // PINPAD_LOG guardara AUTORIZACION/REFERENCIA solo tienen el dato en
+            // PINPAD_AUTORIZADAS. Access liga los parámetros por POSICIÓN, así que el mismo
+            // valor se agrega dos veces (un @ por cada aparición en el SQL).
+            if (!string.IsNullOrWhiteSpace(autorizacion))
+            {
+                sql += " AND (L.AUTORIZACION LIKE @autorizLog OR PA.AUTORIZACION LIKE @autorizPago)";
+                string patron = "%" + autorizacion.Trim() + "%";
+                parametros.Add(("autorizLog", patron));
+                parametros.Add(("autorizPago", patron));
+            }
+
+            if (!string.IsNullOrWhiteSpace(referencia))
+            {
+                sql += " AND (L.REFERENCIA LIKE @referLog OR PA.REFERENCIA LIKE @referPago)";
+                string patron = "%" + referencia.Trim() + "%";
+                parametros.Add(("referLog", patron));
+                parametros.Add(("referPago", patron));
             }
 
             if (!string.IsNullOrWhiteSpace(tipoOperacion) && tipoOperacion != "Todos")
@@ -673,40 +699,43 @@ namespace LogicaNegocios
             return ds;
         }
 
+        /// <summary>
+        /// Valores distintos de una columna de PINPAD_LOG para las sugerencias de la
+        /// pantalla de consulta. `columna` SIEMPRE es un literal de los métodos de abajo,
+        /// nunca entrada del usuario; lo que el usuario escribe va parametrizado en @filtro.
+        /// </summary>
+        private DataSet ConsultarDistintos(string columna, string filtro)
+        {
+            string sql = "SELECT DISTINCT TOP 20 " + columna +
+                         " FROM PINPAD_LOG" +
+                         " WHERE " + columna + " IS NOT NULL" +
+                         "   AND " + columna + " <> ''";
+
+            if (string.IsNullOrWhiteSpace(filtro))
+                return _conexion.Seleccionar(sql + " ORDER BY " + columna);
+
+            sql += " AND " + columna + " LIKE @filtro ORDER BY " + columna;
+            return _conexion.Seleccionar(sql, ("filtro", "%" + filtro.Trim() + "%"));
+        }
+
         public DataSet ConsultarTarjetas(string numeroTarjeta)
         {
-            string sql = @"SELECT DISTINCT TOP 20 NUMEROTARJETA
-                           FROM PINPAD_LOG
-                           WHERE NUMEROTARJETA IS NOT NULL
-                             AND NUMEROTARJETA <> ''";
-
-            if (string.IsNullOrWhiteSpace(numeroTarjeta))
-            {
-                sql += " ORDER BY NUMEROTARJETA";
-                return _conexion.Seleccionar(sql);
-            }
-
-            sql += " AND NUMEROTARJETA LIKE @tarjeta ORDER BY NUMEROTARJETA";
-            return _conexion.Seleccionar(sql,
-                ("tarjeta", "%" + numeroTarjeta.Trim() + "%"));
+            return ConsultarDistintos("NUMEROTARJETA", numeroTarjeta);
         }
 
         public DataSet ConsultarFacturas(string numeroFactura)
         {
-            string sql = @"SELECT DISTINCT TOP 20 NUMEROFACTURA
-                           FROM PINPAD_LOG
-                           WHERE NUMEROFACTURA IS NOT NULL
-                             AND NUMEROFACTURA <> ''";
+            return ConsultarDistintos("NUMEROFACTURA", numeroFactura);
+        }
 
-            if (string.IsNullOrWhiteSpace(numeroFactura))
-            {
-                sql += " ORDER BY NUMEROFACTURA";
-                return _conexion.Seleccionar(sql);
-            }
+        public DataSet ConsultarAutorizaciones(string autorizacion)
+        {
+            return ConsultarDistintos("AUTORIZACION", autorizacion);
+        }
 
-            sql += " AND NUMEROFACTURA LIKE @factura ORDER BY NUMEROFACTURA";
-            return _conexion.Seleccionar(sql,
-                ("factura", "%" + numeroFactura.Trim() + "%"));
+        public DataSet ConsultarReferencias(string referencia)
+        {
+            return ConsultarDistintos("REFERENCIA", referencia);
         }
 
         private static string Texto(DataRow fila, string columna)

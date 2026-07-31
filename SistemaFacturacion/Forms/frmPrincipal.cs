@@ -215,6 +215,23 @@ namespace SistemaFacturacion
                 lblFactura.Text = "Facturación: ---";
                 lblNombreEmpresa.Text = "";
             }
+
+            MostrarAmbiente();
+        }
+
+        private void MostrarAmbiente()
+        {
+            try
+            {
+                bool esProduccion = _services.ParamFactura.EsProduccion(UsuarioActual);
+                lblAmbiente.Text = esProduccion ? "Produccion" : "Pruebas";
+                lblAmbiente.ForeColor = esProduccion ? Color.Green : Color.DarkOrange;
+            }
+            catch (Exception)
+            {
+                lblAmbiente.Text = "---";
+                lblAmbiente.ForeColor = Color.Blue;
+            }
         }
 
         private void AjustarTextoLabel(Label label)

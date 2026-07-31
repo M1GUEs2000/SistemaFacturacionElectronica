@@ -35,7 +35,7 @@ namespace SistemaFacturacion
             this.lblContadorPublicidad = new System.Windows.Forms.Label();
             this.chkPublicidadActiva = new System.Windows.Forms.CheckBox();
             this.label2 = new System.Windows.Forms.Label();
-            this.numBaucher = new System.Windows.Forms.NumericUpDown();
+            this.numVoucher = new System.Windows.Forms.NumericUpDown();
             this.panelDiferidos = new System.Windows.Forms.Panel();
             this.cmbTipoPago = new System.Windows.Forms.ComboBox();
             this.lblPlazoAnulacion = new System.Windows.Forms.Label();
@@ -50,7 +50,7 @@ namespace SistemaFacturacion
             this.label1 = new System.Windows.Forms.Label();
             this.panel1.SuspendLayout();
             this.panel3.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.numBaucher)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numVoucher)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numPlazoAnulacion)).BeginInit();
             this.panel4.SuspendLayout();
             this.SuspendLayout();
@@ -73,7 +73,7 @@ namespace SistemaFacturacion
             this.panel3.Controls.Add(this.lblContadorPublicidad);
             this.panel3.Controls.Add(this.chkPublicidadActiva);
             this.panel3.Controls.Add(this.label2);
-            this.panel3.Controls.Add(this.numBaucher);
+            this.panel3.Controls.Add(this.numVoucher);
             this.panel3.Controls.Add(this.panelDiferidos);
             this.panel3.Controls.Add(this.cmbTipoPago);
             this.panel3.Controls.Add(this.lblPlazoAnulacion);
@@ -92,15 +92,15 @@ namespace SistemaFacturacion
             // 
             this.lblPublicidad.AutoSize = true;
             this.lblPublicidad.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblPublicidad.Location = new System.Drawing.Point(25, 90);
+            this.lblPublicidad.Location = new System.Drawing.Point(24, 97);
             this.lblPublicidad.Name = "lblPublicidad";
             this.lblPublicidad.Size = new System.Drawing.Size(118, 13);
             this.lblPublicidad.TabIndex = 62;
-            this.lblPublicidad.Text = "Publicidad del baucher:";
+            this.lblPublicidad.Text = "Publicidad del voucher:";
             // 
             // txtPublicidad
             // 
-            this.txtPublicidad.Location = new System.Drawing.Point(160, 87);
+            this.txtPublicidad.Location = new System.Drawing.Point(159, 94);
             this.txtPublicidad.MaxLength = 60;
             this.txtPublicidad.Name = "txtPublicidad";
             this.txtPublicidad.Size = new System.Drawing.Size(363, 20);
@@ -110,7 +110,7 @@ namespace SistemaFacturacion
             // 
             this.lblContadorPublicidad.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.5F, System.Drawing.FontStyle.Italic, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblContadorPublicidad.ForeColor = System.Drawing.Color.DarkGray;
-            this.lblContadorPublicidad.Location = new System.Drawing.Point(378, 110);
+            this.lblContadorPublicidad.Location = new System.Drawing.Point(377, 117);
             this.lblContadorPublicidad.Name = "lblContadorPublicidad";
             this.lblContadorPublicidad.Size = new System.Drawing.Size(145, 13);
             this.lblContadorPublicidad.TabIndex = 64;
@@ -120,7 +120,7 @@ namespace SistemaFacturacion
             // 
             this.chkPublicidadActiva.AutoSize = true;
             this.chkPublicidadActiva.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.chkPublicidadActiva.Location = new System.Drawing.Point(529, 90);
+            this.chkPublicidadActiva.Location = new System.Drawing.Point(541, 97);
             this.chkPublicidadActiva.Name = "chkPublicidadActiva";
             this.chkPublicidadActiva.Size = new System.Drawing.Size(56, 17);
             this.chkPublicidadActiva.TabIndex = 65;
@@ -137,17 +137,17 @@ namespace SistemaFacturacion
             this.label2.TabIndex = 61;
             this.label2.Text = "Seleccione los tipos de diferidos y sus cuotas que usara su sistema:";
             // 
-            // numBaucher
+            // numVoucher
             // 
-            this.numBaucher.Location = new System.Drawing.Point(258, 133);
-            this.numBaucher.Maximum = new decimal(new int[] {
+            this.numVoucher.Location = new System.Drawing.Point(257, 140);
+            this.numVoucher.Maximum = new decimal(new int[] {
             1000000,
             0,
             0,
             0});
-            this.numBaucher.Name = "numBaucher";
-            this.numBaucher.Size = new System.Drawing.Size(265, 20);
-            this.numBaucher.TabIndex = 52;
+            this.numVoucher.Name = "numVoucher";
+            this.numVoucher.Size = new System.Drawing.Size(265, 20);
+            this.numVoucher.TabIndex = 52;
             // 
             // panelDiferidos
             // 
@@ -162,7 +162,7 @@ namespace SistemaFacturacion
             // 
             this.cmbTipoPago.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbTipoPago.FormattingEnabled = true;
-            this.cmbTipoPago.Location = new System.Drawing.Point(160, 43);
+            this.cmbTipoPago.Location = new System.Drawing.Point(159, 50);
             this.cmbTipoPago.Name = "cmbTipoPago";
             this.cmbTipoPago.Size = new System.Drawing.Size(154, 21);
             this.cmbTipoPago.TabIndex = 49;
@@ -171,7 +171,7 @@ namespace SistemaFacturacion
             // 
             this.lblPlazoAnulacion.AutoSize = true;
             this.lblPlazoAnulacion.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblPlazoAnulacion.Location = new System.Drawing.Point(330, 46);
+            this.lblPlazoAnulacion.Location = new System.Drawing.Point(329, 53);
             this.lblPlazoAnulacion.Name = "lblPlazoAnulacion";
             this.lblPlazoAnulacion.Size = new System.Drawing.Size(110, 13);
             this.lblPlazoAnulacion.TabIndex = 66;
@@ -179,7 +179,7 @@ namespace SistemaFacturacion
             // 
             // numPlazoAnulacion
             // 
-            this.numPlazoAnulacion.Location = new System.Drawing.Point(554, 44);
+            this.numPlazoAnulacion.Location = new System.Drawing.Point(553, 51);
             this.numPlazoAnulacion.Maximum = new decimal(new int[] {
             1440,
             0,
@@ -203,7 +203,7 @@ namespace SistemaFacturacion
             // 
             this.cmbUnidadAnulacion.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbUnidadAnulacion.FormattingEnabled = true;
-            this.cmbUnidadAnulacion.Location = new System.Drawing.Point(446, 43);
+            this.cmbUnidadAnulacion.Location = new System.Drawing.Point(445, 50);
             this.cmbUnidadAnulacion.Name = "cmbUnidadAnulacion";
             this.cmbUnidadAnulacion.Size = new System.Drawing.Size(90, 21);
             this.cmbUnidadAnulacion.TabIndex = 68;
@@ -212,11 +212,11 @@ namespace SistemaFacturacion
             // 
             this.label7.AutoSize = true;
             this.label7.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label7.Location = new System.Drawing.Point(25, 135);
+            this.label7.Location = new System.Drawing.Point(24, 142);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(227, 13);
             this.label7.TabIndex = 25;
-            this.label7.Text = "Valor de consumo mínimo para Firmar Baucher";
+            this.label7.Text = "Valor de consumo mínimo para Firmar Voucher";
             // 
             // btnModificar
             // 
@@ -272,7 +272,7 @@ namespace SistemaFacturacion
             // 
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label1.Location = new System.Drawing.Point(25, 46);
+            this.label1.Location = new System.Drawing.Point(24, 53);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(73, 13);
             this.label1.TabIndex = 4;
@@ -291,7 +291,7 @@ namespace SistemaFacturacion
             this.panel1.ResumeLayout(false);
             this.panel3.ResumeLayout(false);
             this.panel3.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.numBaucher)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numVoucher)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numPlazoAnulacion)).EndInit();
             this.panel4.ResumeLayout(false);
             this.panel4.PerformLayout();
@@ -313,7 +313,7 @@ namespace SistemaFacturacion
         private System.Windows.Forms.Panel panel4;
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.NumericUpDown numBaucher;
+        private System.Windows.Forms.NumericUpDown numVoucher;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label lblPublicidad;
         private System.Windows.Forms.TextBox txtPublicidad;
