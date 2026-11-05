@@ -140,6 +140,16 @@ namespace LogicaNegocios.Procesos
                 if (dsFac == null || dsFac.Tables.Count == 0 || dsFac.Tables[0].Rows.Count == 0)
                     return ErrorNC(r, "No se encontró la factura en FACTURACION: " + numeroFactura);
 
+                // La factura no puede dar más crédito del que facturó. La consulta del
+                // formulario ya esconde las agotadas, pero por la API se puede llegar
+                // con el número a mano, así que la regla se repite aquí.
+                if (_services.NotaCredito
+                        .ObtenerFacturasSinCreditoDisponible()
+                        .Contains(numeroFactura.Trim()))
+                    return ErrorNC(r,
+                        "La factura " + numeroFactura.Trim() + " ya fue acreditada en su " +
+                        "totalidad: no queda crédito para emitir otra Nota de Crédito.");
+
                 DataRow first = dsFac.Tables[0].Rows[0];
 
                 string fechaFactura = first["FECHA"].ToString().Trim();
@@ -181,6 +191,12 @@ namespace LogicaNegocios.Procesos
                             return ErrorNC(r, "productosSeleccionados no contiene la columna requerida: " + col);
                     }
 
+                    // Lo que otras notas ya acreditaron no se puede volver a acreditar.
+                    // El formulario ya descuenta el saldo al armar el grid, pero por la
+                    // API pueden llegar cantidades arbitrarias.
+                    var disponiblePorProducto = CalcularSaldoAcreditable(
+                        dsFac.Tables[0], numeroFactura);
+
                     foreach (DataRow row in productosSeleccionados.Rows)
                     {
                         string producto = (row["PRODUCTO"]?.ToString() ?? "").Trim();
@@ -188,6 +204,20 @@ namespace LogicaNegocios.Procesos
 
                         decimal cantidad = Convert.ToDecimal(row["CANTIDAD"]);
                         if (cantidad <= 0m) cantidad = 1m;
+
+                        decimal disponible;
+                        disponiblePorProducto.TryGetValue(producto, out disponible);
+
+                        if (cantidad - disponible > 0.001m)
+                            return ErrorNC(r,
+                                "No se puede acreditar " + cantidad.ToString("0.##", CultureInfo.InvariantCulture) +
+                                " de \"" + producto + "\": de la factura " + numeroFactura.Trim() +
+                                " queda por acreditar " + disponible.ToString("0.##", CultureInfo.InvariantCulture) +
+                                " (el resto ya se devolvió en otra Nota de Crédito).");
+
+                        // Se descuenta para que un mismo producto repetido en la
+                        // selección no pase dos veces la misma validación.
+                        disponiblePorProducto[producto] = disponible - cantidad;
 
                         decimal totalLinea = Math.Round(Convert.ToDecimal(row["TOTAL"]), 2);
                         decimal precioUnitarioFinal = Math.Round(Convert.ToDecimal(row["VALOR"]), 2);
@@ -299,6 +329,43 @@ namespace LogicaNegocios.Procesos
             {
                 return ErrorNC(r, "Error preparando Nota de Crédito: " + ex.Message);
             }
+        }
+
+        /// <summary>
+        /// Cantidad que todavía se puede acreditar de cada producto de la factura:
+        /// lo facturado menos lo que ya devolvieron las notas anteriores.
+        /// </summary>
+        private Dictionary<string, decimal> CalcularSaldoAcreditable(
+            DataTable detalleFactura,
+            string numeroFactura)
+        {
+            var saldo = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (DataRow row in detalleFactura.Rows)
+            {
+                string producto = (row["PRODUCTO"]?.ToString() ?? "").Trim();
+                if (producto.Length == 0) continue;
+
+                decimal cantidad = Convert.ToDecimal(row["CANTIDAD"]);
+                if (cantidad <= 0m) cantidad = 1m;
+
+                decimal acumulado;
+                saldo.TryGetValue(producto, out acumulado);
+
+                saldo[producto] = acumulado + cantidad;
+            }
+
+            var acreditado = _services.NotaCredito.ObtenerCantidadesAcreditadas(numeroFactura);
+
+            foreach (var devuelto in acreditado)
+            {
+                decimal facturado;
+                if (!saldo.TryGetValue(devuelto.Key, out facturado)) continue;
+
+                saldo[devuelto.Key] = facturado - devuelto.Value;
+            }
+
+            return saldo;
         }
 
         public bool InsertarNotaCredito(
@@ -1226,6 +1293,7 @@ namespace LogicaNegocios.Procesos
                             ipActual
                         );
                         await Task.Run(() => _services.Param.IncrementarSecuencial("04"));
+
                         return ErrorNC(sri.Mensaje);
                     }
 

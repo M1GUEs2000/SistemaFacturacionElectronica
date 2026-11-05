@@ -139,6 +139,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Casilleros\CasilleroAsignacionManejador.cs" />
+    <Compile Include="Casilleros\CasilleroManejador.cs" />
+    <Compile Include="Casilleros\CasilleroNotificacionManejador.cs" />
+    <Compile Include="Casilleros\CasilleroParametrosManejador.cs" />
+    <Compile Include="Casilleros\CasilleroSchemaInstalador.cs" />
+    <Compile Include="Casilleros\MotorVencimientos.cs" />
     <Compile Include="Manejadores\ClienteManejador.cs" />
     <Compile Include="Manejadores\EmpresaManejador.cs" />
     <Compile Include="Manejadores\FacturacionManejador.cs" />

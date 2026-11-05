@@ -17,6 +17,7 @@
     <TargetFrameworkProfile />
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -29,7 +30,6 @@
     <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-    <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
@@ -337,6 +337,48 @@
     <Compile Include="Forms\frmTarjetaPopup.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Forms\frmCasilleroPrincipal.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\frmCasilleroPrincipal.Designer.cs">
+      <DependentUpon>frmCasilleroPrincipal.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\frmCasilleroConfig.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\frmCasilleroConfig.Designer.cs">
+      <DependentUpon>frmCasilleroConfig.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\frmAsignarCasillero.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\frmAsignarCasillero.Designer.cs">
+      <DependentUpon>frmAsignarCasillero.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\frmDetalleCasillero.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\frmDetalleCasillero.Designer.cs">
+      <DependentUpon>frmDetalleCasillero.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\frmConfirmarCasillero.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\frmConfirmarCasillero.Designer.cs">
+      <DependentUpon>frmConfirmarCasillero.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\CasilleroCardControl.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Controls\IconosCasilleros.cs" />
+    <Compile Include="Controls\IconButton.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Controls\VentanaPersonalizada.cs" />
+    <Compile Include="Controls\NotificacionCasilleroCard.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <EmbeddedResource Include="Recursos\Fonts\fontawesome-webfont.ttf" />
     <Compile Include="Forms\frmMantenimientoTablas.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -506,9 +548,9 @@
     <EmbeddedResource Include="rptBaucher.rdlc">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
-    <None Include="bin\Debug\ConexionSQL.dat">
+    <EmbeddedResource Include="rptBaucherDiferido.rdlc">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    </EmbeddedResource>
     <None Include="bin\Debug\FIRMAELECTRONICA\PRESIDENTE JUAN CARLOS COLCHA BONIFAZ 0603053372-110624184301.p12" />
     <None Include="ConexionSQL.dat">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -675,6 +717,7 @@
     <Folder Include="FACTURACION\RETENCIONES\XMLAUTORIZADOS\" />
     <Folder Include="FACTURACION\RETENCIONES\XMLFIRMADOS\" />
     <Folder Include="FACTURACION\RETENCIONES\XML\" />
+    <Folder Include="PPLog\" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.8">

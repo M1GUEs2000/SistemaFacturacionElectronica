@@ -1,5 +1,6 @@
-using AccesoDatos.Abstractions;
+﻿using AccesoDatos.Abstractions;
 using System;
+using System.Collections.Generic;
 using System.Data;
 
 namespace LogicaNegocios
@@ -12,12 +13,13 @@ namespace LogicaNegocios
     /// Relación entre registros (por CODIGO compartido):
     ///   NOMBRE=TIPOPAGO      VALOR=DIFERIDO/CORRIENTE/AMBOS   CODIGO=D/C/A   (ACTIVO=-1 marca el modo vigente)
     ///   NOMBRE=TIPODIFERIDO  VALOR=SIN INTERESES...           CODIGO=T1..T7  (ACTIVO=-1 marca los habilitados en el sistema)
-    ///   NOMBRE=CUOTA         VALOR=(nº cuotas)                CODIGO=T1..T7  (ligada a su TIPODIFERIDO por mismo CODIGO)
+    ///   NOMBRE=CUOTA         VALOR=(plazos habilitados)        CODIGO=T1..T7  (ligada a su TIPODIFERIDO por mismo CODIGO)
     ///   NOMBRE=MINIMOFIRMA   VALOR=10                         CODIGO=F1
     ///   NOMBRE=MODOPAGO      VALOR=MANUAL - TOKEN MANUAL/BANDA/CHIP/FALLBACK MANUAL (CHIP)/FALLBACK BANDA (CHIP)/CTLS - TOKEN CTLS   CODIGO=01..06
     ///   NOMBRE=PUBLICIDAD    VALOR=(texto de publicidad)      CODIGO=P       (ACTIVO=-1 marca si se muestra)
     ///   NOMBRE=MAXIMOANULACIONDIAS     VALOR=(nº días)        CODIGO=MAD     (excluyente con MAXIMOANULACIONMINUTOS)
     ///   NOMBRE=MAXIMOANULACIONMINUTOS  VALOR=(nº minutos)     CODIGO=MAM     (excluyente con MAXIMOANULACIONDIAS)
+    ///   NOMBRE=PUNTOVENTA    VALOR=PUNTO DE VENTA             CODIGO=PV      (ACTIVO=-1 habilita el cobro con datafast)
     /// </summary>
     public class ParametrosTransaccionesManejador
     {
@@ -26,6 +28,12 @@ namespace LogicaNegocios
         public const string AnulacionMinutos = "MAXIMOANULACIONMINUTOS";
         private const string CodigoAnulacionDias = "MAD";
         private const string CodigoAnulacionMinutos = "MAM";
+
+        // Punto de venta (datafast). Apagado, TARJETA se cobra como cualquier otra
+        // forma de pago: no hay popup de parámetros, ni pinpad, ni baucher.
+        public const string PuntoVenta = "PUNTOVENTA";
+        private const string CodigoPuntoVenta = "PV";
+        private const string ValorPuntoVenta = "PUNTO DE VENTA";
 
         private readonly IConexionBD _conexion;
         private readonly LogManejador _log;
@@ -118,6 +126,92 @@ namespace LogicaNegocios
             return _conexion.Seleccionar(sql, ("codigo", CodigoDiferido));
         }
 
+        // ===========================
+        // PLAZOS DE CUOTA POR DIFERIDO
+        // ===========================
+
+        /// <summary>
+        /// Plazos (en meses) que el sistema es capaz de ofrecer en un diferido: 1 cuota
+        /// y los múltiplos de 3 hasta 24. De esta lista el administrador marca, por tipo
+        /// de diferido, cuáles quedan habilitados.
+        /// </summary>
+        public static readonly int[] PlazosCuotaPosibles = { 1, 3, 6, 9, 12, 15, 18, 21, 24 };
+
+        /// <summary>
+        /// Plazos habilitados para un tipo de diferido. Son los ÚNICOS que el popup de
+        /// tarjeta le ofrece al cajero: lo que no esté en la lista no existe para él
+        /// (se pueden habilitar 1, 3, 9 y 12 saltándose el 6, por ejemplo).
+        ///
+        /// FORMATO de CUOTA.VALOR: los plazos separados por coma y SIEMPRE con coma final
+        /// ("3,6,9,12,"). La coma final no es cosmética: distingue una lista nueva de un
+        /// solo plazo ("12,") del formato LEGADO, donde CUOTA.VALOR era un número suelto
+        /// con el TOPE del diferido ("12" = hasta 12 cuotas). Un valor sin coma se sigue
+        /// leyendo como ese tope y se expande a los múltiplos de 3 que caben debajo, para
+        /// que una base que todavía no haya guardado estos parámetros ofrezca lo mismo
+        /// que ofrecía antes.
+        /// </summary>
+        public List<int> ObtenerPlazosCuota(string CodigoDiferido)
+        {
+            DataSet ds = ObtenerCuotasPorDiferido(CodigoDiferido);
+
+            if (ds.Tables.Count == 0 || ds.Tables[0].Rows.Count == 0)
+                return new List<int>();
+
+            return InterpretarPlazosCuota(ds.Tables[0].Rows[0]["VALOR"].ToString());
+        }
+
+        /// <summary>
+        /// Guarda los plazos habilitados de un diferido. Descarta los que no estén en
+        /// <see cref="PlazosCuotaPosibles"/> y los repetidos, y los deja ordenados.
+        /// </summary>
+        public int GuardarPlazosCuota(string CodigoDiferido, List<int> Plazos, string Usuario, string IP)
+        {
+            var validos = new List<int>();
+
+            if (Plazos != null)
+                foreach (int plazo in Plazos)
+                    if (Array.IndexOf(PlazosCuotaPosibles, plazo) >= 0 && !validos.Contains(plazo))
+                        validos.Add(plazo);
+
+            validos.Sort();
+
+            // Lista vacía => "" (el diferido no ofrece ningún plazo). Con plazos, la coma
+            // final marca el formato lista; ver ObtenerPlazosCuota.
+            string valor = validos.Count == 0 ? "" : string.Join(",", validos) + ",";
+
+            return Actualizar(CodigoDiferido, "CUOTA", valor, Usuario, IP);
+        }
+
+        private static List<int> InterpretarPlazosCuota(string Valor)
+        {
+            var plazos = new List<int>();
+
+            string valor = (Valor ?? "").Trim();
+            if (valor.Length == 0)
+                return plazos;
+
+            if (valor.IndexOf(',') < 0)
+            {
+                // Formato legado: un número suelto era el tope del diferido.
+                if (int.TryParse(valor, out int tope))
+                    foreach (int posible in PlazosCuotaPosibles)
+                        if (posible > 1 && posible <= tope)
+                            plazos.Add(posible);
+
+                return plazos;
+            }
+
+            foreach (string parte in valor.Split(','))
+                if (int.TryParse(parte.Trim(), out int plazo)
+                    && Array.IndexOf(PlazosCuotaPosibles, plazo) >= 0
+                    && !plazos.Contains(plazo))
+                    plazos.Add(plazo);
+
+            plazos.Sort();
+
+            return plazos;
+        }
+
         /// <summary>Todas las opciones de MODO DE PAGO (códigos 01..06), activas o no.</summary>
         public DataSet ObtenerModosPago()
         {
@@ -176,6 +270,51 @@ namespace LogicaNegocios
                 return "";
 
             return ds.Tables[0].Rows[0]["VALOR"].ToString().Trim();
+        }
+
+        // ===========================
+        // PUNTO DE VENTA (DATAFAST)
+        // ===========================
+
+        /// <summary>
+        /// ¿Está habilitado el punto de venta? Es el interruptor maestro del cobro con
+        /// tarjeta: apagado, el sistema no pide parámetros de tarjeta ni habla con el pinpad.
+        ///
+        /// Si la fila no existe (bases creadas antes de este parámetro) se asume ACTIVO,
+        /// para no apagarle el datafast a una instalación que ya está cobrando con él.
+        /// </summary>
+        public bool PuntoVentaActivo()
+        {
+            string sql = @"SELECT ACTIVO
+                           FROM PARAMETROS_TRANSACCIONES
+                           WHERE NOMBRE = @nombre
+                             AND CODIGO = @codigo";
+
+            DataSet ds = _conexion.Seleccionar(sql, ("nombre", PuntoVenta), ("codigo", CodigoPuntoVenta));
+
+            if (ds.Tables.Count == 0 || ds.Tables[0].Rows.Count == 0)
+                return true;
+
+            object activo = ds.Tables[0].Rows[0]["ACTIVO"];
+
+            return activo == null || activo == DBNull.Value || Convert.ToBoolean(activo);
+        }
+
+        /// <summary>
+        /// Guarda el estado del punto de venta. Crea la fila si la base todavía no la
+        /// tiene: ActualizadorBaseDatos solo copia tablas completas que falten, nunca
+        /// agrega filas nuevas a una PARAMETROS_TRANSACCIONES que ya existe.
+        /// </summary>
+        public int GuardarPuntoVenta(bool Activo, string Usuario, string IP)
+        {
+            int filas = ActualizarActivo(CodigoPuntoVenta, PuntoVenta, Activo, Usuario, IP);
+
+            if (filas > 0)
+                return filas;
+
+            Insertar(PuntoVenta, ValorPuntoVenta, CodigoPuntoVenta, Usuario, IP);
+
+            return ActualizarActivo(CodigoPuntoVenta, PuntoVenta, Activo, Usuario, IP);
         }
 
         // ===========================

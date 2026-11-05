@@ -1,7 +1,10 @@
-﻿using LogicaNegocios.Procesos;
+﻿using LogicaNegocios;
+using LogicaNegocios.Procesos;
 using LogicaNegocios.Services;
 using System;
+using System.Collections.Generic;
 using System.Data;
+using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -42,7 +45,12 @@ namespace SistemaFacturacion
         {
             txtNota.TextChanged += txtNota_TextChanged_Buscar;
             txtNota.KeyDown += txtNota_KeyDown;
+            txtNota.Click += txtNota_Click;
             lstNotas.Click += lstNotas_Click;
+
+            // Dibujado propio: las facturas sin cupo se pintan en gris.
+            lstNotas.DrawMode = DrawMode.OwnerDrawFixed;
+            lstNotas.DrawItem += lstNotas_DrawItem;
 
             dgvOriginal.CellClick += dgvOriginal_CellClick;
             dgvNota.CellClick += dgvNota_CellClick;
@@ -70,22 +78,39 @@ namespace SistemaFacturacion
         {
             if (_suppressSearch) return;
 
-            string termino = txtNota.Text.Trim();
+            MostrarFacturas(txtNota.Text.Trim());
+        }
 
-            if (string.IsNullOrWhiteSpace(termino))
-            {
-                lstNotas.Items.Clear();
-                lstNotas.Visible = false;
-                return;
-            }
+        // Un clic en la caja despliega la lista sin tener que escribir nada: con la
+        // caja vacía salen todas las facturas.
+        private void txtNota_Click(object sender, EventArgs e)
+        {
+            MostrarFacturas(txtNota.Text.Trim());
+        }
 
+        /// <summary>
+        /// Llena la lista desplegable con las facturas que coinciden con el término.
+        /// El término vacío no esconde la lista: trae todas.
+        /// </summary>
+        private void MostrarFacturas(string termino)
+        {
             var ds = _services.NotaCredito.BuscarFacturasPorNumero(termino);
             lstNotas.Items.Clear();
 
             if (ds != null && ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
             {
+                bool hayMarca = ds.Tables[0].Columns.Contains(NotasCreditoManejador.ColumnaSinCredito);
+
                 foreach (DataRow row in ds.Tables[0].Rows)
-                    lstNotas.Items.Add(row["NUMEROFACTURA"].ToString().Trim());
+                {
+                    bool sinCredito = hayMarca
+                        && row[NotasCreditoManejador.ColumnaSinCredito] != DBNull.Value
+                        && Convert.ToBoolean(row[NotasCreditoManejador.ColumnaSinCredito]);
+
+                    lstNotas.Items.Add(new ItemFactura(
+                        row["NUMEROFACTURA"].ToString().Trim(),
+                        sinCredito));
+                }
 
                 lstNotas.Visible = true;
             }
@@ -97,9 +122,18 @@ namespace SistemaFacturacion
 
         private void lstNotas_Click(object sender, EventArgs e)
         {
-            if (lstNotas.SelectedItem == null) return;
+            var seleccionada = lstNotas.SelectedItem as ItemFactura;
+            if (seleccionada == null) return;
 
-            string numeroFactura = lstNotas.SelectedItem.ToString().Trim();
+            // Se lista a propósito para que el cajero la vea y entienda por qué no
+            // sirve, pero no se puede trabajar con ella: ya no queda crédito.
+            if (seleccionada.SinCredito)
+            {
+                lstNotas.ClearSelected();
+                return;
+            }
+
+            string numeroFactura = seleccionada.Numero;
 
             _suppressSearch = true;
             txtNota.Text = numeroFactura;
@@ -133,6 +167,59 @@ namespace SistemaFacturacion
             {
                 lstNotas.Visible = false;
                 return;
+            }
+        }
+
+        // La factura sin cupo se pinta en gris y nunca resaltada: tiene que leerse
+        // como un aviso, no como una opción elegible.
+        private void lstNotas_DrawItem(object sender, DrawItemEventArgs e)
+        {
+            if (e.Index < 0 || e.Index >= lstNotas.Items.Count) return;
+
+            var item = lstNotas.Items[e.Index] as ItemFactura;
+
+            bool sinCredito = item != null && item.SinCredito;
+            bool resaltada = !sinCredito
+                && (e.State & DrawItemState.Selected) == DrawItemState.Selected;
+
+            using (var fondo = new SolidBrush(resaltada ? SystemColors.Highlight : lstNotas.BackColor))
+                e.Graphics.FillRectangle(fondo, e.Bounds);
+
+            Color color = sinCredito
+                ? SystemColors.GrayText
+                : (resaltada ? SystemColors.HighlightText : lstNotas.ForeColor);
+
+            TextRenderer.DrawText(
+                e.Graphics,
+                lstNotas.Items[e.Index].ToString(),
+                e.Font ?? lstNotas.Font,
+                e.Bounds,
+                color,
+                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis
+            );
+        }
+
+        /// <summary>
+        /// Factura de la lista de búsqueda. Lleva su número limpio aparte del texto
+        /// que se muestra, para que la leyenda del cupo agotado no termine en txtNota
+        /// ni en la consulta.
+        /// </summary>
+        private sealed class ItemFactura
+        {
+            public string Numero { get; private set; }
+            public bool SinCredito { get; private set; }
+
+            public ItemFactura(string numero, bool sinCredito)
+            {
+                Numero = (numero ?? "").Trim();
+                SinCredito = sinCredito;
+            }
+
+            public override string ToString()
+            {
+                return SinCredito
+                    ? Numero + "  -  Todo el cupo ya fue usado"
+                    : Numero;
             }
         }
 
@@ -227,6 +314,12 @@ namespace SistemaFacturacion
 
             _dtOriginal.Clear();
 
+            // Lo que otras notas ya acreditaron de esta factura no se vuelve a
+            // ofrecer: el saldo se descuenta producto por producto, el que ya se
+            // devolvió entero no aparece y el devuelto a medias aparece solo por
+            // lo que queda. Sin esto se puede acreditar el mismo producto dos veces.
+            Dictionary<string, decimal> saldoAcreditado =
+                _services.NotaCredito.ObtenerCantidadesAcreditadas(numeroFactura);
 
             foreach (DataRow r in dsFac.Tables[0].Rows)
             {
@@ -235,6 +328,21 @@ namespace SistemaFacturacion
                 decimal cantidad = Convert.ToDecimal(r["CANTIDAD"]);
                 decimal totalLinea = Convert.ToDecimal(r["TOTAL"]);   // NET (sin IVA), tal como viene de BD
                 if (cantidad <= 0m) cantidad = 1m;
+
+                // El saldo se va consumiendo porque un producto puede venir en
+                // varias líneas de la misma factura.
+                decimal cantidadDisponible = cantidad;
+                decimal yaAcreditado;
+
+                if (saldoAcreditado.TryGetValue(nombreProd, out yaAcreditado) && yaAcreditado > 0m)
+                {
+                    decimal consumido = Math.Min(yaAcreditado, cantidad);
+                    saldoAcreditado[nombreProd] = yaAcreditado - consumido;
+                    cantidadDisponible = cantidad - consumido;
+                }
+
+                if (cantidadDisponible <= 0m)
+                    continue;
 
                 var dsProd = _services.Producto.ConsultaNombre(nombreProd);
                 if (dsProd == null || dsProd.Tables.Count == 0 || dsProd.Tables[0].Rows.Count == 0)
@@ -245,9 +353,21 @@ namespace SistemaFacturacion
 
                 decimal precioUnitario = cantidad > 0m ? Math.Round(totalLinea / cantidad, 2) : 0m;
 
+                // Con la línea intacta se respeta el TOTAL de la factura tal cual;
+                // solo cuando está recortada se prorratea, para no arrastrar el
+                // redondeo del unitario en el caso normal.
+                decimal totalDisponible = cantidadDisponible == cantidad
+                    ? totalLinea
+                    : Math.Round(precioUnitario * cantidadDisponible, 2);
+
                 // Guardar valores NET — PrepararNotaCreditoDesdeFactura los recibirá así
-                _dtOriginal.Rows.Add(codigo, nombreProd, iva, cantidad, precioUnitario, totalLinea);
+                _dtOriginal.Rows.Add(codigo, nombreProd, iva, cantidadDisponible, precioUnitario, totalDisponible);
             }
+
+            if (_dtOriginal.Rows.Count == 0)
+                throw new Exception(
+                    "La factura " + numeroFactura + " ya fue acreditada en su totalidad: " +
+                    "no queda ningún producto por devolver.");
 
             RecalcularTotales();
         }

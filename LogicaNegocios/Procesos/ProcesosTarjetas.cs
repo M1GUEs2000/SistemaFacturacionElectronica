@@ -8,6 +8,33 @@ using LogicaNegocios.Services;
 namespace LogicaNegocios.Procesos
 {
     /// <summary>
+    /// Condiciones del diferido tal como se le mandaron al pinpad. Es lo que el
+    /// baucher de diferido imprime en la fila "DIF ... / MESES / GRACIA" y en las
+    /// líneas INTERES y GRAN TOTAL.
+    ///
+    /// Solo se arma cuando el cobro fue DIFERIDO: en corriente queda null y el
+    /// baucher que se imprime es el de siempre (rptBaucher.rdlc).
+    /// </summary>
+    public class DiferidoCobrado
+    {
+        /// <summary>VALOR de PARAMETROS_TRANSACCIONES (NOMBRE='TIPODIFERIDO'), ej. "SIN INTERESES".</summary>
+        public string Nombre { get; set; }
+
+        /// <summary>Plazo en cuotas — el baucher lo rotula "MESES:".</summary>
+        public int Cuotas { get; set; }
+
+        /// <summary>Meses de gracia; 0 en los diferidos que no la usan (el baucher deja la línea en blanco).</summary>
+        public int MesesGracia { get; set; }
+
+        /// <summary>
+        /// Interés del diferido. HOY SIEMPRE 0: el POS no lo calcula todavía y el
+        /// pinpad tampoco lo devuelve. Queda como campo para no tener que tocar el
+        /// reporte cuando exista el cálculo — el baucher ya imprime la línea.
+        /// </summary>
+        public decimal Interes { get; set; }
+    }
+
+    /// <summary>
     /// Resultado del cobro con tarjeta (pinpad). Nunca representa una excepción:
     /// un rechazo o un fallo de comunicación llega como Aprobado=false + Motivo.
     /// </summary>
@@ -24,6 +51,12 @@ namespace LogicaNegocios.Procesos
         /// recálculo posterior que podría diferir en centavos.
         /// </summary>
         public TotalesFactura Totales { get; set; }
+
+        /// <summary>
+        /// Condiciones del diferido si el cobro fue DIFERIDO; null si fue corriente.
+        /// Es lo que decide cuál de los dos bauchers se imprime.
+        /// </summary>
+        public DiferidoCobrado Diferido { get; set; }
     }
 
     /// <summary>
@@ -118,6 +151,20 @@ namespace LogicaNegocios.Procesos
                 MesesGracia = (diferido && mesesGracia > 0) ? (int?)mesesGracia : null,
                 UsuarioSistema = usuarioSistema
             };
+
+            // Se guarda lo que REALMENTE se le mandó al pinpad (no lo que eligió el
+            // cajero) para que el baucher imprima las mismas condiciones que se
+            // cobraron. Interes va en 0: el POS todavía no lo calcula.
+            if (diferido)
+            {
+                resultado.Diferido = new DiferidoCobrado
+                {
+                    Nombre = (diferidoNombre ?? "").Trim(),
+                    Cuotas = req.PlazoDiferido ?? 0,
+                    MesesGracia = req.MesesGracia ?? 0,
+                    Interes = 0m
+                };
+            }
 
             try
             {

@@ -1,11 +1,14 @@
-﻿using LogicaNegocios.Services;
+﻿using LogicaNegocios.Casilleros;
+using LogicaNegocios.Services;
 using LogicaNegocios.Procesos;
 using Microsoft.Reporting.WinForms;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -32,7 +35,7 @@ namespace SistemaFacturacion
             IPActual = IP;
 
             txtCliente.MaxLength = 13;
-            txtCliente.Text = "9999999999999";
+            txtCliente.Text = "";
             txtCliente.TextChanged += txtCliente_TextChanged_Buscar;
             txtCliente.KeyDown += txtCliente_KeyDown;
 
@@ -53,9 +56,273 @@ namespace SistemaFacturacion
 
         private void Timer1_Tick(object sender, EventArgs e)
         {
-            //do whatever you want 
+            //do whatever you want
             lblHora.Text = DateTime.Now.ToString("hh:mm:ss");
             lblFecha.Text = DateTime.Now.ToString("yyyy/MM/dd");
+        }
+
+        private CasilleroNotificacionManejador _notificacionesCasillero;
+        private SistemaFacturacion.Controls.IconButton _btnCampanaCasilleros;
+        private Label _lblBadgeCasilleros;
+        private Form _popupNotificacionesCasillero;
+        private FlowLayoutPanel _pnlItemsNotificacionesCasillero;
+        private DateTime _ultimoCierrePopupNotificaciones = DateTime.MinValue;
+
+        private void IniciarPollingNotificacionesCasilleros()
+        {
+            _notificacionesCasillero = new CasilleroNotificacionManejador(_services.Conexion, _services.Log);
+            ConfigurarCampanaNotificaciones();
+
+            System.Windows.Forms.Timer timerCasilleros = new System.Windows.Forms.Timer { Interval = 5 * 1000 };
+            timerCasilleros.Tick += (s, e) =>
+            {
+                try
+                {
+                    _notificacionesCasillero.MarcarLeidasAnterioresAHoy();
+                    ActualizarBadgeNotificacionesCasillero();
+                }
+                catch (Exception ex)
+                {
+                    _services.Log.CrearLog("CASILLEROS", UsuarioActual, IPActual, "ERROR revisando notificaciones: " + ex);
+                }
+            };
+            timerCasilleros.Start();
+
+            try { ActualizarBadgeNotificacionesCasillero(); }
+            catch { }
+        }
+
+        private void ConfigurarCampanaNotificaciones()
+        {
+            const int diametroCampana = 40;
+            const int margenDerecho = 20;
+            Point ubicacionCampana = new Point(
+                panel1.Width - margenDerecho - diametroCampana,
+                (panel1.Height - diametroCampana) / 2);
+
+            _btnCampanaCasilleros = new SistemaFacturacion.Controls.IconButton
+            {
+                CodigoIcono = SistemaFacturacion.Controls.IconosCasilleros.Campana,
+                Text = "",
+                Font = new Font("Segoe UI", 9F),
+                Size = new Size(diametroCampana, diametroCampana),
+                RadioEsquinas = diametroCampana / 2,
+                BackColor = Color.FromArgb(73, 80, 87),
+                ForeColor = Color.White,
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                Location = ubicacionCampana
+            };
+            _btnCampanaCasilleros.Click += (s, e) => AlternarPanelNotificacionesCasillero();
+
+            _lblBadgeCasilleros = new Label
+            {
+                BackColor = Color.FromArgb(220, 53, 69),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 7F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleCenter,
+                Size = new Size(17, 17),
+                Visible = false,
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                Location = new Point(ubicacionCampana.X + diametroCampana - 10, ubicacionCampana.Y - 4)
+            };
+
+            panel1.Controls.Add(_btnCampanaCasilleros);
+            panel1.Controls.Add(_lblBadgeCasilleros);
+            _btnCampanaCasilleros.BringToFront();
+            _lblBadgeCasilleros.BringToFront();
+
+            ConstruirPopupNotificaciones();
+        }
+
+        private void ConstruirPopupNotificaciones()
+        {
+            const int anchoPanel = SistemaFacturacion.Controls.NotificacionCasilleroCard.AnchoTarjeta + 24;
+            const int altoPanel = 380;
+
+            _popupNotificacionesCasillero = new Form
+            {
+                FormBorderStyle = FormBorderStyle.None,
+                ShowInTaskbar = false,
+                StartPosition = FormStartPosition.Manual,
+                Size = new Size(anchoPanel, altoPanel),
+                BackColor = Color.White
+            };
+            SistemaFacturacion.Controls.VentanaPersonalizada.AplicarEsquinasRedondeadas(_popupNotificacionesCasillero, 14);
+            _popupNotificacionesCasillero.Paint += (s, e) =>
+            {
+                using (var lapiz = new Pen(Color.FromArgb(210, 213, 217)))
+                    e.Graphics.DrawRectangle(lapiz, 0, 0,
+                        _popupNotificacionesCasillero.Width - 1, _popupNotificacionesCasillero.Height - 1);
+            };
+            _popupNotificacionesCasillero.Deactivate += (s, e) =>
+            {
+                _ultimoCierrePopupNotificaciones = DateTime.Now;
+                CerrarPanelNotificacionesCasillero();
+            };
+
+            const int altoHeaderNotif = 46;
+            var pnlHeaderNotif = new Panel
+            {
+                Location = new Point(0, 0),
+                Size = new Size(anchoPanel, altoHeaderNotif),
+                BackColor = Color.FromArgb(33, 37, 41)
+            };
+            var lblIconoHeaderNotif = new Label
+            {
+                Text = SistemaFacturacion.Controls.IconosCasilleros.Glifo(SistemaFacturacion.Controls.IconosCasilleros.Campana),
+                Font = SistemaFacturacion.Controls.IconosCasilleros.CrearFuente(14F),
+                ForeColor = Color.White,
+                Dock = DockStyle.Left,
+                Width = 38,
+                TextAlign = ContentAlignment.MiddleCenter,
+                UseCompatibleTextRendering = true
+            };
+            var lblHeaderNotif = new Label
+            {
+                Text = "Avisos de Casilleros",
+                Dock = DockStyle.Fill,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Padding = new Padding(0, 0, 0, 0)
+            };
+            var btnLimpiarTodo = new Button
+            {
+                Text = "Limpiar todo",
+                Dock = DockStyle.Right,
+                Width = 90,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(33, 37, 41),
+                ForeColor = Color.FromArgb(173, 181, 189),
+                Font = new Font("Segoe UI", 8F)
+            };
+            btnLimpiarTodo.FlatAppearance.BorderSize = 0;
+            btnLimpiarTodo.Click += (s, e) =>
+            {
+                _notificacionesCasillero.MarcarTodasLeidas();
+                CargarListaNotificacionesCasillero();
+                ActualizarBadgeNotificacionesCasillero();
+            };
+
+            var btnCerrarNotif = new Button
+            {
+                Text = "×",
+                Dock = DockStyle.Right,
+                Width = 34,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(33, 37, 41),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+                Cursor = Cursors.Hand
+            };
+            btnCerrarNotif.FlatAppearance.BorderSize = 0;
+            btnCerrarNotif.Click += (s, e) => CerrarPanelNotificacionesCasillero();
+
+            pnlHeaderNotif.Controls.Add(lblHeaderNotif);
+            pnlHeaderNotif.Controls.Add(lblIconoHeaderNotif);
+            pnlHeaderNotif.Controls.Add(btnLimpiarTodo);
+            pnlHeaderNotif.Controls.Add(btnCerrarNotif);
+
+            _pnlItemsNotificacionesCasillero = new FlowLayoutPanel
+            {
+                Location = new Point(0, altoHeaderNotif),
+                Size = new Size(anchoPanel, altoPanel - altoHeaderNotif),
+                FlowDirection = FlowDirection.TopDown,
+                WrapContents = false,
+                AutoScroll = true,
+                BackColor = Color.White,
+                Padding = new Padding(10, 10, 6, 10)
+            };
+
+            _popupNotificacionesCasillero.Controls.Add(pnlHeaderNotif);
+            _popupNotificacionesCasillero.Controls.Add(_pnlItemsNotificacionesCasillero);
+        }
+
+        private void AlternarPanelNotificacionesCasillero()
+        {
+            if ((DateTime.Now - _ultimoCierrePopupNotificaciones).TotalMilliseconds < 250)
+                return;
+
+            if (_popupNotificacionesCasillero.Visible)
+            {
+                CerrarPanelNotificacionesCasillero();
+                return;
+            }
+
+            Point ubicacionCampanaPantalla = panel1.PointToScreen(_btnCampanaCasilleros.Location);
+            int yFilaPantalla = panel1.PointToScreen(Point.Empty).Y;
+            _popupNotificacionesCasillero.Location = new Point(
+                ubicacionCampanaPantalla.X + _btnCampanaCasilleros.Width - _popupNotificacionesCasillero.Width,
+                yFilaPantalla - _popupNotificacionesCasillero.Height - 10);
+
+            CargarListaNotificacionesCasillero();
+            _popupNotificacionesCasillero.Show(this);
+        }
+
+        private void CerrarPanelNotificacionesCasillero()
+        {
+            if (_popupNotificacionesCasillero.Visible)
+                _popupNotificacionesCasillero.Hide();
+        }
+
+        private void CargarListaNotificacionesCasillero()
+        {
+            _pnlItemsNotificacionesCasillero.SuspendLayout();
+            _pnlItemsNotificacionesCasillero.Controls.Clear();
+
+            var ds = _notificacionesCasillero.ObtenerNoLeidas();
+            if (ds.Tables[0].Rows.Count == 0)
+            {
+                _pnlItemsNotificacionesCasillero.Controls.Add(new Label
+                {
+                    Text = SistemaFacturacion.Controls.IconosCasilleros.Glifo(SistemaFacturacion.Controls.IconosCasilleros.Disponible)
+                        + "  Sin avisos pendientes",
+                    Font = SistemaFacturacion.Controls.IconosCasilleros.CrearFuente(9.5F),
+                    ForeColor = Color.FromArgb(40, 167, 69),
+                    AutoSize = true,
+                    Margin = new Padding(8, 24, 8, 24),
+                    UseCompatibleTextRendering = true
+                });
+            }
+            else
+            {
+                foreach (DataRow fila in ds.Tables[0].Rows)
+                {
+                    int id = Convert.ToInt32(fila["ID"]);
+                    string mensaje = fila["MENSAJE"].ToString();
+                    string tipo = fila["TIPO"] == DBNull.Value ? "POR_VENCER" : fila["TIPO"].ToString();
+                    DateTime fechaCreacion = Convert.ToDateTime(fila["FECHACREACION"]);
+
+                    var tarjeta = new SistemaFacturacion.Controls.NotificacionCasilleroCard(id, mensaje, tipo, fechaCreacion);
+                    tarjeta.Click += (s, e) =>
+                    {
+                        _notificacionesCasillero.MarcarLeida(tarjeta.IdNotificacion);
+                        ActualizarBadgeNotificacionesCasillero();
+                        CerrarPanelNotificacionesCasillero();
+                        frmCasilleroPrincipal.AbrirOEnfocar(_services, UsuarioActual, IPActual);
+                    };
+                    _pnlItemsNotificacionesCasillero.Controls.Add(tarjeta);
+                }
+            }
+
+            _pnlItemsNotificacionesCasillero.ResumeLayout();
+        }
+
+        private void ActualizarBadgeNotificacionesCasillero()
+        {
+            var ds = _notificacionesCasillero.ObtenerNoLeidas();
+            int cantidad = ds.Tables[0].Rows.Count;
+
+            if (cantidad == 0)
+            {
+                _lblBadgeCasilleros.Visible = false;
+            }
+            else
+            {
+                _lblBadgeCasilleros.Text = cantidad > 9 ? "9+" : cantidad.ToString();
+                _lblBadgeCasilleros.Visible = true;
+                _lblBadgeCasilleros.BringToFront();
+            }
         }
         private void frmPrincipal_Load(object sender, EventArgs e)
         {
@@ -63,6 +330,7 @@ namespace SistemaFacturacion
             timer.Interval = (1 * 1000);//(10 * 1000); // 10 seconds in milliseconds
             timer.Tick += new EventHandler(Timer1_Tick);
             timer.Start();
+            IniciarPollingNotificacionesCasilleros();
             lblTotalVP.Visible = false;
             btnLimpiar.Visible = false;
             CargarDatosEmpresa();
@@ -355,9 +623,15 @@ namespace SistemaFacturacion
                 string horaOriginal = lblHora.Text;
 
                 // =============================================================
-                // 2.5) COBRO CON PINPAD (solo si la forma de pago es TARJETA)
+                // 2.5) COBRO CON PINPAD (solo si la forma de pago es TARJETA
+                //      Y el punto de venta está activo)
                 //      Se cobra SÍNCRONO aquí, ANTES de plasmar/encolar la factura.
                 //      Si el datafast rechaza o no responde, se ABORTA: no se emite.
+                //
+                //      Sin punto de venta no se entra: cobradoConTarjeta queda en
+                //      false y de ahí para abajo la venta sigue el camino de
+                //      cualquier otra forma de pago (sin autorización en el recibo
+                //      y sin baucher de firma).
                 // =============================================================
                 long pinpadLogId = 0;
                 bool cobradoConTarjeta = false;
@@ -367,7 +641,7 @@ namespace SistemaFacturacion
                 // el recibo y para el baucher.
                 ResultadoCobroTarjeta cobro = null;
 
-                if (ProcesosTarjetas.EsPagoTarjeta(formaPagoOriginal))
+                if (ProcesosTarjetas.EsPagoTarjeta(formaPagoOriginal) && PuntoVentaActivo())
                 {
                     // Se oculta mientras se espera al pinpad: al ser un Form top-level
                     // no modal, el overlay de "esperando" de Notificaciones no lo cubre
@@ -406,6 +680,9 @@ namespace SistemaFacturacion
                             _popupTarjeta.Show(this);
                         }
 
+                        // Venta fallida: el cliente también vuelve a quedar en blanco.
+                        SetCedulaCliente("");
+
                         return; // ABORTAR: la factura no se emite
                     }
 
@@ -422,7 +699,7 @@ namespace SistemaFacturacion
                 // =============================================================
                 // 3) LIMPIAR UI
                 // =============================================================
-                SetCedulaCliente("9999999999999");
+                SetCedulaCliente("");
                 txtComentario.Text = "";
                 txtFormaPago.Text = "";
                 OcultarPopupTarjeta();
@@ -551,6 +828,12 @@ namespace SistemaFacturacion
                                 // SEGUNDA TIRA: BAUCHER CON FIRMA
                                 // Solo si se cobró con tarjeta Y el consumo alcanza
                                 // MINIMOFIRMA. El recibo de arriba sale siempre.
+                                //
+                                // cobro.Diferido decide el formato: null = baucher
+                                // corriente de siempre; con valor = baucher de
+                                // diferido (fila DIF/MESES/GRACIA + INTERES y GRAN
+                                // TOTAL). Lo llenó ProcesosTarjetas con lo que
+                                // realmente se le mandó al pinpad.
                                 // ==============================================
                                 if (cobradoConTarjeta
                                     && cobro.Totales != null
@@ -563,7 +846,8 @@ namespace SistemaFacturacion
                                             em.Tables[0].Rows[0],
                                             cobro.Detalle,
                                             cobro.Totales,
-                                            BaucherTarjeta.RotuloOriginal
+                                            BaucherTarjeta.RotuloOriginal,
+                                            cobro.Diferido
                                         );
 
                                         // La COPIA se pregunta DESPUÉS de que el ORIGINAL ya
@@ -587,7 +871,8 @@ namespace SistemaFacturacion
                                                 em.Tables[0].Rows[0],
                                                 cobro.Detalle,
                                                 cobro.Totales,
-                                                BaucherTarjeta.RotuloCopia
+                                                BaucherTarjeta.RotuloCopia,
+                                                cobro.Diferido
                                             );
                                         }
                                     }
@@ -704,6 +989,9 @@ namespace SistemaFacturacion
                     UsuarioActual,
                     IPActual
                 );
+
+                // Venta fallida: el cliente vuelve a quedar en blanco.
+                SetCedulaCliente("");
             }
         }
         private void ActualizarNumeroFacturaEnTabla(string hora, string numeroFactura)
@@ -1261,8 +1549,10 @@ namespace SistemaFacturacion
             // ✔ Mostrar el nombre al usuario
             txtFormaPago.Text = nombre;
 
-            // TARJETA abre el popup de tipo de pago / diferido / cuotas
-            if (nombre.Trim().ToUpper() == "TARJETA")
+            // TARJETA abre el popup de tipo de pago / diferido / cuotas, pero solo
+            // si el punto de venta está activo. Sin punto de venta la tarjeta es una
+            // forma de pago más: no se piden parámetros ni se cobra por el datafast.
+            if (nombre.Trim().ToUpper() == "TARJETA" && PuntoVentaActivo())
                 MostrarPopupTarjeta();
             else
                 OcultarPopupTarjeta();
@@ -1283,6 +1573,19 @@ namespace SistemaFacturacion
 
         private frmTarjetaPopup _popupTarjeta;
         private bool _reposicionPopupEnganchada;
+
+        /// <summary>
+        /// ¿Está activo el punto de venta (PARAMETROS_TRANSACCIONES, NOMBRE='PUNTOVENTA')?
+        /// Apagado, TARJETA no abre el popup de parámetros ni pasa por el datafast.
+        ///
+        /// Se relee en cada decisión en vez de cachearse: el principal queda abierto
+        /// mientras se toca frmParametrosTransaccion, así que un valor guardado en el
+        /// constructor dejaría el cambio sin efecto hasta reiniciar el sistema.
+        /// </summary>
+        private bool PuntoVentaActivo()
+        {
+            return _services.ParamTransaccion.PuntoVentaActivo();
+        }
 
         // Selección resultante — disponible para la emisión de la factura
         public string TarjetaTipoPago { get; private set; }        // "C" = corriente / "D" = diferido
@@ -1462,6 +1765,11 @@ namespace SistemaFacturacion
             ventana.UsuarioActual = this.UsuarioActual;
             ventana.IPActual = this.IPActual;
             ventana.Show();
+        }
+
+        private void btnCasilleros_Click(object sender, EventArgs e)
+        {
+            frmCasilleroPrincipal.AbrirOEnfocar(_services, UsuarioActual, IPActual);
         }
 
         private async void btnPDF_Click(object sender, EventArgs e)

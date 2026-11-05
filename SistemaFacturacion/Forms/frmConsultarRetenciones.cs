@@ -1,4 +1,5 @@
 ﻿using LogicaNegocios.Services;
+using LogicaNegocios.Procesos;
 using System;
 using System.Data;
 using System.IO;
@@ -670,6 +671,41 @@ namespace SistemaFacturacion
             }
         }
 
+        private bool ObtenerXmlAutorizadoRetencion(
+            DataGridViewRow fila,
+            string numeroRetencion,
+            out string claveAcceso,
+            out string rutaXmlAutorizado
+        )
+        {
+            claveAcceso = "";
+            rutaXmlAutorizado = "";
+
+            try
+            {
+                string fechaOriginal = fila.Cells["FECHAEMISION"]?.Value?.ToString() ?? "";
+                if (!DateTime.TryParse(fechaOriginal, out DateTime fecha))
+                    return false;
+
+                string patron = $"*{fecha:ddMMyyyy}*{numeroRetencion}*.xml";
+                string carpeta = Path.Combine(_services.Paths.Retenciones, "XMLAUTORIZADOS");
+                string[] archivos = Directory.Exists(carpeta)
+                    ? Directory.GetFiles(carpeta, patron)
+                    : new string[0];
+
+                if (archivos.Length == 0)
+                    return false;
+
+                rutaXmlAutorizado = archivos[0];
+                claveAcceso = Path.GetFileNameWithoutExtension(rutaXmlAutorizado);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         private async void EnviarCorreoRetencionPendiente(DataGridViewRow fila)
         {
             Notificaciones.Show(
@@ -697,20 +733,20 @@ namespace SistemaFacturacion
                 }
 
                 // ==========================================
-                // XML FIRMADO + CLAVE ACCESO
+                // XML AUTORIZADO + CLAVE ACCESO
                 // ==========================================
-                bool okXml = ObtenerXmlFirmadoRetencion(
+                bool okXml = ObtenerXmlAutorizadoRetencion(
                     fila,
                     numeroRetencion,
                     out string claveAcceso,
-                    out string rutaXmlFirmado
+                    out string rutaXmlAutorizado
                 );
 
                 if (!okXml)
                 {
                     Notificaciones.Show(
                         this,
-                        "No se pudo localizar el XML firmado de la Retención.",
+                        "No se pudo localizar el XML autorizado de la Retención.",
                         "error",
                         UsuarioActual,
                         IPActual
@@ -770,18 +806,21 @@ namespace SistemaFacturacion
                 }
 
                 // ==========================================
-                // PROCESAR CORREO (FLUJO PESADO)
+                // ENVIAR XML AUTORIZADO
                 // ==========================================
                 var res = await Task.Run(() =>
-                    _services.ProcesosRetenciones.ProcesarRetencionDesdeAutorizacion(
-                        numeroRetencion,
-                        claveAcceso,
-                        rutaXmlFirmado,
-                        dsEmp.Tables[0].Rows[0],
+                    _services.ProcesosGenerales.EnviarCorreoDocumento(
+                        new SolicitudCorreoDocumento
+                        {
+                            TipoDocumento = "RETENCION",
+                            NumeroDocumento = numeroRetencion,
+                            RutaPdf = Path.Combine(_services.Paths.Retenciones, "PDF", claveAcceso + ".pdf"),
+                            RutaXmlAutorizado = rutaXmlAutorizado
+                        },
                         dsCliente.Tables[0].Rows[0],
+                        "RETENCION",
                         UsuarioActual,
-                        IPActual,
-                        "CORREO"
+                        IPActual
                     )
                 );
 

@@ -90,5 +90,10 @@ namespace SistemaFacturacion
             frmDatafast.IPActual = this.IPActual;
             frmDatafast.Show();
         }
+
+        private void btnCasilleros_Click(object sender, EventArgs e)
+        {
+            frmCasilleroPrincipal.AbrirOEnfocar(_services, UsuarioActual, IPActual);
+        }
     }
 }

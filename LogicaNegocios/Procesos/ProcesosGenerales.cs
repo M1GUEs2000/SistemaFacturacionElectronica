@@ -858,6 +858,22 @@ namespace LogicaNegocios.Procesos
                             _services.ProcesosErroresSri.Clasificar(r.MensajesSri);
                         ultimoDetalleSri = FormatearDetalleAutorizacionPendiente(auth);
 
+                        // Una respuesta sin comprobantes solo es pendiente si el SRI lo
+                        // indica explícitamente (estado EN PROCESAMIENTO o código 70).
+                        // Cualquier otro detalle SOAP/SRI se entrega al llamador tal cual.
+                        bool esProcesamientoSri =
+                            estadoAuth == "EN PROCESAMIENTO" ||
+                            r.ErrorClasificado.Accion == AccionErrorSri.ConsultarAutorizacion;
+
+                        if (!string.IsNullOrWhiteSpace(auth.Error) && !esProcesamientoSri)
+                        {
+                            r.Exito = false;
+                            r.ErrorFinal = r.ErrorClasificado.Accion == AccionErrorSri.NoReintentar;
+                            r.Mensaje = auth.Error;
+                            LogErrorSriBD(tipoDocumento, numeroDocumento, claveAcceso, r.Mensaje, usuarioActual, ipActual);
+                            return r;
+                        }
+
                         if (estadoAuth == "AUTORIZADO" && File.Exists(rutaAutorizado))
                         {
                             var xml = XDocument.Load(rutaAutorizado);

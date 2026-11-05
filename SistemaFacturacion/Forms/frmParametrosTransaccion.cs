@@ -1,4 +1,4 @@
-using LogicaNegocios;
+﻿using LogicaNegocios;
 using LogicaNegocios.Services;
 using System;
 using System.Collections.Generic;
@@ -17,6 +17,10 @@ namespace SistemaFacturacion
 
         private readonly List<FilaDiferido> _filasDiferido = new List<FilaDiferido>();
 
+        // Compartido por las filas de diferido: explica el combo de plazos, que no
+        // es un selector normal sino el que va agregando a la lista de al lado.
+        private readonly ToolTip _tooltipPlazos = new ToolTip();
+
         // Valor guardado de cada unidad del plazo de anulación. Se conservan aparte para que,
         // al cambiar de DÍAS a MINUTOS y volver, se reponga lo que hay en la BD y no lo que
         // quedó seleccionado en pantalla.
@@ -29,6 +33,7 @@ namespace SistemaFacturacion
             InitializeComponent();
             _services = services;
             ConfigurarEventos();
+            CargarPuntoVenta();
             CargarTipoPago();
             CargarPublicidad();
             CargarDiferidos();
@@ -46,10 +51,46 @@ namespace SistemaFacturacion
         private void ConfigurarEventos()
         {
             btnModificar.Click += BtnModificar_Click;
+            chkPuntoVentaActivo.CheckedChanged += ChkPuntoVentaActivo_CheckedChanged;
             cmbTipoPago.SelectedIndexChanged += CmbTipoPago_SelectedIndexChanged;
             txtPublicidad.TextChanged += TxtPublicidad_TextChanged;
             cmbUnidadAnulacion.SelectedIndexChanged += CmbUnidadAnulacion_SelectedIndexChanged;
             this.Load += frmParametrosTransaccion_Load;
+        }
+
+        // =========================================================
+        // PUNTO DE VENTA — interruptor maestro del formulario
+        // Es el primer parámetro porque de él dependen todos los demás: el resto
+        // de esta pantalla configura el cobro con tarjeta, y sin punto de venta
+        // no hay cobro con tarjeta (en frmPrincipal TARJETA se comporta como
+        // cualquier otra forma de pago, sin popup ni datafast).
+        // =========================================================
+        private void CargarPuntoVenta()
+        {
+            chkPuntoVentaActivo.Checked = _services.ParamTransaccion.PuntoVentaActivo();
+            AplicarEstadoPuntoVenta();
+        }
+
+        private void ChkPuntoVentaActivo_CheckedChanged(object sender, EventArgs e)
+        {
+            AplicarEstadoPuntoVenta();
+        }
+
+        /// <summary>
+        /// Habilita o deshabilita los parámetros de tarjeta según el punto de venta.
+        /// btnModificar queda siempre activo: es el que guarda el propio interruptor.
+        /// </summary>
+        private void AplicarEstadoPuntoVenta()
+        {
+            bool activo = chkPuntoVentaActivo.Checked;
+
+            cmbTipoPago.Enabled = activo;
+            cmbUnidadAnulacion.Enabled = activo;
+            numPlazoAnulacion.Enabled = activo;
+            txtPublicidad.Enabled = activo;
+            chkPublicidadActiva.Enabled = activo;
+            numVoucher.Enabled = activo;
+            panelDiferidos.Enabled = activo;
         }
 
         // =========================================================
@@ -131,7 +172,13 @@ namespace SistemaFacturacion
         }
 
         // =========================================================
-        // TIPOS DE DIFERIDO: un checkbox (activo) + numeric (cuotas) por cada uno
+        // TIPOS DE DIFERIDO: por cada uno, un checkbox (activo) + el combo de
+        // plazos y la lista de los habilitados.
+        //
+        // El combo no deja un valor seleccionado: cada plazo que se elige se
+        // AGREGA a la lista de al lado (y si ya estaba, se quita), porque los
+        // plazos no son un tope sino el conjunto exacto que el popup de tarjeta
+        // le ofrece al cajero. Así se puede habilitar 1, 3, 9 y 12 saltándose el 6.
         // =========================================================
         private void CargarDiferidos()
         {
@@ -141,10 +188,17 @@ namespace SistemaFacturacion
             DataSet ds = _services.ParamTransaccion.ObtenerTiposDiferido();
             if (ds == null || ds.Tables.Count == 0) return;
 
-            const int filaAlto = 32;
+            // Todo en una sola línea por diferido: nombre, combo de plazos, lista
+            // y Limpiar. colCheck..colLimpiar son las columnas de esa línea.
+            const int filaAlto = 28;
             const int colCheck = 12;
-            const int colLabel = 320;
-            const int colNumero = 470;
+            const int colEtiqueta = 292;
+            const int colCombo = 393;
+            const int colLista = 457;
+            const int colLimpiar = 641;
+
+            var fuenteChica = new Font("Microsoft Sans Serif", 8F);
+            var fuenteNegrita = new Font("Microsoft Sans Serif", 8F, FontStyle.Bold);
 
             int y = 8;
             foreach (DataRow row in ds.Tables[0].Rows)
@@ -157,47 +211,88 @@ namespace SistemaFacturacion
                 {
                     Text = descripcion,
                     Checked = activo,
-                    Location = new Point(colCheck, y + 6),
-                    Size = new Size(colLabel - colCheck - 10, 20),
+                    Location = new Point(colCheck, y + 3),
+                    Size = new Size(272, 20),
+                    Font = fuenteNegrita,
                     Tag = codigo
                 };
 
                 var lbl = new Label
                 {
-                    Text = "Cuota Máxima del Diferido:",
-                    Location = new Point(colLabel, y + 8),
+                    Text = "Plazos (meses):",
+                    Location = new Point(colEtiqueta, y + 6),
                     AutoSize = true,
-                    Font = new Font("Microsoft Sans Serif", 8F),
+                    Font = fuenteNegrita,
                     TextAlign = ContentAlignment.MiddleLeft
                 };
 
-                var cmbCuotas = new ComboBox
+                var cmbPlazo = new ComboBox
                 {
-                    Location = new Point(colNumero, y + 4),
-                    Size = new Size(100, 20),
                     DropDownStyle = ComboBoxStyle.DropDownList,
-                    Tag = codigo
+                    Location = new Point(colCombo, y + 2),
+                    Size = new Size(58, 21),
+                    Font = fuenteChica
                 };
-                for (int c = 3; c <= 96; c += 3)
-                    cmbCuotas.Items.Add(c.ToString("00"));
+                foreach (int plazo in ParametrosTransaccionesManejador.PlazosCuotaPosibles)
+                    cmbPlazo.Items.Add(plazo.ToString("00"));
 
-                DataSet dsCuota = _services.ParamTransaccion.ObtenerCuotasPorDiferido(codigo);
-                if (dsCuota != null && dsCuota.Tables.Count > 0 && dsCuota.Tables[0].Rows.Count > 0)
+                // Ancho justo para los nueve plazos ("01, 03, ... 24"); no más,
+                // porque sobrante aquí es ancho de formulario desperdiciado.
+                var txtPlazos = new TextBox
                 {
-                    if (decimal.TryParse(dsCuota.Tables[0].Rows[0]["VALOR"].ToString(), out decimal cuotas))
-                    {
-                        int cuotaNormalizada = Math.Max(3, Math.Min(96, ((int)cuotas / 3) * 3));
-                        cmbCuotas.SelectedItem = cuotaNormalizada.ToString("00");
-                    }
-                }
-                if (cmbCuotas.SelectedIndex < 0)
-                    cmbCuotas.SelectedIndex = 0;
+                    ReadOnly = true,
+                    Location = new Point(colLista, y + 3),
+                    Size = new Size(178, 20),
+                    Font = fuenteChica,
+                    BackColor = SystemColors.Control,
+                    TabStop = false
+                };
+
+                var btnLimpiar = new Button
+                {
+                    Text = "Limpiar",
+                    Location = new Point(colLimpiar, y + 2),
+                    Size = new Size(66, 22),
+                    Font = fuenteChica,
+                    UseVisualStyleBackColor = true
+                };
+
+                var fila = new FilaDiferido
+                {
+                    Codigo = codigo,
+                    CheckActivo = chk,
+                    TxtPlazos = txtPlazos,
+                    Plazos = _services.ParamTransaccion.ObtenerPlazosCuota(codigo)
+                };
+
+                // SelectionChangeCommitted y no SelectedIndexChanged: solo reacciona a
+                // lo que elige el administrador, así el SelectedIndex = -1 de después
+                // (que deja el combo en blanco, listo para el siguiente plazo) no se
+                // dispara a sí mismo.
+                cmbPlazo.SelectionChangeCommitted += (s, e) =>
+                {
+                    if (cmbPlazo.SelectedItem != null
+                        && int.TryParse(cmbPlazo.SelectedItem.ToString(), out int plazo))
+                        fila.AlternarPlazo(plazo);
+
+                    cmbPlazo.SelectedIndex = -1;
+                };
+
+                btnLimpiar.Click += (s, e) => fila.LimpiarPlazos();
+
+                _tooltipPlazos.SetToolTip(cmbPlazo,
+                    "Elija un plazo para agregarlo a la lista. Si ya está en la lista, se quita.");
+                _tooltipPlazos.SetToolTip(txtPlazos,
+                    "Plazos habilitados para este diferido: son los únicos que se le ofrecen al cajero.");
 
                 panelDiferidos.Controls.Add(chk);
                 panelDiferidos.Controls.Add(lbl);
-                panelDiferidos.Controls.Add(cmbCuotas);
+                panelDiferidos.Controls.Add(cmbPlazo);
+                panelDiferidos.Controls.Add(txtPlazos);
+                panelDiferidos.Controls.Add(btnLimpiar);
 
-                _filasDiferido.Add(new FilaDiferido { Codigo = codigo, CheckActivo = chk, CmbCuotas = cmbCuotas });
+                fila.RefrescarLista();
+                _filasDiferido.Add(fila);
 
                 y += filaAlto;
             }
@@ -288,6 +383,34 @@ namespace SistemaFacturacion
                 return;
             }
 
+            // Un diferido habilitado sin plazos dejaría al popup de tarjeta sin
+            // cuotas que ofrecer y la venta saldría con 0 cuotas al pinpad. Solo
+            // aplica con punto de venta activo: apagado, nadie lee estos parámetros.
+            if (chkPuntoVentaActivo.Checked)
+            {
+                foreach (var fila in _filasDiferido)
+                {
+                    if (!fila.CheckActivo.Checked || fila.Plazos.Count > 0)
+                        continue;
+
+                    Notificaciones.Show(
+                        this,
+                        "Seleccione al menos un plazo para el diferido: " + fila.CheckActivo.Text.Trim(),
+                        "advertencia"
+                    );
+                    return;
+                }
+            }
+
+            // El punto de venta se guarda primero: si quedó apagado, los demás
+            // parámetros igual se persisten (conservan su valor para cuando se
+            // vuelva a encender), simplemente nadie los consume.
+            _services.ParamTransaccion.GuardarPuntoVenta(
+                chkPuntoVentaActivo.Checked,
+                UsuarioActual,
+                IPActual
+            );
+
             foreach (ComboItem item in cmbTipoPago.Items)
             {
                 _services.ParamTransaccion.ActualizarActivo(
@@ -323,10 +446,9 @@ namespace SistemaFacturacion
                     IPActual
                 );
 
-                _services.ParamTransaccion.Actualizar(
+                _services.ParamTransaccion.GuardarPlazosCuota(
                     fila.Codigo,
-                    "CUOTA",
-                    fila.CmbCuotas.SelectedItem?.ToString() ?? "03",
+                    fila.Plazos,
                     UsuarioActual,
                     IPActual
                 );
@@ -359,6 +481,7 @@ namespace SistemaFacturacion
             }
 
             Notificaciones.Show(this, "Parámetros modificados correctamente.", "exito");
+            CargarPuntoVenta();
             CargarTipoPago();
             CargarPublicidad();
             CargarDiferidos();
@@ -370,7 +493,39 @@ namespace SistemaFacturacion
         {
             public string Codigo { get; set; }
             public CheckBox CheckActivo { get; set; }
-            public ComboBox CmbCuotas { get; set; }
+            public TextBox TxtPlazos { get; set; }
+
+            /// <summary>
+            /// Plazos habilitados, ascendentes. Esta lista es el estado real de la fila:
+            /// el TextBox solo la muestra, así que nunca se lee de vuelta desde el texto.
+            /// </summary>
+            public List<int> Plazos { get; set; }
+
+            /// <summary>Agrega el plazo, o lo quita si ya estaba (el combo funciona como interruptor).</summary>
+            public void AlternarPlazo(int Plazo)
+            {
+                if (!Plazos.Remove(Plazo))
+                    Plazos.Add(Plazo);
+
+                Plazos.Sort();
+                RefrescarLista();
+            }
+
+            public void LimpiarPlazos()
+            {
+                Plazos.Clear();
+                RefrescarLista();
+            }
+
+            public void RefrescarLista()
+            {
+                var textos = new List<string>();
+
+                foreach (int plazo in Plazos)
+                    textos.Add(plazo.ToString("00"));
+
+                TxtPlazos.Text = string.Join(", ", textos);
+            }
         }
 
         private class ComboItem

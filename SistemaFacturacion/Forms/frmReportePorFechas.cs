@@ -1494,6 +1494,41 @@ namespace SistemaFacturacion
             }
         }
 
+        private bool ObtenerXmlAutorizadoFactura(
+            DataGridViewRow fila,
+            string numeroFactura,
+            out string claveAcceso,
+            out string rutaXmlAutorizado
+        )
+        {
+            claveAcceso = "";
+            rutaXmlAutorizado = "";
+
+            try
+            {
+                string fechaOriginal = fila.Cells["FECHA"]?.Value?.ToString() ?? "";
+                if (!DateTime.TryParse(fechaOriginal, out DateTime fecha))
+                    return false;
+
+                string patron = $"*{fecha:ddMMyyyy}*{numeroFactura}*.xml";
+                string carpeta = Path.Combine(_services.Paths.Facturas, "XMLAUTORIZADOS");
+                string[] archivos = Directory.Exists(carpeta)
+                    ? Directory.GetFiles(carpeta, patron)
+                    : new string[0];
+
+                if (archivos.Length == 0)
+                    return false;
+
+                rutaXmlAutorizado = archivos[0];
+                claveAcceso = Path.GetFileNameWithoutExtension(rutaXmlAutorizado);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         // ======================================================
         // BOTÓN "ERROR" — MOTIVO DEL RECHAZO DEL SRI
         // ======================================================
@@ -1650,16 +1685,16 @@ namespace SistemaFacturacion
                 }
 
                 // ==========================================
-                // XML FIRMADO + CLAVE ACCESO
+                // XML AUTORIZADO + CLAVE ACCESO
                 // ==========================================
-                if (!ObtenerXmlFirmadoFactura(
+                if (!ObtenerXmlAutorizadoFactura(
                     fila,
                     numeroFactura,
                     out string claveAcceso,
-                    out string rutaXmlFirmado))
+                    out string rutaXmlAutorizado))
                 {
                     Notificaciones.Show(this,
-                        "No se pudo localizar el XML firmado de la Factura.",
+                        "No se pudo localizar el XML autorizado de la Factura.",
                         "error",
                         UsuarioActual,
                         IPActual);
@@ -1707,15 +1742,19 @@ namespace SistemaFacturacion
                 }
 
                 // ==========================================
-                // FLUJO PESADO
+                // ENVIAR XML AUTORIZADO
                 // ==========================================
                 var res = await Task.Run(() =>
-                    _services.ProcesosFacturacion.FacturaPendienteAutorizacion(
-                        numeroFactura,
-                        claveAcceso,
-                        rutaXmlFirmado,
-                        dsEmp.Tables[0].Rows[0],
+                    _services.ProcesosGenerales.EnviarCorreoDocumento(
+                        new SolicitudCorreoDocumento
+                        {
+                            TipoDocumento = "FACTURA",
+                            NumeroDocumento = numeroFactura,
+                            RutaPdf = Path.Combine(_services.Paths.Facturas, "PDF", claveAcceso + ".pdf"),
+                            RutaXmlAutorizado = rutaXmlAutorizado
+                        },
                         dsCliente.Tables[0].Rows[0],
+                        "FACTURA",
                         UsuarioActual,
                         IPActual
                     )

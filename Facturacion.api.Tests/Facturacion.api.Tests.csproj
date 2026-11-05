@@ -15,7 +15,7 @@
     <PackageReference Include="FluentValidation" Version="11.9.2" />
     <!-- FluentValidation 11.x referencia Unsafe 6.0.0.0; sin esto el test host
          copia una version vieja (4.0.4.1) y falla el binding. -->
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />

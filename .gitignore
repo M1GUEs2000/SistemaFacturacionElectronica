@@ -12,6 +12,11 @@ ConexionSQL.dat
 **/FACTURACION/
 **/App_Data/logs/
 
+# Datos personales de clientes
+Clientes.xlsx
+Clientes Editado.xlsx
+Clientes cedula0.xlsx
+
 # Bases de datos
 *.accdb
 *.laccdb

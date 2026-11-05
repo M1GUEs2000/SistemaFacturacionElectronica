@@ -1,5 +1,6 @@
 ﻿using AccesoDatos;
 using AccesoDatos.Abstractions;
+using LogicaNegocios.Casilleros;
 using LogicaNegocios;
 using LogicaNegocios.Services;
 using System;
@@ -44,7 +45,33 @@ namespace SistemaFacturacion
             // (o tumbaba la app) sin dejar rastro en ningún lado.
             EngancharExcepcionesNoControladas(services);
 
+            var motorCasilleros = IniciarMotorCasilleros(services);
+
             Application.Run(new frmLogin(services));
+
+            motorCasilleros?.Detener();
+        }
+
+        private static MotorVencimientos IniciarMotorCasilleros(AppServices services)
+        {
+            try
+            {
+                CasilleroSchemaInstalador.AsegurarTablas(services.Conexion, services.Log);
+
+                var casilleros = new CasilleroManejador(services.Conexion, services.Log);
+                var parametros = new CasilleroParametrosManejador(services.Conexion, services.Log);
+                var notificaciones = new CasilleroNotificacionManejador(services.Conexion, services.Log);
+                var asignaciones = new CasilleroAsignacionManejador(services.Conexion, services.Log, casilleros, notificaciones);
+
+                var motor = new MotorVencimientos(asignaciones, notificaciones, parametros, services.Log);
+                motor.Iniciar();
+                return motor;
+            }
+            catch (Exception ex)
+            {
+                services.Log.CrearLog("CASILLEROS", "SISTEMA", "", "ERROR al iniciar el watcher de casilleros: " + ex);
+                return null;
+            }
         }
 
         private static void EngancharExcepcionesNoControladas(AppServices services)

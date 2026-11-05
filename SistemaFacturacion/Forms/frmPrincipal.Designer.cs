@@ -110,6 +110,7 @@
             this.btnSalir = new System.Windows.Forms.Button();
             this.panel1 = new System.Windows.Forms.Panel();
             this.btnRetenciones = new System.Windows.Forms.Button();
+            this.btnCasilleros = new SistemaFacturacion.Controls.IconButton();
             this.btnPDF = new System.Windows.Forms.Button();
             this.btnRefresh = new System.Windows.Forms.Button();
             this.txtBuscarProductos = new System.Windows.Forms.TextBox();
@@ -762,10 +763,10 @@
             this.button4.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("button4.BackgroundImage")));
             this.button4.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
             this.button4.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.button4.Location = new System.Drawing.Point(326, 0);
+            this.button4.Location = new System.Drawing.Point(218, 0);
             this.button4.Margin = new System.Windows.Forms.Padding(2);
             this.button4.Name = "button4";
-            this.button4.Size = new System.Drawing.Size(94, 67);
+            this.button4.Size = new System.Drawing.Size(70, 67);
             this.button4.TabIndex = 22;
             this.button4.UseVisualStyleBackColor = true;
             this.button4.Click += new System.EventHandler(this.button4_Click);
@@ -798,10 +799,10 @@
             // 
             this.bntTablas.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("bntTablas.BackgroundImage")));
             this.bntTablas.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
-            this.bntTablas.Location = new System.Drawing.Point(218, 1);
+            this.bntTablas.Location = new System.Drawing.Point(144, 1);
             this.bntTablas.Margin = new System.Windows.Forms.Padding(2);
             this.bntTablas.Name = "bntTablas";
-            this.bntTablas.Size = new System.Drawing.Size(94, 67);
+            this.bntTablas.Size = new System.Drawing.Size(70, 67);
             this.bntTablas.TabIndex = 16;
             this.bntTablas.UseVisualStyleBackColor = true;
             this.bntTablas.Click += new System.EventHandler(this.bntTablas_Click);
@@ -810,10 +811,10 @@
             // 
             this.button2.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("button2.BackgroundImage")));
             this.button2.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
-            this.button2.Location = new System.Drawing.Point(116, 0);
+            this.button2.Location = new System.Drawing.Point(76, 0);
             this.button2.Margin = new System.Windows.Forms.Padding(2);
             this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(84, 67);
+            this.button2.Size = new System.Drawing.Size(64, 67);
             this.button2.TabIndex = 15;
             this.button2.UseVisualStyleBackColor = true;
             this.button2.Click += new System.EventHandler(this.button2_Click);
@@ -822,10 +823,10 @@
             // 
             this.button1.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("button1.BackgroundImage")));
             this.button1.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
-            this.button1.Location = new System.Drawing.Point(12, 1);
+            this.button1.Location = new System.Drawing.Point(8, 1);
             this.button1.Margin = new System.Windows.Forms.Padding(2);
             this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(86, 67);
+            this.button1.Size = new System.Drawing.Size(64, 67);
             this.button1.TabIndex = 14;
             this.button1.UseVisualStyleBackColor = true;
             this.button1.Click += new System.EventHandler(this.button1_Click);
@@ -843,7 +844,8 @@
             this.btnSalir.Click += new System.EventHandler(this.btnSalir_Click);
             // 
             // panel1
-            // 
+            //
+            this.panel1.Controls.Add(this.btnCasilleros);
             this.panel1.Controls.Add(this.btnRetenciones);
             this.panel1.Controls.Add(this.button1);
             this.panel1.Controls.Add(this.button4);
@@ -851,22 +853,40 @@
             this.panel1.Controls.Add(this.bntTablas);
             this.panel1.Location = new System.Drawing.Point(88, 660);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(534, 68);
+            this.panel1.Size = new System.Drawing.Size(520, 68);
             this.panel1.TabIndex = 23;
-            // 
+            //
             // btnRetenciones
-            // 
+            //
             this.btnRetenciones.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("btnRetenciones.BackgroundImage")));
             this.btnRetenciones.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
             this.btnRetenciones.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnRetenciones.Location = new System.Drawing.Point(429, 1);
+            this.btnRetenciones.Location = new System.Drawing.Point(292, 1);
             this.btnRetenciones.Margin = new System.Windows.Forms.Padding(2);
             this.btnRetenciones.Name = "btnRetenciones";
-            this.btnRetenciones.Size = new System.Drawing.Size(94, 67);
+            this.btnRetenciones.Size = new System.Drawing.Size(70, 67);
             this.btnRetenciones.TabIndex = 23;
             this.btnRetenciones.UseVisualStyleBackColor = true;
             this.btnRetenciones.Click += new System.EventHandler(this.btnRetenciones_Click);
-            // 
+            //
+            // btnCasilleros
+            //
+            this.btnCasilleros.BackColor = System.Drawing.Color.FromArgb(0, 123, 255);
+            this.btnCasilleros.CodigoIcono = SistemaFacturacion.Controls.IconosCasilleros.Casilleros;
+            this.btnCasilleros.FlatAppearance.BorderSize = 0;
+            this.btnCasilleros.Font = new System.Drawing.Font("Segoe UI", 7F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnCasilleros.ForeColor = System.Drawing.Color.White;
+            this.btnCasilleros.IconoArriba = true;
+            this.btnCasilleros.Location = new System.Drawing.Point(366, 1);
+            this.btnCasilleros.Margin = new System.Windows.Forms.Padding(2);
+            this.btnCasilleros.Name = "btnCasilleros";
+            this.btnCasilleros.RadioEsquinas = 14;
+            this.btnCasilleros.Size = new System.Drawing.Size(70, 67);
+            this.btnCasilleros.TabIndex = 24;
+            this.btnCasilleros.Text = "CASILLEROS";
+            this.btnCasilleros.UseVisualStyleBackColor = false;
+            this.btnCasilleros.Click += new System.EventHandler(this.btnCasilleros_Click);
+            //
             // btnPDF
             // 
             this.btnPDF.Font = new System.Drawing.Font("Microsoft Tai Le", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -1027,6 +1047,7 @@
         private System.Windows.Forms.Button button4;
         private System.Windows.Forms.Panel panel1;
         private System.Windows.Forms.Button btnRetenciones;
+        private SistemaFacturacion.Controls.IconButton btnCasilleros;
         private System.Windows.Forms.Button btnPDF;
         private System.Windows.Forms.Button btnRefresh;
         private System.Windows.Forms.Button button5;

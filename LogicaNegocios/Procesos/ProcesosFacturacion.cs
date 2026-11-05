@@ -1371,6 +1371,7 @@ namespace LogicaNegocios.Procesos
                         // ConsultarAutorizacion ya dejó el pendiente en el estado que
                         // corresponda (NO_AUTORIZADO o PENDIENTE_AUTORIZACION00X).
                         IncrementarSecuencialFactura("01");
+
                         return ErrorFactura(r, sri.Mensaje);
                     }
 

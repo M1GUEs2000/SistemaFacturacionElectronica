@@ -37,6 +37,7 @@
             this.button3 = new System.Windows.Forms.Button();
             this.btnParamTrans = new System.Windows.Forms.Button();
             this.btnPinpad = new System.Windows.Forms.Button();
+            this.btnCasilleros = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // btnProductos
@@ -146,12 +147,25 @@
             this.btnPinpad.Text = "PINPAD";
             this.btnPinpad.UseVisualStyleBackColor = true;
             this.btnPinpad.Click += new System.EventHandler(this.btnPinpad_Click);
-            // 
+            //
+            // btnCasilleros
+            //
+            this.btnCasilleros.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnCasilleros.Location = new System.Drawing.Point(594, 213);
+            this.btnCasilleros.Margin = new System.Windows.Forms.Padding(2);
+            this.btnCasilleros.Name = "btnCasilleros";
+            this.btnCasilleros.Size = new System.Drawing.Size(130, 58);
+            this.btnCasilleros.TabIndex = 9;
+            this.btnCasilleros.Text = "CASILLEROS";
+            this.btnCasilleros.UseVisualStyleBackColor = true;
+            this.btnCasilleros.Click += new System.EventHandler(this.btnCasilleros_Click);
+            //
             // frmMantenimientoTablas
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(720, 307);
+            this.ClientSize = new System.Drawing.Size(760, 307);
+            this.Controls.Add(this.btnCasilleros);
             this.Controls.Add(this.btnPinpad);
             this.Controls.Add(this.btnParamTrans);
             this.Controls.Add(this.button3);
@@ -181,5 +195,6 @@
         private System.Windows.Forms.Button button3;
         private System.Windows.Forms.Button btnParamTrans;
         private System.Windows.Forms.Button btnPinpad;
+        private System.Windows.Forms.Button btnCasilleros;
     }
 }

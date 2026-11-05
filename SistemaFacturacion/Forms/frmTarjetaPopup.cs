@@ -1,4 +1,4 @@
-using LogicaNegocios.Services;
+﻿using LogicaNegocios.Services;
 using System;
 using System.Data;
 using System.Drawing;
@@ -296,8 +296,9 @@ namespace SistemaFacturacion
             GuardarSeleccion();
         }
 
-        // Nº DE CUOTAS: solo múltiplos de tres (03..24), limitados por la cuota
-        // configurada para el tipo de diferido.
+        // Nº DE CUOTAS: exactamente los plazos que el administrador habilitó para
+        // ese tipo de diferido en los parámetros de transacciones. Ya no es un
+        // rango hasta un tope: si marcó 1, 3, 9 y 12, el 6 no se ofrece.
         private void CargarCuotas()
         {
             _cmbCuotas.Items.Clear();
@@ -305,15 +306,8 @@ namespace SistemaFacturacion
             var dif = _cmbDiferido.SelectedItem as ItemCombo;
             if (dif == null) return;
 
-            DataSet ds = _services.ParamTransaccion.ObtenerCuotasPorDiferido(dif.Value);
-
-            int maxCuotas = 0;
-            if (ds != null && ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
-                int.TryParse(ds.Tables[0].Rows[0]["VALOR"].ToString().Trim(), out maxCuotas);
-
-            int limiteCuotas = Math.Min(maxCuotas, 24);
-            for (int i = 3; i <= limiteCuotas; i += 3)
-                _cmbCuotas.Items.Add(i.ToString("00"));
+            foreach (int plazo in _services.ParamTransaccion.ObtenerPlazosCuota(dif.Value))
+                _cmbCuotas.Items.Add(plazo.ToString("00"));
 
             if (_cmbCuotas.Items.Count > 0)
                 _cmbCuotas.SelectedIndex = 0;

@@ -1,6 +1,8 @@
 ﻿using AccesoDatos.Abstractions;
 using System;
+using System.Collections.Generic;
 using System.Data;
+using System.Globalization;
 
 namespace LogicaNegocios
 {
@@ -237,7 +239,6 @@ namespace LogicaNegocios
                     [NUMEROFACTURA] IS NOT NULL
                     AND Trim([NUMEROFACTURA]) <> ''
                     AND Left(Trim([NUMEROFACTURA]), 1) BETWEEN '0' AND '9'
-                    AND Trim([CLIENTE]) <> '9999999999999'
                     AND NOT EXISTS (
                         SELECT *
                         FROM FACTURAS_PENDIENTES
@@ -248,7 +249,7 @@ namespace LogicaNegocios
             ORDER BY Q.NUMEROFACTURA_TRIM DESC;
         ";
 
-            return _conexion.Seleccionar(sql);
+            return QuitarFacturasSinCredito(_conexion.Seleccionar(sql));
         }
 
         public DataSet BuscarFacturasPorNumero(string termino)
@@ -264,7 +265,6 @@ namespace LogicaNegocios
                     [NUMEROFACTURA] IS NOT NULL
                     AND Trim([NUMEROFACTURA]) <> ''
                     AND Left(Trim([NUMEROFACTURA]), 1) BETWEEN '0' AND '9'
-                    AND Trim([CLIENTE]) <> '9999999999999'
                     AND NOT EXISTS (
                         SELECT *
                         FROM FACTURAS_PENDIENTES
@@ -276,7 +276,276 @@ namespace LogicaNegocios
             ORDER BY Q.NUMEROFACTURA_TRIM DESC;
         ";
 
-            return _conexion.Seleccionar(sql);
+            return MarcarFacturasSinCredito(_conexion.Seleccionar(sql));
+        }
+
+        // ======================================================
+        // CRÉDITO DISPONIBLE POR FACTURA
+        // ======================================================
+
+        /// <summary>
+        /// Facturas que ya no admiten más notas de crédito porque todo lo que
+        /// facturaron ya fue acreditado. Una factura de la que se emitió una nota
+        /// por el total no vuelve a ofrecerse: no queda crédito que dar.
+        ///
+        /// La comparación es por CANTIDAD de cada producto, no por monto. Los
+        /// totales de NOTASCREDITO son texto, y con ICE la base imponible de la
+        /// nota no coincide con el TOTAL de la factura, así que restar montos
+        /// daría un saldo engañoso. El formulario mueve líneas completas al grid
+        /// de la nota, de modo que las cantidades describen exactamente lo
+        /// acreditado.
+        ///
+        /// Cuentan todas las notas MENOS las NO_AUTORIZADO: una nota rechazada por
+        /// el SRI no consume crédito, pero una EMITIENDO o PENDIENTE_AUTORIZACION
+        /// sí lo reserva, para no acreditar dos veces lo mismo mientras el SRI
+        /// responde.
+        /// </summary>
+        public HashSet<string> ObtenerFacturasSinCreditoDisponible()
+        {
+            var agotadas = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            string sqlAcreditado = @"
+            SELECT
+                Trim(D.NUMEROFACTURA) AS NUMFAC,
+                Trim(D.PRODUCTO)      AS PROD,
+                D.CANTIDAD            AS CANT
+            FROM NOTASCREDITO_DETALLE AS D
+                INNER JOIN NOTASCREDITO AS N
+                    ON Trim(D.NUMERONOTA) = Trim(N.NUMERONOTA)
+            WHERE
+                (N.ESTADO IS NULL OR Trim(UCase(N.ESTADO)) <> 'NO_AUTORIZADO')
+                AND D.NUMEROFACTURA IS NOT NULL
+                AND Trim(D.NUMEROFACTURA) <> ''
+        ";
+
+            var acreditado = AgruparCantidades(_conexion.Seleccionar(sqlAcreditado));
+
+            // Sin notas emitidas todas las facturas conservan su crédito completo.
+            if (acreditado.Count == 0)
+                return agotadas;
+
+            // Solo se traen las facturas que ya tienen alguna nota; del resto se
+            // sabe de antemano que no están agotadas.
+            string sqlFacturado = @"
+            SELECT
+                Trim(NUMEROFACTURA) AS NUMFAC,
+                Trim(PRODUCTO)      AS PROD,
+                CANTIDAD            AS CANT
+            FROM FACTURACION
+            WHERE
+                NUMEROFACTURA IS NOT NULL
+                AND Trim(NUMEROFACTURA) <> ''
+                AND EXISTS (
+                    SELECT *
+                    FROM NOTASCREDITO_DETALLE
+                    WHERE Trim(NOTASCREDITO_DETALLE.NUMEROFACTURA) = Trim(FACTURACION.NUMEROFACTURA)
+                )
+        ";
+
+            var facturado = AgruparCantidades(_conexion.Seleccionar(sqlFacturado));
+
+            foreach (var factura in facturado)
+            {
+                Dictionary<string, decimal> devueltoPorProducto;
+
+                if (!acreditado.TryGetValue(factura.Key, out devueltoPorProducto))
+                    continue;
+
+                bool quedaCredito = false;
+
+                foreach (var producto in factura.Value)
+                {
+                    decimal devuelto;
+                    devueltoPorProducto.TryGetValue(producto.Key, out devuelto);
+
+                    // Tolerancia mínima: las cantidades de la nota viajan como texto
+                    // y no deben dejar viva una factura por una milésima de resto.
+                    if (producto.Value - devuelto > 0.001m)
+                    {
+                        quedaCredito = true;
+                        break;
+                    }
+                }
+
+                if (!quedaCredito)
+                    agotadas.Add(factura.Key);
+            }
+
+            return agotadas;
+        }
+
+        /// <summary>
+        /// Cantidad ya acreditada por producto en una factura, sumando todas sus
+        /// notas y con el mismo criterio de estados que
+        /// <see cref="ObtenerFacturasSinCreditoDisponible"/>.
+        ///
+        /// Es lo que hay que descontar del detalle de la factura antes de ofrecerlo
+        /// en una nota nueva: un producto ya devuelto no puede volver a devolverse.
+        /// </summary>
+        public Dictionary<string, decimal> ObtenerCantidadesAcreditadas(string NumeroFactura)
+        {
+            var porProducto = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+
+            string numeroFactura = (NumeroFactura ?? "").Trim();
+            if (numeroFactura.Length == 0)
+                return porProducto;
+
+            string sql = @"
+            SELECT
+                Trim(D.NUMEROFACTURA) AS NUMFAC,
+                Trim(D.PRODUCTO)      AS PROD,
+                D.CANTIDAD            AS CANT
+            FROM NOTASCREDITO_DETALLE AS D
+                INNER JOIN NOTASCREDITO AS N
+                    ON Trim(D.NUMERONOTA) = Trim(N.NUMERONOTA)
+            WHERE
+                (N.ESTADO IS NULL OR Trim(UCase(N.ESTADO)) <> 'NO_AUTORIZADO')
+                AND Trim(D.NUMEROFACTURA) = @numfac
+        ";
+
+            var agrupado = AgruparCantidades(_conexion.Seleccionar(sql, ("numfac", numeroFactura)));
+
+            Dictionary<string, decimal> acreditado;
+
+            return agrupado.TryGetValue(numeroFactura, out acreditado)
+                ? acreditado
+                : porProducto;
+        }
+
+        /// <summary>Columna que marca, en un listado de facturas, cuáles ya agotaron su cupo.</summary>
+        public const string ColumnaSinCredito = "SINCREDITO";
+
+        /// <summary>
+        /// Marca cada fila con <see cref="ColumnaSinCredito"/> según haya quedado o
+        /// no crédito por dar.
+        ///
+        /// A diferencia de <see cref="QuitarFacturasSinCredito"/>, las agotadas NO se
+        /// quitan: el formulario las muestra en gris y sin poder elegirse, para que el
+        /// cajero vea que la factura existe y por qué no sirve. Si desaparecieran sin
+        /// más, el cajero no sabría si ya la usó o si escribió mal el número.
+        /// </summary>
+        private DataSet MarcarFacturasSinCredito(DataSet ds)
+        {
+            if (ds == null || ds.Tables.Count == 0)
+                return ds;
+
+            DataTable tabla = ds.Tables[0];
+
+            if (!tabla.Columns.Contains(ColumnaSinCredito))
+                tabla.Columns.Add(ColumnaSinCredito, typeof(bool));
+
+            if (tabla.Rows.Count == 0)
+                return ds;
+
+            HashSet<string> agotadas = ObtenerFacturasSinCreditoDisponible();
+
+            foreach (DataRow row in tabla.Rows)
+            {
+                string numeroFactura = (row["NUMEROFACTURA"] ?? "").ToString().Trim();
+                row[ColumnaSinCredito] = agotadas.Contains(numeroFactura);
+            }
+
+            tabla.AcceptChanges();
+
+            return ds;
+        }
+
+        /// <summary>
+        /// Saca del resultado las facturas ya acreditadas por completo.
+        ///
+        /// El filtro se aplica en memoria y no dentro del SQL porque las cantidades
+        /// de NOTASCREDITO_DETALLE son texto: compararlas en Access obligaría a un
+        /// CDbl, que interpreta el separador decimal según la configuración regional
+        /// de la máquina y convertiría "1.5" en 15 en un Windows en español.
+        /// </summary>
+        private DataSet QuitarFacturasSinCredito(DataSet ds)
+        {
+            if (ds == null || ds.Tables.Count == 0 || ds.Tables[0].Rows.Count == 0)
+                return ds;
+
+            HashSet<string> agotadas = ObtenerFacturasSinCreditoDisponible();
+            if (agotadas.Count == 0)
+                return ds;
+
+            DataTable tabla = ds.Tables[0];
+
+            for (int i = tabla.Rows.Count - 1; i >= 0; i--)
+            {
+                string numeroFactura = (tabla.Rows[i]["NUMEROFACTURA"] ?? "").ToString().Trim();
+
+                if (agotadas.Contains(numeroFactura))
+                    tabla.Rows.RemoveAt(i);
+            }
+
+            tabla.AcceptChanges();
+
+            return ds;
+        }
+
+        /// <summary>Cantidades sumadas por factura y producto, a partir de NUMFAC / PROD / CANT.</summary>
+        private static Dictionary<string, Dictionary<string, decimal>> AgruparCantidades(DataSet ds)
+        {
+            var porFactura = new Dictionary<string, Dictionary<string, decimal>>(StringComparer.OrdinalIgnoreCase);
+
+            if (ds == null || ds.Tables.Count == 0)
+                return porFactura;
+
+            foreach (DataRow row in ds.Tables[0].Rows)
+            {
+                string numeroFactura = (row["NUMFAC"] ?? "").ToString().Trim();
+                string producto = (row["PROD"] ?? "").ToString().Trim();
+
+                if (numeroFactura.Length == 0 || producto.Length == 0)
+                    continue;
+
+                Dictionary<string, decimal> porProducto;
+
+                if (!porFactura.TryGetValue(numeroFactura, out porProducto))
+                {
+                    porProducto = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+                    porFactura[numeroFactura] = porProducto;
+                }
+
+                decimal acumulado;
+                porProducto.TryGetValue(producto, out acumulado);
+
+                porProducto[producto] = acumulado + LeerCantidad(row["CANT"]);
+            }
+
+            return porFactura;
+        }
+
+        /// <summary>
+        /// Cantidad que llega numérica desde FACTURACION o como texto desde
+        /// NOTASCREDITO_DETALLE. El texto se escribió con la cultura de la máquina,
+        /// así que se prueban las dos convenciones decimales antes de rendirse.
+        /// NumberStyles.Float y no Any: Any admite separador de miles y convertiría
+        /// "1,5" en 15 en lugar de fallar y dejar que lo resuelva el segundo intento.
+        /// </summary>
+        private static decimal LeerCantidad(object valor)
+        {
+            if (valor == null || valor == DBNull.Value)
+                return 0m;
+
+            if (valor is decimal) return (decimal)valor;
+            if (valor is int) return (int)valor;
+            if (valor is short) return (short)valor;
+            if (valor is long) return (long)valor;
+            if (valor is double) return (decimal)(double)valor;
+
+            string texto = valor.ToString().Trim();
+            if (texto.Length == 0)
+                return 0m;
+
+            decimal cantidad;
+
+            if (decimal.TryParse(texto, NumberStyles.Float, CultureInfo.InvariantCulture, out cantidad))
+                return cantidad;
+
+            if (decimal.TryParse(texto.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out cantidad))
+                return cantidad;
+
+            return 0m;
         }
 
 
