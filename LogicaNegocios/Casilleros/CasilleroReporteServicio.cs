@@ -1,4 +1,4 @@
-using iTextSharp.text;
+﻿using iTextSharp.text;
 using iTextSharp.text.pdf;
 using LogicaNegocios.Services;
 using System;
@@ -44,18 +44,27 @@ namespace LogicaNegocios.Casilleros
                 doc.Add(new Paragraph(DescribirFiltros(filtros), fuenteNormal) { SpacingAfter = 10f });
 
                 doc.Add(new Paragraph("Consolidado por tiempo", fuenteNegrita) { SpacingAfter = 4f });
-                var tablaCons = new PdfPTable(2) { WidthPercentage = 50, HorizontalAlignment = Element.ALIGN_LEFT };
-                tablaCons.AddCell(Celda("Tiempo (min)", fuenteNegrita, true));
+                var tablaCons = new PdfPTable(3) { WidthPercentage = 70, HorizontalAlignment = Element.ALIGN_LEFT };
+                tablaCons.AddCell(Celda("Tiempo", fuenteNegrita, true));
                 tablaCons.AddCell(Celda("Cantidad", fuenteNegrita, true));
-                int total = 0;
+                tablaCons.AddCell(Celda("Subtotal", fuenteNegrita, true));
+                int totalUsos = 0, totalMinutos = 0;
                 foreach (var f in consolidado)
                 {
-                    tablaCons.AddCell(Celda(f.Minutos.ToString(), fuenteNormal, false));
+                    tablaCons.AddCell(Celda(CasilleroHistorialManejador.TextoTiempo(f.Minutos), fuenteNormal, false));
                     tablaCons.AddCell(Celda(f.Cantidad.ToString(), fuenteNormal, false));
-                    total += f.Cantidad;
+                    tablaCons.AddCell(Celda(CasilleroHistorialManejador.TextoMinutos(f.SubtotalMinutos), fuenteNormal, false));
+                    totalUsos += f.Cantidad;
+                    totalMinutos += f.SubtotalMinutos;
                 }
-                tablaCons.AddCell(Celda("Total", fuenteNegrita, false));
-                tablaCons.AddCell(Celda(total.ToString(), fuenteNegrita, false));
+                var fondoTotal = new BaseColor(200, 220, 245);
+                foreach (var texto in new[] { "Total", CasilleroHistorialManejador.TextoUsos(totalUsos),
+                                              CasilleroHistorialManejador.TextoMinutos(totalMinutos) })
+                {
+                    var celdaTotal = Celda(texto, fuenteNegrita, false);
+                    celdaTotal.BackgroundColor = fondoTotal;
+                    tablaCons.AddCell(celdaTotal);
+                }
                 doc.Add(tablaCons);
 
                 doc.Add(new Paragraph("Detalle", fuenteNegrita) { SpacingBefore = 12f, SpacingAfter = 4f });
@@ -64,30 +73,34 @@ namespace LogicaNegocios.Casilleros
                     tabla.AddCell(Celda(h, fuenteNegrita, true));
                 tabla.HeaderRows = 1;
 
-                foreach (DataRow r in CasilleroHistorialManejador.DetalleConSubtotales(detalle).Rows)
+                foreach (DataRow r in detalle.Rows)
                 {
-                    string tipo = Convert.ToString(r["TIPOFILA"]);
-                    bool resumen = tipo != CasilleroHistorialManejador.FilaDetalle;
-                    var fuente = resumen ? fuenteNegrita : fuenteNormal;
-                    var fondo = tipo == CasilleroHistorialManejador.FilaTotal ? new BaseColor(200, 220, 245)
-                              : tipo == CasilleroHistorialManejador.FilaSubtotal ? new BaseColor(232, 241, 252)
-                              : null;
-
-                    string fecha = r["FECHA"] == DBNull.Value ? "" : Convert.ToDateTime(r["FECHA"]).ToString("dd/MM/yyyy HH:mm");
-                    string tiempo = r["TIEMPO"] == DBNull.Value ? "" : Convert.ToString(r["TIEMPO"]);
-                    foreach (var texto in new[] { fecha, Convert.ToString(r["CASILLERO"]), tiempo,
-                                                  Convert.ToString(r["PERSONA"]), Convert.ToString(r["ESTADO"]) })
-                    {
-                        var celda = Celda(texto, fuente, false);
-                        if (fondo != null) celda.BackgroundColor = fondo;
-                        tabla.AddCell(celda);
-                    }
+                    tabla.AddCell(Celda(Convert.ToDateTime(r["FECHA"]).ToString("dd/MM/yyyy HH:mm"), fuenteNormal, false));
+                    tabla.AddCell(Celda(Convert.ToString(r["CASILLERO"]), fuenteNormal, false));
+                    tabla.AddCell(Celda(Convert.ToString(r["TIEMPO"]), fuenteNormal, false));
+                    tabla.AddCell(Celda(Convert.ToString(r["PERSONA"]), fuenteNormal, false));
+                    tabla.AddCell(Celda(Convert.ToString(r["ESTADO"]), fuenteNormal, false));
                 }
+                var celdaFinal = Celda("Total: " + CasilleroHistorialManejador.TextoUsos(totalUsos) + " - "
+                                       + CasilleroHistorialManejador.TextoMinutos(totalMinutos), fuenteNegrita, false);
+                celdaFinal.Colspan = 5;
+                celdaFinal.BackgroundColor = fondoTotal;
+                tabla.AddCell(celdaFinal);
                 doc.Add(tabla);
 
                 doc.Close();
             }
             return rutaDestino;
+        }
+
+        // Correo registrado en la tabla de empresa; "" si no hay.
+        public string ObtenerCorreoEmpresa(string usuario)
+        {
+            var ds = _services.Empresa.MostrarEmpresa(usuario);
+            if (ds == null || ds.Tables.Count == 0 || ds.Tables[0].Rows.Count == 0
+                || !ds.Tables[0].Columns.Contains("EMAIL"))
+                return "";
+            return Convert.ToString(ds.Tables[0].Rows[0]["EMAIL"]).Trim();
         }
 
         public void EnviarPorCorreo(string destinatario, DataTable detalle, List<FilaConsolidado> consolidado,
@@ -174,38 +187,37 @@ namespace LogicaNegocios.Casilleros
               .Append(WebUtility.HtmlEncode(DescribirFiltros(f))).Append("</p>");
 
             sb.Append("<h4>Consolidado por tiempo</h4><table style=\"" + estiloTabla + "\">");
-            sb.Append("<tr><th style=\"" + th + "\">Tiempo (min)</th><th style=\"" + th + "\">Cantidad</th></tr>");
-            int total = 0;
+            sb.Append("<tr><th style=\"" + th + "\">Tiempo</th><th style=\"" + th + "\">Cantidad</th><th style=\"" + th + "\">Subtotal</th></tr>");
+            int totalUsos = 0, totalMinutos = 0;
             foreach (var c in consolidado)
             {
-                sb.Append("<tr><td style=\"" + td + "\">").Append(c.Minutos)
-                  .Append("</td><td style=\"" + td + "\">").Append(c.Cantidad).Append("</td></tr>");
-                total += c.Cantidad;
+                sb.Append("<tr><td style=\"" + td + "\">").Append(CasilleroHistorialManejador.TextoTiempo(c.Minutos))
+                  .Append("</td><td style=\"" + td + "\">").Append(c.Cantidad)
+                  .Append("</td><td style=\"" + td + "\">").Append(CasilleroHistorialManejador.TextoMinutos(c.SubtotalMinutos)).Append("</td></tr>");
+                totalUsos += c.Cantidad;
+                totalMinutos += c.SubtotalMinutos;
             }
-            sb.Append("<tr><td style=\"" + td + "\"><b>Total</b></td><td style=\"" + td + "\"><b>")
-              .Append(total).Append("</b></td></tr></table>");
+            sb.Append("<tr style=\"font-weight:bold;background:#c8dcf5\"><td style=\"" + td + "\">Total</td><td style=\"" + td + "\">")
+              .Append(CasilleroHistorialManejador.TextoUsos(totalUsos))
+              .Append("</td><td style=\"" + td + "\">").Append(CasilleroHistorialManejador.TextoMinutos(totalMinutos)).Append("</td></tr></table>");
 
             sb.Append("<h4>Detalle</h4><table style=\"" + estiloTabla + "\"><tr>");
             foreach (var h in new[] { "Fecha", "Casillero", "Tiempo (min)", "Persona", "Estado" })
                 sb.Append("<th style=\"" + th + "\">").Append(h).Append("</th>");
             sb.Append("</tr>");
-            foreach (DataRow r in CasilleroHistorialManejador.DetalleConSubtotales(detalle).Rows)
+            foreach (DataRow r in detalle.Rows)
             {
-                string tipo = Convert.ToString(r["TIPOFILA"]);
-                string estilo = tipo == CasilleroHistorialManejador.FilaTotal ? "font-weight:bold;background:#c8dcf5"
-                              : tipo == CasilleroHistorialManejador.FilaSubtotal ? "font-weight:bold;background:#e8f1fc"
-                              : "";
-                string fecha = r["FECHA"] == DBNull.Value ? "" : Convert.ToDateTime(r["FECHA"]).ToString("dd/MM/yyyy HH:mm");
-                string tiempo = r["TIEMPO"] == DBNull.Value ? "" : Convert.ToString(r["TIEMPO"]);
-
-                sb.Append("<tr style=\"" + estilo + "\">");
-                sb.Append("<td style=\"" + td + "\">").Append(fecha).Append("</td>");
+                sb.Append("<tr>");
+                sb.Append("<td style=\"" + td + "\">").Append(Convert.ToDateTime(r["FECHA"]).ToString("dd/MM/yyyy HH:mm")).Append("</td>");
                 sb.Append("<td style=\"" + td + "\">").Append(WebUtility.HtmlEncode(Convert.ToString(r["CASILLERO"]))).Append("</td>");
-                sb.Append("<td style=\"" + td + "\">").Append(tiempo).Append("</td>");
+                sb.Append("<td style=\"" + td + "\">").Append(Convert.ToString(r["TIEMPO"])).Append("</td>");
                 sb.Append("<td style=\"" + td + "\">").Append(WebUtility.HtmlEncode(Convert.ToString(r["PERSONA"]))).Append("</td>");
                 sb.Append("<td style=\"" + td + "\">").Append(WebUtility.HtmlEncode(Convert.ToString(r["ESTADO"]))).Append("</td>");
                 sb.Append("</tr>");
             }
+            sb.Append("<tr style=\"font-weight:bold;background:#c8dcf5\"><td style=\"" + td + "\" colspan=\"5\">Total: ")
+              .Append(CasilleroHistorialManejador.TextoUsos(totalUsos)).Append(" - ")
+              .Append(CasilleroHistorialManejador.TextoMinutos(totalMinutos)).Append("</td></tr>");
             sb.Append("</table><p>Se adjunta el reporte en PDF.</p></div>");
             return sb.ToString();
         }

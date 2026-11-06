@@ -1,4 +1,4 @@
-using LogicaNegocios.Casilleros;
+﻿using LogicaNegocios.Casilleros;
 using LogicaNegocios.Services;
 using SistemaFacturacion.Controls;
 using System;
@@ -34,13 +34,13 @@ namespace SistemaFacturacion
         private readonly DateTimePicker dtpHasta = new DateTimePicker();
         private readonly ComboBox cmbPersona = new ComboBox();
         private readonly ComboBox cmbTiempo = new ComboBox();
-        private readonly TextBox txtCorreo = new TextBox();
         private IconButton btnConsultar;
         private IconButton btnEnviar;
         private readonly DataGridView gridDetalle = new DataGridView();
         private readonly DataGridView gridConsolidado = new DataGridView();
         private readonly FlowLayoutPanel pnlKpi = new FlowLayoutPanel();
-        private readonly Label lblPeriodo = new Label();
+        private readonly Label lblTotalConsolidado = new Label();
+        private readonly Label lblTotalDetalle = new Label();
 
         private DataTable _detalle;
         private List<FilaConsolidado> _consolidado;
@@ -112,17 +112,16 @@ namespace SistemaFacturacion
             };
             var lblCorreo = new Label
             {
-                Text = "Enviar reporte (PDF) a", AutoSize = true, ForeColor = ColorTextoSuave, Location = new Point(24, 8)
+                Text = "El reporte se envía al correo registrado de la empresa.",
+                AutoSize = true, ForeColor = ColorTextoSuave, Location = new Point(220, 24)
             };
-            var cajaCorreo = CrearCaja(txtCorreo, new Rectangle(24, 28, 360, 34));
-            btnEnviar = CrearBoton("Enviar por correo", 0xf0e0, ColorVerde, new Rectangle(396, 28, 190, 34));
+            btnEnviar = CrearBoton("Enviar por correo", 0xf0e0, ColorVerde, new Rectangle(24, 18, 180, 34));
             btnEnviar.Enabled = false;
             btnEnviar.Click += async (s, e) => await EnviarAsync();
-            var btnCerrar = CrearBoton("Cerrar", IconosCasilleros.Cerrar, Color.FromArgb(108, 117, 125), new Rectangle(0, 28, 120, 34));
+            var btnCerrar = CrearBoton("Cerrar", IconosCasilleros.Cerrar, Color.FromArgb(108, 117, 125), new Rectangle(0, 18, 120, 34));
             btnCerrar.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             btnCerrar.Click += (s, e) => Close();
             footer.Controls.Add(lblCorreo);
-            footer.Controls.Add(cajaCorreo);
             footer.Controls.Add(btnEnviar);
             footer.Controls.Add(btnCerrar);
             footer.Resize += (s, e) => btnCerrar.Left = footer.Width - btnCerrar.Width - 24;
@@ -160,15 +159,16 @@ namespace SistemaFacturacion
 
             // ---- Consolidado (izquierda) y detalle (derecha) en tarjetas blancas
             ConfigurarGrid(gridConsolidado);
-            gridConsolidado.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "TIEMPO", HeaderText = "Tiempo", FillWeight = 42 });
+            // MINUTOS y SUBTOTAL son numéricos (ordenan bien); el texto se arma en CellFormatting.
+            gridConsolidado.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "MINUTOS", Name = "colTiempo", HeaderText = "Tiempo", FillWeight = 36 });
             gridConsolidado.Columns.Add(new DataGridViewTextBoxColumn
             {
-                DataPropertyName = "CANTIDAD", HeaderText = "Cantidad", FillWeight = 30,
+                DataPropertyName = "CANTIDAD", HeaderText = "Cantidad", FillWeight = 26,
                 DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleRight }
             });
             gridConsolidado.Columns.Add(new DataGridViewTextBoxColumn
             {
-                DataPropertyName = "PORCENTAJE", HeaderText = "%", FillWeight = 28,
+                DataPropertyName = "SUBTOTAL", Name = "colSubtotal", HeaderText = "Subtotal", FillWeight = 38,
                 DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleRight }
             });
             gridConsolidado.Columns[1].HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleRight;
@@ -189,11 +189,10 @@ namespace SistemaFacturacion
             gridDetalle.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "PERSONA", HeaderText = "Persona", FillWeight = 32 });
             gridDetalle.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "ESTADO", HeaderText = "Estado", FillWeight = 16 });
 
-            lblPeriodo.AutoSize = false;
-            lblPeriodo.Dock = DockStyle.Fill;
-
-            var tarjetaConsolidado = CrearTarjeta("Total por tiempo", gridConsolidado);
-            var tarjetaDetalle = CrearTarjeta("Detalle con subtotales", gridDetalle);
+            var tarjetaConsolidado = CrearTarjeta("Consolidado por tiempo", gridConsolidado, lblTotalConsolidado);
+            var tarjetaDetalle = CrearTarjeta("Historial", gridDetalle, lblTotalDetalle);
+            ConfigurarBarraTotal(lblTotalConsolidado, "Total");
+            ConfigurarBarraTotal(lblTotalDetalle, "Total de la consulta");
 
             var contenido = new TableLayoutPanel
             {
@@ -217,8 +216,7 @@ namespace SistemaFacturacion
             Controls.Add(barraFiltros);
             Controls.Add(header);
 
-            gridDetalle.CellFormatting += GridResumen_CellFormatting;
-            gridConsolidado.CellFormatting += GridResumen_CellFormatting;
+            gridConsolidado.CellFormatting += GridConsolidado_CellFormatting;
             MostrarKpi(0, 0, 0);
 
             ResumeLayout(false);
@@ -288,7 +286,21 @@ namespace SistemaFacturacion
         }
 
         // Tarjeta blanca redondeada con título y un control que ocupa el resto.
-        private static Panel CrearTarjeta(string titulo, Control contenido)
+        // Barra azul fija (fuera de la tabla) para que el ordenamiento nunca mezcle el total.
+        private static void ConfigurarBarraTotal(Label barra, string prefijo)
+        {
+            barra.Tag = prefijo;
+            barra.Dock = DockStyle.Bottom;
+            barra.Height = 40;
+            barra.BackColor = ColorTotal;
+            barra.ForeColor = Color.White;
+            barra.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            barra.TextAlign = ContentAlignment.MiddleLeft;
+            barra.Padding = new Padding(14, 0, 14, 0);
+            barra.Text = prefijo;
+        }
+
+        private static Panel CrearTarjeta(string titulo, Control contenido, Control pie)
         {
             var tarjeta = new Panel { BackColor = Color.White, Padding = new Padding(1, 46, 1, 1) };
             var lbl = new Label
@@ -298,6 +310,7 @@ namespace SistemaFacturacion
             };
             contenido.Dock = DockStyle.Fill;
             tarjeta.Controls.Add(contenido);
+            tarjeta.Controls.Add(pie);
             tarjeta.Controls.Add(lbl);
 
             void ActualizarRegion()
@@ -345,27 +358,21 @@ namespace SistemaFacturacion
             g.DefaultCellStyle.SelectionForeColor = ColorTexto;
         }
 
-        // Subtotales (azul claro, negrita) y TOTAL (azul, blanco, negrita) para ambas tablas.
-        private void GridResumen_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        // Muestra el tiempo y el subtotal del consolidado como texto ("1 hora", "120 minutos")
+        // sin perder el valor numérico, para que el ordenamiento sea correcto.
+        private void GridConsolidado_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
         {
-            var grid = (DataGridView)sender;
-            if (e.RowIndex < 0 || e.RowIndex >= grid.Rows.Count) return;
-            if (!(grid.Rows[e.RowIndex].DataBoundItem is DataRowView fila)) return;
-
-            string tipo = Convert.ToString(fila["TIPOFILA"]);
-            if (tipo == CasilleroHistorialManejador.FilaSubtotal)
+            if (e.RowIndex < 0 || e.Value == null || e.Value == DBNull.Value) return;
+            string columna = gridConsolidado.Columns[e.ColumnIndex].Name;
+            if (columna == "colTiempo")
             {
-                e.CellStyle.BackColor = ColorSubtotal;
-                e.CellStyle.SelectionBackColor = ColorSubtotal;
-                e.CellStyle.Font = new Font(grid.DefaultCellStyle.Font, FontStyle.Bold);
+                e.Value = CasilleroHistorialManejador.TextoTiempo(Convert.ToInt32(e.Value));
+                e.FormattingApplied = true;
             }
-            else if (tipo == CasilleroHistorialManejador.FilaTotal)
+            else if (columna == "colSubtotal")
             {
-                e.CellStyle.BackColor = ColorTotal;
-                e.CellStyle.SelectionBackColor = ColorTotal;
-                e.CellStyle.ForeColor = Color.White;
-                e.CellStyle.SelectionForeColor = Color.White;
-                e.CellStyle.Font = new Font(grid.DefaultCellStyle.Font, FontStyle.Bold);
+                e.Value = CasilleroHistorialManejador.TextoMinutos(Convert.ToInt32(e.Value));
+                e.FormattingApplied = true;
             }
         }
 
@@ -443,19 +450,11 @@ namespace SistemaFacturacion
         private static DataTable ConstruirTablaConsolidado(List<FilaConsolidado> consolidado)
         {
             var tabla = new DataTable();
-            tabla.Columns.Add("TIEMPO", typeof(string));
+            tabla.Columns.Add("MINUTOS", typeof(int));
             tabla.Columns.Add("CANTIDAD", typeof(int));
-            tabla.Columns.Add("PORCENTAJE", typeof(string));
-            tabla.Columns.Add("TIPOFILA", typeof(string));
-
-            int total = consolidado.Sum(f => f.Cantidad);
+            tabla.Columns.Add("SUBTOTAL", typeof(int));
             foreach (var f in consolidado)
-            {
-                double pct = total == 0 ? 0 : f.Cantidad * 100.0 / total;
-                tabla.Rows.Add(f.Minutos + " minutos", f.Cantidad, pct.ToString("0.#") + " %", CasilleroHistorialManejador.FilaDetalle);
-            }
-            if (total > 0)
-                tabla.Rows.Add("TOTAL", total, "100 %", CasilleroHistorialManejador.FilaTotal);
+                tabla.Rows.Add(f.Minutos, f.Cantidad, f.SubtotalMinutos);
             return tabla;
         }
 
@@ -482,7 +481,14 @@ namespace SistemaFacturacion
                 MostrarKpi(detalle.Rows.Count, consolidado.Count, personas);
 
                 gridConsolidado.DataSource = ConstruirTablaConsolidado(consolidado);
-                gridDetalle.DataSource = CasilleroHistorialManejador.DetalleConSubtotales(detalle);
+                gridDetalle.DataSource = detalle;
+
+                int totalUsos = consolidado.Sum(f => f.Cantidad);
+                int totalMinutos = consolidado.Sum(f => f.SubtotalMinutos);
+                string totalTexto = CasilleroHistorialManejador.TextoUsos(totalUsos) + "   ·   "
+                                    + CasilleroHistorialManejador.TextoMinutos(totalMinutos);
+                lblTotalConsolidado.Text = "Total   " + totalTexto;
+                lblTotalDetalle.Text = "Total de la consulta   " + totalTexto;
                 btnEnviar.Enabled = detalle.Rows.Count > 0;
 
                 if (detalle.Rows.Count == 0)
@@ -504,14 +510,30 @@ namespace SistemaFacturacion
                 return;
             }
 
-            string destino = txtCorreo.Text.Trim();
-            if (destino.Length == 0)
+            string destino;
+            try
             {
-                MessageBox.Show(this, "Escriba el correo del destinatario.", "Historial de casilleros",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-                txtCorreo.Focus();
+                destino = _reporte.ObtenerCorreoEmpresa(UsuarioActual);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "No se pudo leer el correo de la empresa: " + ex.Message, "Historial de casilleros",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
+
+            if (string.IsNullOrWhiteSpace(destino))
+            {
+                MessageBox.Show(this, "La empresa no tiene un correo registrado. Regístrelo en los datos de la empresa.",
+                    "Historial de casilleros", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var confirmar = MessageBox.Show(this,
+                "Se enviará el reporte de casilleros del " + _filtros.Desde.ToString(FormatoFecha)
+                + " al " + _filtros.Hasta.ToString(FormatoFecha) + " al correo:\n\n" + destino + "\n\n¿Desea continuar?",
+                "Confirmar envío", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (confirmar != DialogResult.Yes) return;
 
             btnEnviar.Enabled = false;
             UseWaitCursor = true;

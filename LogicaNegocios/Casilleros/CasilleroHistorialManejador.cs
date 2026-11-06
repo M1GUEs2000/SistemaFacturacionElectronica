@@ -1,4 +1,4 @@
-using AccesoDatos.Abstractions;
+﻿using AccesoDatos.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -9,6 +9,7 @@ namespace LogicaNegocios.Casilleros
     {
         public int Minutos { get; set; }
         public int Cantidad { get; set; }
+        public int SubtotalMinutos { get { return Minutos * Cantidad; } }
     }
 
     public class CasilleroHistorialManejador : ManejadorBase
@@ -86,71 +87,23 @@ namespace LogicaNegocios.Casilleros
             return ds.Tables.Count > 0 ? ds.Tables[0] : new DataTable();
         }
 
-        public const string FilaDetalle = "D";
-        public const string FilaSubtotal = "S";
-        public const string FilaTotal = "T";
-
-        // Ordena por tiempo y fecha, e intercala una fila de subtotal después de cada grupo de
-        // minutos y una fila de TOTAL al final. TIPOFILA indica si es detalle, subtotal o total.
-        public static DataTable DetalleConSubtotales(DataTable detalle)
+        // "30 minutos", "1 hora", "2 horas", "1 h 30 min".
+        public static string TextoTiempo(int minutos)
         {
-            var salida = new DataTable();
-            salida.Columns.Add("FECHA", typeof(DateTime));
-            salida.Columns.Add("CASILLERO", typeof(string));
-            salida.Columns.Add("TIEMPO", typeof(int));
-            salida.Columns.Add("PERSONA", typeof(string));
-            salida.Columns.Add("ESTADO", typeof(string));
-            salida.Columns.Add("TIPOFILA", typeof(string));
-
-            var vista = new DataView(detalle) { Sort = "TIEMPO ASC, FECHA ASC" };
-            int minutosActual = -1, contadorGrupo = 0, total = 0;
-
-            void CerrarGrupo()
-            {
-                if (contadorGrupo == 0) return;
-                var fila = salida.NewRow();
-                fila["CASILLERO"] = "Subtotal";
-                fila["TIEMPO"] = minutosActual;
-                fila["PERSONA"] = TextoCantidad(contadorGrupo);
-                fila["ESTADO"] = "";
-                fila["TIPOFILA"] = FilaSubtotal;
-                salida.Rows.Add(fila);
-                contadorGrupo = 0;
-            }
-
-            foreach (DataRowView drv in vista)
-            {
-                int min = Convert.ToInt32(drv["TIEMPO"]);
-                if (min != minutosActual) { CerrarGrupo(); minutosActual = min; }
-
-                var fila = salida.NewRow();
-                fila["FECHA"] = drv["FECHA"];
-                fila["CASILLERO"] = drv["CASILLERO"];
-                fila["TIEMPO"] = min;
-                fila["PERSONA"] = drv["PERSONA"];
-                fila["ESTADO"] = drv["ESTADO"];
-                fila["TIPOFILA"] = FilaDetalle;
-                salida.Rows.Add(fila);
-                contadorGrupo++;
-                total++;
-            }
-            CerrarGrupo();
-
-            if (total > 0)
-            {
-                var fila = salida.NewRow();
-                fila["CASILLERO"] = "TOTAL";
-                fila["PERSONA"] = TextoCantidad(total);
-                fila["ESTADO"] = "";
-                fila["TIPOFILA"] = FilaTotal;
-                salida.Rows.Add(fila);
-            }
-            return salida;
+            if (minutos < 60) return minutos + (minutos == 1 ? " minuto" : " minutos");
+            int h = minutos / 60, m = minutos % 60;
+            if (m == 0) return h + (h == 1 ? " hora" : " horas");
+            return h + " h " + m + " min";
         }
 
-        public static string TextoCantidad(int n)
+        public static string TextoMinutos(int minutos)
         {
-            return n + (n == 1 ? " asignación" : " asignaciones");
+            return minutos + (minutos == 1 ? " minuto" : " minutos");
+        }
+
+        public static string TextoUsos(int usos)
+        {
+            return usos + (usos == 1 ? " uso de casillero" : " usos de casillero");
         }
 
         // Cuenta cuántas asignaciones hubo por cada valor de minutos.
