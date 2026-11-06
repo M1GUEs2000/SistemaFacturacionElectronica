@@ -186,20 +186,6 @@
 
         #endregion
 
-        private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.DataGridView gvReporteFecha;
-        private System.Windows.Forms.Label lblTotales;
-        private System.Windows.Forms.Label label3;
-        private System.Windows.Forms.ComboBox cbProducto;
-        private System.Windows.Forms.Label label4;
-        private System.Windows.Forms.ComboBox cbCliente;
-        private System.Windows.Forms.Label lblTotalCantidad;
-        private System.Windows.Forms.ComboBox cmbFormaPago;
-        private System.Windows.Forms.Label label5;
-        private System.Windows.Forms.Button btnPendientes;
-        private System.Windows.Forms.Button btnVerPendientes;
-        private System.Windows.Forms.Button btnVerConsumidor;
         private System.Windows.Forms.Panel panel1;
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.Label label6;

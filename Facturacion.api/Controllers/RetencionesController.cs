@@ -3,7 +3,6 @@ using System.Web.Http;
 using Facturacion.api.Controllers;
 using Facturacion.api.Factories;
 using Facturacion.api.Models.Solicitudes;
-using Facturacion.api.Models.Solicitudes;
 using Facturacion.api.Servicios;
 using Facturacion.api.Servicios.Interfaces;
 

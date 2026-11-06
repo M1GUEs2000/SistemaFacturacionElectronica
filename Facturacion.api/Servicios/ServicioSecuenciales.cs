@@ -6,9 +6,6 @@ using LogicaNegocios.Services;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using System;
 
 namespace Facturacion.api.Servicios
 {

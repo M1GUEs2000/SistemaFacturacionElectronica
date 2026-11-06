@@ -50,7 +50,6 @@ namespace SistemaFacturacion
 
         DataTable TB_DETALLEFACTURA = new DataTable();
         DataTable TB_TRASFACTURADAS = new DataTable();
-        int Contador = 0;
         public string UsuarioActual { get; set; }
         public string IPActual { get; set; }
         private bool _suppressSearch = false;
@@ -1352,7 +1351,6 @@ namespace SistemaFacturacion
         private void btnLimpiar_Click(object sender, EventArgs e)
         {
             TB_DETALLEFACTURA.Clear();
-            Contador = 0;
             lblTotalVP.Text = "TOTAL: 0.00";
             txtFormaPago.Text = "";
             OcultarPopupTarjeta();
