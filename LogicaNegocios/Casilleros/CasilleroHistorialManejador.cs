@@ -86,6 +86,73 @@ namespace LogicaNegocios.Casilleros
             return ds.Tables.Count > 0 ? ds.Tables[0] : new DataTable();
         }
 
+        public const string FilaDetalle = "D";
+        public const string FilaSubtotal = "S";
+        public const string FilaTotal = "T";
+
+        // Ordena por tiempo y fecha, e intercala una fila de subtotal después de cada grupo de
+        // minutos y una fila de TOTAL al final. TIPOFILA indica si es detalle, subtotal o total.
+        public static DataTable DetalleConSubtotales(DataTable detalle)
+        {
+            var salida = new DataTable();
+            salida.Columns.Add("FECHA", typeof(DateTime));
+            salida.Columns.Add("CASILLERO", typeof(string));
+            salida.Columns.Add("TIEMPO", typeof(int));
+            salida.Columns.Add("PERSONA", typeof(string));
+            salida.Columns.Add("ESTADO", typeof(string));
+            salida.Columns.Add("TIPOFILA", typeof(string));
+
+            var vista = new DataView(detalle) { Sort = "TIEMPO ASC, FECHA ASC" };
+            int minutosActual = -1, contadorGrupo = 0, total = 0;
+
+            void CerrarGrupo()
+            {
+                if (contadorGrupo == 0) return;
+                var fila = salida.NewRow();
+                fila["CASILLERO"] = "Subtotal";
+                fila["TIEMPO"] = minutosActual;
+                fila["PERSONA"] = TextoCantidad(contadorGrupo);
+                fila["ESTADO"] = "";
+                fila["TIPOFILA"] = FilaSubtotal;
+                salida.Rows.Add(fila);
+                contadorGrupo = 0;
+            }
+
+            foreach (DataRowView drv in vista)
+            {
+                int min = Convert.ToInt32(drv["TIEMPO"]);
+                if (min != minutosActual) { CerrarGrupo(); minutosActual = min; }
+
+                var fila = salida.NewRow();
+                fila["FECHA"] = drv["FECHA"];
+                fila["CASILLERO"] = drv["CASILLERO"];
+                fila["TIEMPO"] = min;
+                fila["PERSONA"] = drv["PERSONA"];
+                fila["ESTADO"] = drv["ESTADO"];
+                fila["TIPOFILA"] = FilaDetalle;
+                salida.Rows.Add(fila);
+                contadorGrupo++;
+                total++;
+            }
+            CerrarGrupo();
+
+            if (total > 0)
+            {
+                var fila = salida.NewRow();
+                fila["CASILLERO"] = "TOTAL";
+                fila["PERSONA"] = TextoCantidad(total);
+                fila["ESTADO"] = "";
+                fila["TIPOFILA"] = FilaTotal;
+                salida.Rows.Add(fila);
+            }
+            return salida;
+        }
+
+        public static string TextoCantidad(int n)
+        {
+            return n + (n == 1 ? " asignación" : " asignaciones");
+        }
+
         // Cuenta cuántas asignaciones hubo por cada valor de minutos.
         public static List<FilaConsolidado> Consolidar(DataTable detalle)
         {

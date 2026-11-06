@@ -6,20 +6,26 @@ using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace SistemaFacturacion
 {
-    // Consulta del historial de casilleros con filtros y envío del reporte por correo.
+    // Consulta del historial de casilleros con filtros, totales por tiempo y envío del reporte por correo.
     public class frmHistorialCasilleros : Form
     {
         private const string FormatoFecha = "dd/MM/yyyy";
         private const string FormatoFechaHora = "dd/MM/yyyy HH:mm";
 
         private static readonly Color ColorAccento = Color.FromArgb(0, 123, 255);
+        private static readonly Color ColorVerde = Color.FromArgb(40, 167, 69);
+        private static readonly Color ColorNaranja = Color.FromArgb(255, 153, 0);
         private static readonly Color ColorFondo = Color.FromArgb(245, 247, 250);
         private static readonly Color ColorBorde = Color.FromArgb(210, 213, 217);
+        private static readonly Color ColorTexto = Color.FromArgb(33, 37, 41);
         private static readonly Color ColorTextoSuave = Color.FromArgb(108, 117, 125);
+        private static readonly Color ColorSubtotal = Color.FromArgb(232, 241, 252);
+        private static readonly Color ColorTotal = Color.FromArgb(0, 123, 255);
 
         private readonly CasilleroHistorialManejador _historial;
         private readonly CasilleroReporteServicio _reporte;
@@ -32,8 +38,9 @@ namespace SistemaFacturacion
         private IconButton btnConsultar;
         private IconButton btnEnviar;
         private readonly DataGridView gridDetalle = new DataGridView();
-        private readonly FlowLayoutPanel pnlConsolidado = new FlowLayoutPanel();
-        private readonly Label lblResumen = new Label();
+        private readonly DataGridView gridConsolidado = new DataGridView();
+        private readonly FlowLayoutPanel pnlKpi = new FlowLayoutPanel();
+        private readonly Label lblPeriodo = new Label();
 
         private DataTable _detalle;
         private List<FilaConsolidado> _consolidado;
@@ -64,13 +71,13 @@ namespace SistemaFacturacion
             FormBorderStyle = FormBorderStyle.None;
             StartPosition = FormStartPosition.CenterParent;
             BackColor = ColorFondo;
-            ClientSize = new Size(960, 640);
-            MinimumSize = new Size(880, 560);
+            ClientSize = new Size(1040, 680);
+            MinimumSize = new Size(940, 600);
             Font = new Font("Segoe UI", 9.5F);
             Text = "Historial de casilleros";
             DoubleBuffered = true;
 
-            // Cabecera
+            // ---- Cabecera
             var header = new Panel { Dock = DockStyle.Top, Height = 44, BackColor = ColorAccento };
             var btnCerrarVentana = new IconButton
             {
@@ -96,77 +103,123 @@ namespace SistemaFacturacion
             header.Controls.Add(lblIcono);
             header.Controls.Add(btnCerrarVentana);
 
-            // Pie con envío por correo
-            var footer = new Panel { Dock = DockStyle.Bottom, Height = 64, BackColor = Color.FromArgb(247, 248, 249) };
+            // ---- Pie: envío por correo
+            var footer = new Panel { Dock = DockStyle.Bottom, Height = 68, BackColor = Color.White };
+            footer.Paint += (s, e) =>
+            {
+                using (var lapiz = new Pen(Color.FromArgb(230, 232, 235)))
+                    e.Graphics.DrawLine(lapiz, 0, 0, footer.Width, 0);
+            };
             var lblCorreo = new Label
             {
-                Text = "Enviar reporte a", AutoSize = true, ForeColor = ColorTextoSuave, Location = new Point(24, 8)
+                Text = "Enviar reporte (PDF) a", AutoSize = true, ForeColor = ColorTextoSuave, Location = new Point(24, 8)
             };
-            var cajaCorreo = CrearCaja(txtCorreo, new Rectangle(24, 26, 340, 30));
-            btnEnviar = CrearBoton("Enviar por correo", 0xf0e0, Color.FromArgb(40, 167, 69), new Rectangle(376, 24, 190, 34));
+            var cajaCorreo = CrearCaja(txtCorreo, new Rectangle(24, 28, 360, 34));
+            btnEnviar = CrearBoton("Enviar por correo", 0xf0e0, ColorVerde, new Rectangle(396, 28, 190, 34));
             btnEnviar.Enabled = false;
             btnEnviar.Click += async (s, e) => await EnviarAsync();
-            var btnCerrar = CrearBoton("Cerrar", IconosCasilleros.Cerrar, Color.FromArgb(108, 117, 125), new Rectangle(0, 24, 120, 34));
+            var btnCerrar = CrearBoton("Cerrar", IconosCasilleros.Cerrar, Color.FromArgb(108, 117, 125), new Rectangle(0, 28, 120, 34));
             btnCerrar.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            btnCerrar.Left = footer.Width - 120 - 24;
             btnCerrar.Click += (s, e) => Close();
             footer.Controls.Add(lblCorreo);
             footer.Controls.Add(cajaCorreo);
             footer.Controls.Add(btnEnviar);
             footer.Controls.Add(btnCerrar);
             footer.Resize += (s, e) => btnCerrar.Left = footer.Width - btnCerrar.Width - 24;
+            btnCerrar.Left = ClientSize.Width - 120 - 24;
 
-            // Tarjeta de filtros
-            var tarjetaFiltros = new Panel { Dock = DockStyle.Top, Height = 92, BackColor = Color.White, Margin = Padding.Empty };
+            // ---- Filtros
+            var barraFiltros = new Panel { Dock = DockStyle.Top, Height = 96, BackColor = Color.White };
+            barraFiltros.Paint += (s, e) =>
+            {
+                using (var lapiz = new Pen(Color.FromArgb(230, 232, 235)))
+                    e.Graphics.DrawLine(lapiz, 0, barraFiltros.Height - 1, barraFiltros.Width, barraFiltros.Height - 1);
+            };
             ConfigurarDtp(dtpDesde);
             ConfigurarDtp(dtpHasta);
             cmbPersona.DropDownStyle = cmbTiempo.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbPersona.FlatStyle = cmbTiempo.FlatStyle = FlatStyle.Flat;
-
-            AgregarCampo(tarjetaFiltros, "Desde", dtpDesde, 24, 150);
-            AgregarCampo(tarjetaFiltros, "Hasta", dtpHasta, 190, 150);
-            AgregarCampo(tarjetaFiltros, "Persona", cmbPersona, 356, 250);
-            AgregarCampo(tarjetaFiltros, "Tiempo", cmbTiempo, 622, 130);
-            btnConsultar = CrearBoton("Consultar", IconosCasilleros.Buscar, ColorAccento, new Rectangle(0, 40, 150, 34));
+            AgregarCampo(barraFiltros, "Desde", dtpDesde, 24, 150);
+            AgregarCampo(barraFiltros, "Hasta", dtpHasta, 190, 150);
+            AgregarCampo(barraFiltros, "Persona", cmbPersona, 356, 260);
+            AgregarCampo(barraFiltros, "Tiempo", cmbTiempo, 632, 140);
+            btnConsultar = CrearBoton("Consultar", IconosCasilleros.Buscar, ColorAccento, new Rectangle(0, 44, 150, 36));
             btnConsultar.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            btnConsultar.Left = tarjetaFiltros.Width - 150 - 24;
             btnConsultar.Click += (s, e) => Consultar();
-            tarjetaFiltros.Controls.Add(btnConsultar);
-            tarjetaFiltros.Resize += (s, e) => btnConsultar.Left = tarjetaFiltros.Width - btnConsultar.Width - 24;
+            barraFiltros.Controls.Add(btnConsultar);
+            barraFiltros.Resize += (s, e) => btnConsultar.Left = barraFiltros.Width - btnConsultar.Width - 24;
+            btnConsultar.Left = ClientSize.Width - 150 - 24;
 
-            // Resumen (consolidado en tarjetas)
-            lblResumen.Dock = DockStyle.Top;
-            lblResumen.Height = 28;
-            lblResumen.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            lblResumen.ForeColor = Color.FromArgb(52, 58, 64);
-            lblResumen.Text = "Consolidado por tiempo";
-            lblResumen.TextAlign = ContentAlignment.BottomLeft;
+            // ---- Tarjetas de resumen (KPI)
+            pnlKpi.Dock = DockStyle.Top;
+            pnlKpi.Height = 88;
+            pnlKpi.WrapContents = false;
+            pnlKpi.AutoScroll = false;
+            pnlKpi.BackColor = ColorFondo;
+            pnlKpi.Padding = new Padding(0, 12, 0, 8);
 
-            pnlConsolidado.Dock = DockStyle.Top;
-            pnlConsolidado.Height = 78;
-            pnlConsolidado.AutoScroll = true;
-            pnlConsolidado.WrapContents = false;
-            pnlConsolidado.BackColor = ColorFondo;
-            pnlConsolidado.Padding = new Padding(0, 6, 0, 6);
-
-            ConfigurarGrid();
-            var lblDetalle = new Label
+            // ---- Consolidado (izquierda) y detalle (derecha) en tarjetas blancas
+            ConfigurarGrid(gridConsolidado);
+            gridConsolidado.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "TIEMPO", HeaderText = "Tiempo", FillWeight = 42 });
+            gridConsolidado.Columns.Add(new DataGridViewTextBoxColumn
             {
-                Dock = DockStyle.Top, Height = 28, Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(52, 58, 64), Text = "Detalle", TextAlign = ContentAlignment.BottomLeft
-            };
+                DataPropertyName = "CANTIDAD", HeaderText = "Cantidad", FillWeight = 30,
+                DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleRight }
+            });
+            gridConsolidado.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "PORCENTAJE", HeaderText = "%", FillWeight = 28,
+                DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleRight }
+            });
+            gridConsolidado.Columns[1].HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleRight;
+            gridConsolidado.Columns[2].HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleRight;
 
-            var cuerpo = new Panel { Dock = DockStyle.Fill, Padding = new Padding(24, 0, 24, 8), BackColor = ColorFondo };
-            // El orden de Controls.Add con Dock: lo último agregado queda arriba.
-            cuerpo.Controls.Add(gridDetalle);
-            cuerpo.Controls.Add(lblDetalle);
-            cuerpo.Controls.Add(pnlConsolidado);
-            cuerpo.Controls.Add(lblResumen);
+            ConfigurarGrid(gridDetalle);
+            gridDetalle.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "FECHA", HeaderText = "Fecha", FillWeight = 24,
+                DefaultCellStyle = { Format = FormatoFechaHora }
+            });
+            gridDetalle.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "CASILLERO", HeaderText = "Casillero", FillWeight = 14 });
+            gridDetalle.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "TIEMPO", HeaderText = "Tiempo", FillWeight = 14,
+                DefaultCellStyle = { Format = "0' min'" }
+            });
+            gridDetalle.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "PERSONA", HeaderText = "Persona", FillWeight = 32 });
+            gridDetalle.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "ESTADO", HeaderText = "Estado", FillWeight = 16 });
+
+            lblPeriodo.AutoSize = false;
+            lblPeriodo.Dock = DockStyle.Fill;
+
+            var tarjetaConsolidado = CrearTarjeta("Total por tiempo", gridConsolidado);
+            var tarjetaDetalle = CrearTarjeta("Detalle con subtotales", gridDetalle);
+
+            var contenido = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, BackColor = ColorFondo, Margin = Padding.Empty
+            };
+            contenido.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 340));
+            contenido.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            contenido.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            tarjetaConsolidado.Dock = tarjetaDetalle.Dock = DockStyle.Fill;
+            tarjetaConsolidado.Margin = new Padding(0, 0, 12, 0);
+            tarjetaDetalle.Margin = Padding.Empty;
+            contenido.Controls.Add(tarjetaConsolidado, 0, 0);
+            contenido.Controls.Add(tarjetaDetalle, 1, 0);
+
+            var cuerpo = new Panel { Dock = DockStyle.Fill, Padding = new Padding(24, 0, 24, 14), BackColor = ColorFondo };
+            cuerpo.Controls.Add(contenido);
+            cuerpo.Controls.Add(pnlKpi);
 
             Controls.Add(cuerpo);
             Controls.Add(footer);
-            Controls.Add(tarjetaFiltros);
+            Controls.Add(barraFiltros);
             Controls.Add(header);
+
+            gridDetalle.CellFormatting += GridResumen_CellFormatting;
+            gridConsolidado.CellFormatting += GridResumen_CellFormatting;
+            MostrarKpi(0, 0, 0);
 
             ResumeLayout(false);
         }
@@ -175,7 +228,7 @@ namespace SistemaFacturacion
         {
             dtp.Format = DateTimePickerFormat.Custom;
             dtp.CustomFormat = FormatoFecha;
-            dtp.Font = new Font("Segoe UI", 10F);
+            dtp.Font = new Font("Segoe UI", 10.5F);
         }
 
         private void AgregarCampo(Panel padre, string etiqueta, Control control, int x, int ancho)
@@ -184,20 +237,22 @@ namespace SistemaFacturacion
             {
                 Text = etiqueta, AutoSize = true, ForeColor = ColorTextoSuave, Location = new Point(x, 14)
             });
-            Control caja = CrearCaja(control, new Rectangle(x, 40, ancho, 34));
-            padre.Controls.Add(caja);
+            padre.Controls.Add(CrearCaja(control, new Rectangle(x, 44, ancho, 36)));
         }
 
         // Caja con borde redondeado y foco azul, igual que los campos de Configuración.
         private Panel CrearCaja(Control control, Rectangle bounds)
         {
-            var panel = new Panel { BackColor = Color.White, Bounds = bounds, Padding = new Padding(10, 6, 10, 4) };
+            var panel = new Panel { BackColor = Color.White, Bounds = bounds, Padding = new Padding(10, 7, 10, 4) };
 
             if (control is TextBox tb)
             {
                 tb.BorderStyle = BorderStyle.None;
                 tb.Font = new Font("Segoe UI", 10.5F);
             }
+            if (control is ComboBox cb)
+                cb.Font = new Font("Segoe UI", 10.5F);
+
             control.Dock = DockStyle.Fill;
             control.BackColor = Color.White;
             panel.Controls.Add(control);
@@ -225,58 +280,93 @@ namespace SistemaFacturacion
 
         private static IconButton CrearBoton(string texto, int icono, Color fondo, Rectangle bounds)
         {
-            var b = new IconButton
+            return new IconButton
             {
                 Text = texto, CodigoIcono = icono, BackColor = fondo, ForeColor = Color.White,
                 Font = new Font("Segoe UI", 9.5F, FontStyle.Bold), RadioEsquinas = 8, Bounds = bounds
             };
-            return b;
         }
 
-        private void ConfigurarGrid()
+        // Tarjeta blanca redondeada con título y un control que ocupa el resto.
+        private static Panel CrearTarjeta(string titulo, Control contenido)
         {
-            var g = gridDetalle;
-            g.Dock = DockStyle.Fill;
+            var tarjeta = new Panel { BackColor = Color.White, Padding = new Padding(1, 46, 1, 1) };
+            var lbl = new Label
+            {
+                Text = titulo, Font = new Font("Segoe UI", 11F, FontStyle.Bold), ForeColor = ColorTexto,
+                Location = new Point(18, 12), AutoSize = true, BackColor = Color.Transparent
+            };
+            contenido.Dock = DockStyle.Fill;
+            tarjeta.Controls.Add(contenido);
+            tarjeta.Controls.Add(lbl);
+
+            void ActualizarRegion()
+            {
+                if (tarjeta.Width <= 0 || tarjeta.Height <= 0) return;
+                using (var ruta = ConstruirRedondeado(new Rectangle(0, 0, tarjeta.Width, tarjeta.Height), 12))
+                    tarjeta.Region = new Region(ruta);
+            }
+            tarjeta.Resize += (s, e) => ActualizarRegion();
+            tarjeta.HandleCreated += (s, e) => ActualizarRegion();
+            return tarjeta;
+        }
+
+        private static void ConfigurarGrid(DataGridView g)
+        {
             g.ReadOnly = true;
             g.AllowUserToAddRows = false;
             g.AllowUserToDeleteRows = false;
             g.AllowUserToResizeRows = false;
+            g.AllowUserToResizeColumns = false;
             g.RowHeadersVisible = false;
             g.AutoGenerateColumns = false;
+            g.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             g.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             g.MultiSelect = false;
             g.BackgroundColor = Color.White;
             g.BorderStyle = BorderStyle.None;
             g.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
-            g.GridColor = Color.FromArgb(235, 237, 240);
+            g.GridColor = Color.FromArgb(238, 240, 243);
             g.EnableHeadersVisualStyles = false;
             g.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
             g.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             g.ColumnHeadersHeight = 36;
-            g.RowTemplate.Height = 32;
-            g.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 242, 245);
-            g.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(52, 58, 64);
-            g.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            g.ColumnHeadersDefaultCellStyle.Padding = new Padding(8, 0, 0, 0);
-            g.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.FromArgb(240, 242, 245);
-            g.DefaultCellStyle.Padding = new Padding(8, 0, 0, 0);
+            g.RowTemplate.Height = 34;
+            g.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(247, 248, 250);
+            g.ColumnHeadersDefaultCellStyle.ForeColor = ColorTextoSuave;
+            g.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            g.ColumnHeadersDefaultCellStyle.Padding = new Padding(12, 0, 12, 0);
+            g.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.FromArgb(247, 248, 250);
+            g.ColumnHeadersDefaultCellStyle.SelectionForeColor = ColorTextoSuave;
+            g.DefaultCellStyle.Font = new Font("Segoe UI", 9.5F);
+            g.DefaultCellStyle.ForeColor = ColorTexto;
+            g.DefaultCellStyle.Padding = new Padding(12, 0, 12, 0);
             g.DefaultCellStyle.SelectionBackColor = Color.FromArgb(222, 237, 255);
-            g.DefaultCellStyle.SelectionForeColor = Color.FromArgb(33, 37, 41);
-            g.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(250, 251, 252);
+            g.DefaultCellStyle.SelectionForeColor = ColorTexto;
+        }
 
-            g.Columns.Add(new DataGridViewTextBoxColumn
+        // Subtotales (azul claro, negrita) y TOTAL (azul, blanco, negrita) para ambas tablas.
+        private void GridResumen_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            var grid = (DataGridView)sender;
+            if (e.RowIndex < 0 || e.RowIndex >= grid.Rows.Count) return;
+            if (!(grid.Rows[e.RowIndex].DataBoundItem is DataRowView fila)) return;
+
+            string tipo = Convert.ToString(fila["TIPOFILA"]);
+            if (tipo == CasilleroHistorialManejador.FilaSubtotal)
             {
-                DataPropertyName = "FECHA", HeaderText = "Fecha", FillWeight = 24,
-                DefaultCellStyle = { Format = FormatoFechaHora }
-            });
-            g.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "CASILLERO", HeaderText = "Casillero", FillWeight = 14 });
-            g.Columns.Add(new DataGridViewTextBoxColumn
+                e.CellStyle.BackColor = ColorSubtotal;
+                e.CellStyle.SelectionBackColor = ColorSubtotal;
+                e.CellStyle.Font = new Font(grid.DefaultCellStyle.Font, FontStyle.Bold);
+            }
+            else if (tipo == CasilleroHistorialManejador.FilaTotal)
             {
-                DataPropertyName = "TIEMPO", HeaderText = "Tiempo", FillWeight = 14,
-                DefaultCellStyle = { Format = "0' min'" }
-            });
-            g.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "PERSONA", HeaderText = "Persona", FillWeight = 32 });
-            g.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "ESTADO", HeaderText = "Estado", FillWeight = 16 });
+                e.CellStyle.BackColor = ColorTotal;
+                e.CellStyle.SelectionBackColor = ColorTotal;
+                e.CellStyle.ForeColor = Color.White;
+                e.CellStyle.SelectionForeColor = Color.White;
+                e.CellStyle.Font = new Font(grid.DefaultCellStyle.Font, FontStyle.Bold);
+            }
         }
 
         private static GraphicsPath ConstruirRedondeado(Rectangle rect, int radio)
@@ -291,33 +381,41 @@ namespace SistemaFacturacion
             return gp;
         }
 
-        // Tarjeta pequeña: número grande + "N min".
-        private static Control CrearTarjetaConsolidado(string titulo, int cantidad, Color acento)
+        // Tarjeta KPI: etiqueta pequeña + número grande, con franja de color.
+        private static Control CrearKpi(string titulo, string valor, Color acento)
         {
-            var panel = new Panel { Size = new Size(120, 60), BackColor = Color.White, Margin = new Padding(0, 0, 10, 0) };
+            var panel = new Panel { Size = new Size(210, 64), BackColor = Color.White, Margin = new Padding(0, 0, 12, 0) };
             panel.Paint += (s, e) =>
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                using (var lapiz = new Pen(Color.FromArgb(230, 232, 235)))
-                using (var ruta = ConstruirRedondeado(new Rectangle(0, 0, panel.Width - 1, panel.Height - 1), 10))
-                    e.Graphics.DrawPath(lapiz, ruta);
                 using (var brocha = new SolidBrush(acento))
-                    e.Graphics.FillRectangle(brocha, 0, 14, 4, panel.Height - 28);
+                using (var ruta = ConstruirRedondeado(new Rectangle(0, 16, 5, panel.Height - 32), 2))
+                    e.Graphics.FillPath(brocha, ruta);
             };
-            using (var ruta = ConstruirRedondeado(new Rectangle(0, 0, panel.Width, panel.Height), 10))
+            using (var ruta = ConstruirRedondeado(new Rectangle(0, 0, panel.Width, panel.Height), 12))
                 panel.Region = new Region(ruta);
 
             panel.Controls.Add(new Label
             {
-                Text = cantidad.ToString(), Font = new Font("Segoe UI", 16F, FontStyle.Bold), ForeColor = Color.FromArgb(33, 37, 41),
-                Location = new Point(14, 4), AutoSize = true
+                Text = titulo, Font = new Font("Segoe UI", 9F), ForeColor = ColorTextoSuave,
+                Location = new Point(18, 8), AutoSize = true
             });
             panel.Controls.Add(new Label
             {
-                Text = titulo, Font = new Font("Segoe UI", 9F), ForeColor = ColorTextoSuave,
-                Location = new Point(16, 36), AutoSize = true
+                Text = valor, Font = new Font("Segoe UI", 18F, FontStyle.Bold), ForeColor = ColorTexto,
+                Location = new Point(16, 24), AutoSize = true
             });
             return panel;
+        }
+
+        private void MostrarKpi(int total, int tiempos, int personas)
+        {
+            pnlKpi.SuspendLayout();
+            pnlKpi.Controls.Clear();
+            pnlKpi.Controls.Add(CrearKpi("Total asignaciones", total.ToString(), ColorAccento));
+            pnlKpi.Controls.Add(CrearKpi("Tiempos distintos", tiempos.ToString(), ColorVerde));
+            pnlKpi.Controls.Add(CrearKpi("Personas", personas.ToString(), ColorNaranja));
+            pnlKpi.ResumeLayout();
         }
 
         // ---------------------------------------------------------------- lógica
@@ -342,6 +440,25 @@ namespace SistemaFacturacion
             cmbTiempo.DataSource = tiempos;
         }
 
+        private static DataTable ConstruirTablaConsolidado(List<FilaConsolidado> consolidado)
+        {
+            var tabla = new DataTable();
+            tabla.Columns.Add("TIEMPO", typeof(string));
+            tabla.Columns.Add("CANTIDAD", typeof(int));
+            tabla.Columns.Add("PORCENTAJE", typeof(string));
+            tabla.Columns.Add("TIPOFILA", typeof(string));
+
+            int total = consolidado.Sum(f => f.Cantidad);
+            foreach (var f in consolidado)
+            {
+                double pct = total == 0 ? 0 : f.Cantidad * 100.0 / total;
+                tabla.Rows.Add(f.Minutos + " minutos", f.Cantidad, pct.ToString("0.#") + " %", CasilleroHistorialManejador.FilaDetalle);
+            }
+            if (total > 0)
+                tabla.Rows.Add("TOTAL", total, "100 %", CasilleroHistorialManejador.FilaTotal);
+            return tabla;
+        }
+
         private void Consultar()
         {
             try
@@ -361,17 +478,16 @@ namespace SistemaFacturacion
                 _consolidado = consolidado;
                 _filtros = filtros;
 
-                pnlConsolidado.SuspendLayout();
-                pnlConsolidado.Controls.Clear();
-                pnlConsolidado.Controls.Add(CrearTarjetaConsolidado("Total", detalle.Rows.Count, Color.FromArgb(40, 167, 69)));
-                foreach (var f in consolidado)
-                    pnlConsolidado.Controls.Add(CrearTarjetaConsolidado(f.Minutos + " min", f.Cantidad, ColorAccento));
-                pnlConsolidado.ResumeLayout();
+                int personas = detalle.AsEnumerable().Select(r => Convert.ToString(r["PERSONA"])).Distinct().Count();
+                MostrarKpi(detalle.Rows.Count, consolidado.Count, personas);
 
-                gridDetalle.DataSource = detalle;
-                lblResumen.Text = "Consolidado por tiempo  ·  " + filtros.Desde.ToString(FormatoFecha)
-                                  + " al " + filtros.Hasta.ToString(FormatoFecha);
+                gridConsolidado.DataSource = ConstruirTablaConsolidado(consolidado);
+                gridDetalle.DataSource = CasilleroHistorialManejador.DetalleConSubtotales(detalle);
                 btnEnviar.Enabled = detalle.Rows.Count > 0;
+
+                if (detalle.Rows.Count == 0)
+                    MessageBox.Show(this, "No hay asignaciones en el rango y filtros seleccionados.", "Historial de casilleros",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {

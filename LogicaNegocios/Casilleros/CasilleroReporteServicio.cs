@@ -64,13 +64,24 @@ namespace LogicaNegocios.Casilleros
                     tabla.AddCell(Celda(h, fuenteNegrita, true));
                 tabla.HeaderRows = 1;
 
-                foreach (DataRow r in detalle.Rows)
+                foreach (DataRow r in CasilleroHistorialManejador.DetalleConSubtotales(detalle).Rows)
                 {
-                    tabla.AddCell(Celda(Convert.ToDateTime(r["FECHA"]).ToString("dd/MM/yyyy HH:mm"), fuenteNormal, false));
-                    tabla.AddCell(Celda(Convert.ToString(r["CASILLERO"]), fuenteNormal, false));
-                    tabla.AddCell(Celda(Convert.ToString(r["TIEMPO"]), fuenteNormal, false));
-                    tabla.AddCell(Celda(Convert.ToString(r["PERSONA"]), fuenteNormal, false));
-                    tabla.AddCell(Celda(Convert.ToString(r["ESTADO"]), fuenteNormal, false));
+                    string tipo = Convert.ToString(r["TIPOFILA"]);
+                    bool resumen = tipo != CasilleroHistorialManejador.FilaDetalle;
+                    var fuente = resumen ? fuenteNegrita : fuenteNormal;
+                    var fondo = tipo == CasilleroHistorialManejador.FilaTotal ? new BaseColor(200, 220, 245)
+                              : tipo == CasilleroHistorialManejador.FilaSubtotal ? new BaseColor(232, 241, 252)
+                              : null;
+
+                    string fecha = r["FECHA"] == DBNull.Value ? "" : Convert.ToDateTime(r["FECHA"]).ToString("dd/MM/yyyy HH:mm");
+                    string tiempo = r["TIEMPO"] == DBNull.Value ? "" : Convert.ToString(r["TIEMPO"]);
+                    foreach (var texto in new[] { fecha, Convert.ToString(r["CASILLERO"]), tiempo,
+                                                  Convert.ToString(r["PERSONA"]), Convert.ToString(r["ESTADO"]) })
+                    {
+                        var celda = Celda(texto, fuente, false);
+                        if (fondo != null) celda.BackgroundColor = fondo;
+                        tabla.AddCell(celda);
+                    }
                 }
                 doc.Add(tabla);
 
@@ -178,12 +189,19 @@ namespace LogicaNegocios.Casilleros
             foreach (var h in new[] { "Fecha", "Casillero", "Tiempo (min)", "Persona", "Estado" })
                 sb.Append("<th style=\"" + th + "\">").Append(h).Append("</th>");
             sb.Append("</tr>");
-            foreach (DataRow r in detalle.Rows)
+            foreach (DataRow r in CasilleroHistorialManejador.DetalleConSubtotales(detalle).Rows)
             {
-                sb.Append("<tr>");
-                sb.Append("<td style=\"" + td + "\">").Append(Convert.ToDateTime(r["FECHA"]).ToString("dd/MM/yyyy HH:mm")).Append("</td>");
+                string tipo = Convert.ToString(r["TIPOFILA"]);
+                string estilo = tipo == CasilleroHistorialManejador.FilaTotal ? "font-weight:bold;background:#c8dcf5"
+                              : tipo == CasilleroHistorialManejador.FilaSubtotal ? "font-weight:bold;background:#e8f1fc"
+                              : "";
+                string fecha = r["FECHA"] == DBNull.Value ? "" : Convert.ToDateTime(r["FECHA"]).ToString("dd/MM/yyyy HH:mm");
+                string tiempo = r["TIEMPO"] == DBNull.Value ? "" : Convert.ToString(r["TIEMPO"]);
+
+                sb.Append("<tr style=\"" + estilo + "\">");
+                sb.Append("<td style=\"" + td + "\">").Append(fecha).Append("</td>");
                 sb.Append("<td style=\"" + td + "\">").Append(WebUtility.HtmlEncode(Convert.ToString(r["CASILLERO"]))).Append("</td>");
-                sb.Append("<td style=\"" + td + "\">").Append(Convert.ToString(r["TIEMPO"])).Append("</td>");
+                sb.Append("<td style=\"" + td + "\">").Append(tiempo).Append("</td>");
                 sb.Append("<td style=\"" + td + "\">").Append(WebUtility.HtmlEncode(Convert.ToString(r["PERSONA"]))).Append("</td>");
                 sb.Append("<td style=\"" + td + "\">").Append(WebUtility.HtmlEncode(Convert.ToString(r["ESTADO"]))).Append("</td>");
                 sb.Append("</tr>");
