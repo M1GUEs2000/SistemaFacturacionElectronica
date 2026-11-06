@@ -19,6 +19,8 @@ namespace SistemaFacturacion
             InitializeComponent();
             _services = services;
 
+            Icon = System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+
             CargarBackgroundEmpresa();
 
         }

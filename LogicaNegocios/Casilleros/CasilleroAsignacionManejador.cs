@@ -19,6 +19,7 @@ namespace LogicaNegocios.Casilleros
 
         private readonly CasilleroManejador _casilleros;
         private readonly CasilleroNotificacionManejador _notificaciones;
+        private readonly CasilleroHistorialManejador _historial;
         private const int MaxIntentosAsignacion = 3;
 
         public CasilleroAsignacionManejador(
@@ -27,6 +28,7 @@ namespace LogicaNegocios.Casilleros
         {
             _casilleros = casilleros;
             _notificaciones = notificaciones;
+            _historial = new CasilleroHistorialManejador(conexion, log);
         }
 
         public ResultadoAsignacion AsignarAutomatico(string nombreCliente, int minutosSolicitados, string usuario, string ip)
@@ -101,6 +103,9 @@ namespace LogicaNegocios.Casilleros
                 ("id", idCasillero));
             int idAsignacion = Convert.ToInt32(ds.Tables[0].Rows[0]["ID"]);
 
+            _historial.RegistrarAsignacion(
+                idAsignacion, idCasillero, codigo, nombreCliente.Trim(), minutosSolicitados, inicio, fin, usuario);
+
             _log.CrearLog(
                 "Casillero " + codigo + " asignado a " + nombreCliente + " por " + minutosSolicitados + " minutos",
                 usuario, ip, "");
@@ -127,6 +132,7 @@ namespace LogicaNegocios.Casilleros
                 "UPDATE CASILLERO_ASIGNACIONES SET ESTADO = @estado WHERE ID = @id",
                 ("estado", "FINALIZADA"), ("id", idAsignacion));
 
+            _historial.ActualizarEstado(idAsignacion, "FINALIZADA");
             _casilleros.Liberar(idCasillero);
             _notificaciones.MarcarLeidasDeAsignacion(idAsignacion);
 
@@ -180,6 +186,7 @@ namespace LogicaNegocios.Casilleros
                 "UPDATE CASILLERO_ASIGNACIONES SET ESTADO = @estado WHERE ID = @id",
                 ("estado", "VENCIDA"), ("id", idAsignacion));
 
+            _historial.ActualizarEstado(idAsignacion, "VENCIDA");
             _casilleros.MarcarEstado(idCasillero, "VENCIDO");
         }
     }

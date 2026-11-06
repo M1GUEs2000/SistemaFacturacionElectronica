@@ -30,6 +30,8 @@ namespace SistemaFacturacion
             InitializeComponent();
             _services = services;
 
+            Icon = System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+
             lblNombreEmpresa.Text = Nombre.ToUpper();
             UsuarioActual = Nombre;
             IPActual = IP;
@@ -62,6 +64,7 @@ namespace SistemaFacturacion
         }
 
         private CasilleroNotificacionManejador _notificacionesCasillero;
+        private CasilleroParametrosManejador _parametrosCasillero;
         private SistemaFacturacion.Controls.IconButton _btnCampanaCasilleros;
         private Label _lblBadgeCasilleros;
         private Form _popupNotificacionesCasillero;
@@ -71,6 +74,7 @@ namespace SistemaFacturacion
         private void IniciarPollingNotificacionesCasilleros()
         {
             _notificacionesCasillero = new CasilleroNotificacionManejador(_services.Conexion, _services.Log);
+            _parametrosCasillero = new CasilleroParametrosManejador(_services.Conexion, _services.Log);
             ConfigurarCampanaNotificaciones();
 
             System.Windows.Forms.Timer timerCasilleros = new System.Windows.Forms.Timer { Interval = 5 * 1000 };
@@ -79,6 +83,7 @@ namespace SistemaFacturacion
                 try
                 {
                     _notificacionesCasillero.MarcarLeidasAnterioresAHoy();
+                    ReproducirSonidoDeNuevasNotificacionesCasillero();
                     ActualizarBadgeNotificacionesCasillero();
                 }
                 catch (Exception ex)
@@ -90,6 +95,18 @@ namespace SistemaFacturacion
 
             try { ActualizarBadgeNotificacionesCasillero(); }
             catch { }
+        }
+
+        private void ReproducirSonidoDeNuevasNotificacionesCasillero()
+        {
+            var ds = _notificacionesCasillero.ObtenerNoMostradas();
+            if (ds.Tables.Count == 0 || ds.Tables[0].Rows.Count == 0)
+                return;
+
+            SistemaFacturacion.Controls.SonidosCasilleros.Reproducir(_parametrosCasillero.ObtenerSonidoNotificacion());
+
+            foreach (System.Data.DataRow fila in ds.Tables[0].Rows)
+                _notificacionesCasillero.MarcarMostrada(Convert.ToInt32(fila["ID"]));
         }
 
         private void ConfigurarCampanaNotificaciones()

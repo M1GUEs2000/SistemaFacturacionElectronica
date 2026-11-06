@@ -2,8 +2,10 @@ using LogicaNegocios.Casilleros;
 using LogicaNegocios.Services;
 using SistemaFacturacion.Controls;
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace SistemaFacturacion
@@ -37,8 +39,24 @@ namespace SistemaFacturacion
             pnlCuerpo.Paint += PnlCuerpo_Paint;
             ConfigurarCajaTexto(pnlCajaCantidad, numCantidad);
             ConfigurarCajaTexto(pnlCajaMinutos, numMinutos);
+            ConfigurarCajaTexto(pnlCajaSonido, cmbSonido);
+
+            CargarSonidos(_parametros.ObtenerSonidoNotificacion());
 
             VentanaPersonalizada.AplicarEsquinasRedondeadas(this, 12);
+        }
+
+        private void CargarSonidos(string claveSeleccionada)
+        {
+            cmbSonido.DisplayMember = "Value";
+            cmbSonido.ValueMember = "Key";
+            cmbSonido.DataSource = SonidosCasilleros.ObtenerDisponibles()
+                .Select(s => new KeyValuePair<string, string>(s.Clave, s.Etiqueta))
+                .ToList();
+
+            cmbSonido.SelectedValue = claveSeleccionada;
+            if (cmbSonido.SelectedIndex < 0 && cmbSonido.Items.Count > 0)
+                cmbSonido.SelectedIndex = 0;
         }
 
         private void PnlCuerpo_Paint(object sender, PaintEventArgs e)
@@ -48,15 +66,18 @@ namespace SistemaFacturacion
 
             const int altoFilaCantidad = 90;
             const int altoFilaMinutos = 70;
-            var rectTarjeta = new Rectangle(24, 20, pnlCuerpo.Width - 48, altoFilaCantidad + altoFilaMinutos);
+            const int altoFilaSonido = 70;
+            var rectTarjeta = new Rectangle(24, 20, pnlCuerpo.Width - 48, altoFilaCantidad + altoFilaMinutos + altoFilaSonido);
             using (var rutaTarjeta = ConstruirRedondeado(rectTarjeta, 12))
             using (var brochaTarjeta = new SolidBrush(Color.FromArgb(247, 248, 249)))
                 g.FillPath(brochaTarjeta, rutaTarjeta);
 
             using (var lapizDivisor = new Pen(Color.FromArgb(230, 232, 235)))
             {
-                int y = rectTarjeta.Top + altoFilaCantidad + 4;
-                g.DrawLine(lapizDivisor, rectTarjeta.Left + 16, y, rectTarjeta.Right - 16, y);
+                int y1 = rectTarjeta.Top + altoFilaCantidad + 4;
+                g.DrawLine(lapizDivisor, rectTarjeta.Left + 16, y1, rectTarjeta.Right - 16, y1);
+                int y2 = rectTarjeta.Top + altoFilaCantidad + altoFilaMinutos + 4;
+                g.DrawLine(lapizDivisor, rectTarjeta.Left + 16, y2, rectTarjeta.Right - 16, y2);
             }
 
             using (var fuenteIconoChico = IconosCasilleros.CrearFuente(13F))
@@ -67,6 +88,8 @@ namespace SistemaFacturacion
                     new RectangleF(40, rectTarjeta.Top + 18, 24, 24), formatoIconoChico);
                 g.DrawString(IconosCasilleros.Glifo(IconosCasilleros.Reloj), fuenteIconoChico, brochaIconoChico,
                     new RectangleF(40, rectTarjeta.Top + altoFilaCantidad + 18, 24, 24), formatoIconoChico);
+                g.DrawString(IconosCasilleros.Glifo(IconosCasilleros.Volumen), fuenteIconoChico, brochaIconoChico,
+                    new RectangleF(40, rectTarjeta.Top + altoFilaCantidad + altoFilaMinutos + 18, 24, 24), formatoIconoChico);
             }
         }
 
@@ -132,6 +155,7 @@ namespace SistemaFacturacion
             {
                 var pendientes = _casilleros.FijarCantidad((int)numCantidad.Value, UsuarioActual, IPActual);
                 _parametros.GuardarMinutosNotificacion((int)numMinutos.Value, UsuarioActual, IPActual);
+                _parametros.GuardarSonidoNotificacion((string)cmbSonido.SelectedValue, UsuarioActual, IPActual);
 
                 int actuales = _casilleros.ContarActivos();
                 lblCantidadActual.Text = "Actualmente hay " + actuales + " casillero(s) activo(s).";
@@ -158,6 +182,39 @@ namespace SistemaFacturacion
         private void btnCerrarVentana_Click(object sender, EventArgs e)
         {
             Close();
+        }
+
+        private void btnAgregarSonido_Click(object sender, EventArgs e)
+        {
+            using (var dialogo = new OpenFileDialog { Filter = "Archivos de sonido (*.wav;*.mp3)|*.wav;*.mp3", Title = "Agregar sonido de notificación" })
+            {
+                if (dialogo.ShowDialog(this) != DialogResult.OK)
+                    return;
+
+                try
+                {
+                    string clave = SonidosCasilleros.AgregarPersonalizado(dialogo.FileName);
+                    CargarSonidos(clave);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(this, "No se pudo agregar el sonido: " + ex.Message, "Casilleros",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void btnProbarSonido_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                SonidosCasilleros.Reproducir((string)cmbSonido.SelectedValue);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "No se pudo reproducir el sonido: " + ex.Message, "Casilleros",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }

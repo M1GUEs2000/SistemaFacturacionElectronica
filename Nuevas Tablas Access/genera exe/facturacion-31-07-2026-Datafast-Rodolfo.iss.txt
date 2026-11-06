@@ -1,0 +1,35 @@
+; Actualizador exclusivo de Rodolfo.
+[Setup]
+AppId={{B8480D1A-8A15-4BFA-8B59-8FE1C7D0F291}
+AppName=Facturacion Rodolfo
+AppVersion=1.1.1
+AppVerName=Facturacion Rodolfo - Datafast 31-07-2026
+AppPublisher=SuSistema
+DefaultDirName=C:\Facturacion Rodolfo
+DefaultGroupName=Facturacion Rodolfo
+OutputDir=Output-Datafast-v111
+OutputBaseFilename=facturacion-31-07-2026-Datafast-Rodolfo
+Compression=lzma2/normal
+SolidCompression=yes
+PrivilegesRequired=admin
+UsePreviousAppDir=no
+CloseApplications=yes
+RestartApplications=no
+SetupIconFile="D:\Proyectos\SistemaFacturacion\Icono Aplicacion.ico"
+UninstallDisplayIcon={app}\SistemaFacturacion.exe
+[Languages]
+Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
+[Files]
+Source: "D:\Proyectos\SistemaFacturacion\SistemaFacturacion\bin\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "*.pdb,ConexionSQL.dat"
+; Configuracion propia del cliente: solo se entrega en una instalacion nueva.
+Source: "D:\Proyectos\SistemaFacturacion\SistemaFacturacion\bin\Release\ConexionSQL.dat"; DestDir: "{app}"; Flags: onlyifdoesntexist uninsneveruninstall
+Source: "D:\Proyectos\SistemaFacturacion\Icono Aplicacion.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\Proyectos\SistemaFacturacion\BaseDatos\FACTURACION.accdb"; DestDir: "{app}"; Flags: onlyifdoesntexist uninsneveruninstall
+Source: "D:\Proyectos\SistemaFacturacion\BaseDatos\FACTURACION.accdb"; DestDir: "{app}\Plantilla"; DestName: "FACTURACION_Plantilla.accdb"; Flags: ignoreversion
+Source: "D:\Proyectos\SistemaFacturacion\ActualizadorBaseDatos\bin\Release\ActualizadorBaseDatos.exe"; DestDir: "{app}"; DestName: "ActualizadorBaseDatosRodolfo.exe"; Flags: ignoreversion
+[Icons]
+Name: "{group}\Facturacion Rodolfo"; Filename: "{app}\SistemaFacturacion.exe"; IconFilename: "{app}\Icono Aplicacion.ico"
+Name: "{group}\Desinstalar Facturacion Rodolfo"; Filename: "{uninstallexe}"
+[Run]
+Filename: "{app}\ActualizadorBaseDatosRodolfo.exe"; Parameters: "--database ""C:\Facturacion Rodolfo\FACTURACION.accdb"" --template ""{app}\Plantilla\FACTURACION_Plantilla.accdb"""; StatusMsg: "Actualizando base de datos de Rodolfo..."; Flags: waituntilterminated
+Filename: "{app}\SistemaFacturacion.exe"; Description: "Abrir Facturacion Rodolfo"; Flags: postinstall nowait skipifsilent

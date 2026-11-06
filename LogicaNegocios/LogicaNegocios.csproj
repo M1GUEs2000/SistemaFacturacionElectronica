@@ -140,6 +140,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Casilleros\CasilleroAsignacionManejador.cs" />
+    <Compile Include="Casilleros\CasilleroHistorialManejador.cs" />
+    <Compile Include="Casilleros\CasilleroReporteServicio.cs" />
     <Compile Include="Casilleros\CasilleroManejador.cs" />
     <Compile Include="Casilleros\CasilleroNotificacionManejador.cs" />
     <Compile Include="Casilleros\CasilleroParametrosManejador.cs" />

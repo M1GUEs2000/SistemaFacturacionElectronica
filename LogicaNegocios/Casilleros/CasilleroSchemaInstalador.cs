@@ -12,8 +12,14 @@ namespace LogicaNegocios.Casilleros
             CrearSiNoExiste(conexion, log, "CASILLERO_PARAMETROS", Ddl.Parametros(conexion.EsSqlServer));
             CrearSiNoExiste(conexion, log, "CASILLERO_NOTIFICACIONES", Ddl.Notificaciones(conexion.EsSqlServer));
 
+            bool historialNuevo = !ExisteTabla(conexion, "CASILLERO_HISTORIAL");
+            CrearSiNoExiste(conexion, log, "CASILLERO_HISTORIAL", Ddl.Historial(conexion.EsSqlServer));
+            if (historialNuevo)
+                RespaldarHistorialExistente(conexion, log);
+
             AsegurarFilaParametros(conexion);
             AsegurarColumnasNotificaciones(conexion, log);
+            AsegurarColumnaSonido(conexion, log);
         }
 
         private static bool ExisteTabla(IConexionBD conexion, string nombreTabla)
@@ -39,6 +45,26 @@ namespace LogicaNegocios.Casilleros
             catch
             {
                 return false;
+            }
+        }
+
+        // Copia al histórico las asignaciones que ya existían antes de crear la tabla.
+        private static void RespaldarHistorialExistente(IConexionBD conexion, LogManejador log)
+        {
+            try
+            {
+                conexion.Ejecutar(
+                    @"INSERT INTO CASILLERO_HISTORIAL
+                        (IDASIGNACION, IDCASILLERO, CODIGOCASILLERO, NOMBRECLIENTE, MINUTOS, FECHAINICIO, FECHAFIN, ESTADO, USUARIO)
+                      SELECT a.ID, a.IDCASILLERO, c.CODIGO, a.NOMBRECLIENTE, a.MINUTOSSOLICITADOS,
+                             a.FECHAINICIO, a.FECHAFIN, a.ESTADO, a.USUARIO
+                      FROM CASILLERO_ASIGNACIONES a INNER JOIN CASILLEROS c ON a.IDCASILLERO = c.ID");
+                log.CrearLog("CASILLEROS-INSTALADOR", "SISTEMA", "", "Histórico inicial copiado desde CASILLERO_ASIGNACIONES");
+            }
+            catch (Exception ex)
+            {
+                log.CrearLog("CASILLEROS-INSTALADOR", "SISTEMA", "", "ERROR copiando histórico inicial: " + ex);
+                throw;
             }
         }
 
@@ -74,6 +100,27 @@ namespace LogicaNegocios.Casilleros
                 {
                     log.CrearLog("CASILLEROS-INSTALADOR", "SISTEMA", "", "ERROR agregando columna MOSTRADA: " + ex);
                 }
+            }
+        }
+
+        private static void AsegurarColumnaSonido(IConexionBD conexion, LogManejador log)
+        {
+            if (ExisteColumna(conexion, "CASILLERO_PARAMETROS", "SONIDONOTIFICACION"))
+                return;
+
+            try
+            {
+                conexion.Ejecutar(conexion.EsSqlServer
+                    ? "ALTER TABLE CASILLERO_PARAMETROS ADD SONIDONOTIFICACION VARCHAR(100) NULL"
+                    : "ALTER TABLE CASILLERO_PARAMETROS ADD COLUMN SONIDONOTIFICACION TEXT(100)");
+                conexion.Ejecutar(
+                    "UPDATE CASILLERO_PARAMETROS SET SONIDONOTIFICACION = @sonido WHERE SONIDONOTIFICACION IS NULL",
+                    ("sonido", "campana.wav"));
+                log.CrearLog("CASILLEROS-INSTALADOR", "SISTEMA", "", "Columna SONIDONOTIFICACION agregada a CASILLERO_PARAMETROS");
+            }
+            catch (Exception ex)
+            {
+                log.CrearLog("CASILLEROS-INSTALADOR", "SISTEMA", "", "ERROR agregando columna SONIDONOTIFICACION: " + ex);
             }
         }
 
@@ -157,6 +204,32 @@ namespace LogicaNegocios.Casilleros
                 : @"CREATE TABLE CASILLERO_PARAMETROS (
                         ID AUTOINCREMENT PRIMARY KEY,
                         MINUTOSNOTIFICACIONPREVIA LONG NOT NULL
+                    )";
+
+            public static string Historial(bool sql) => sql
+                ? @"CREATE TABLE CASILLERO_HISTORIAL (
+                        ID INT IDENTITY(1,1) PRIMARY KEY,
+                        IDASIGNACION INT NOT NULL,
+                        IDCASILLERO INT NOT NULL,
+                        CODIGOCASILLERO VARCHAR(20) NOT NULL,
+                        NOMBRECLIENTE VARCHAR(150) NOT NULL,
+                        MINUTOS INT NOT NULL,
+                        FECHAINICIO DATETIME NOT NULL,
+                        FECHAFIN DATETIME NOT NULL,
+                        ESTADO VARCHAR(20) NOT NULL,
+                        USUARIO VARCHAR(100) NULL
+                    )"
+                : @"CREATE TABLE CASILLERO_HISTORIAL (
+                        ID AUTOINCREMENT PRIMARY KEY,
+                        IDASIGNACION LONG NOT NULL,
+                        IDCASILLERO LONG NOT NULL,
+                        CODIGOCASILLERO TEXT(20) NOT NULL,
+                        NOMBRECLIENTE TEXT(150) NOT NULL,
+                        MINUTOS LONG NOT NULL,
+                        FECHAINICIO DATETIME NOT NULL,
+                        FECHAFIN DATETIME NOT NULL,
+                        ESTADO TEXT(20) NOT NULL,
+                        USUARIO TEXT(100)
                     )";
 
             public static string Notificaciones(bool sql) => sql

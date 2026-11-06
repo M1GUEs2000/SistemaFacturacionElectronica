@@ -27,6 +27,8 @@ namespace SistemaFacturacion.Controls
         public const int Duracion = 0xf252;
         public const int Buscar = 0xf002;
         public const int Pregunta = 0xf059;
+        public const int Volumen = 0xf028;
+        public const int Reproducir = 0xf04b;
 
         private static readonly PrivateFontCollection _coleccion = new PrivateFontCollection();
         private static FontFamily _familia;

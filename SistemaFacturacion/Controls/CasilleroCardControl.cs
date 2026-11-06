@@ -8,6 +8,11 @@ namespace SistemaFacturacion.Controls
     public class CasilleroCardControl : Panel
     {
         private bool _hover;
+        private DateTime? _resaltadoDesde;
+        private int _ultimoCicloSonado = -1;
+
+        private const double IntervaloAlertaSegundos = 5.0;
+        private const double DuracionDestelloSegundos = 1.6;
 
         public int IdCasillero { get; }
         public string Codigo { get; }
@@ -19,12 +24,25 @@ namespace SistemaFacturacion.Controls
         public int? MinutosSolicitados { get; private set; }
         public bool Notificado { get; private set; }
 
+        // Momento real (de base de datos) en que este casillero entro a su estado de
+        // alerta actual (por vencer o vencido). Cada tarjeta usa esto para correr su
+        // propio reloj de notificacion cada 5s, independiente de las demas - dos
+        // casilleros que empezaron a alertar en momentos distintos NO suenan juntos,
+        // pero si varios entraron a la vez (ej. varios ya vencidos al abrir el sistema),
+        // naturalmente coinciden y suenan/destellan juntos, porque comparten el mismo
+        // punto de partida.
+        public DateTime? AlertaDesde { get; private set; }
+
         public bool EsDisponible => Estado == "DISPONIBLE";
         public bool EsVencido => Estado == "VENCIDO";
 
+        // Casillero con alerta activa (por vencer o ya vencido): dispara su propio ciclo
+        // de notificacion cada 5s mientras la pantalla esta enfocada.
+        public bool EnAlerta => EsVencido || (Estado == "OCUPADO" && Notificado);
+
         public CasilleroCardControl(
             int idCasillero, string codigo, string estado, int? idAsignacion, string nombreCliente,
-            DateTime? fechaInicio, DateTime? fechaFin, int? minutosSolicitados, bool notificado)
+            DateTime? fechaInicio, DateTime? fechaFin, int? minutosSolicitados, bool notificado, DateTime? alertaDesde)
         {
             IdCasillero = idCasillero;
             Codigo = codigo;
@@ -39,12 +57,12 @@ namespace SistemaFacturacion.Controls
             Resize += (s, e) => AplicarBordeRedondeado();
             AplicarBordeRedondeado();
 
-            Actualizar(estado, idAsignacion, nombreCliente, fechaInicio, fechaFin, minutosSolicitados, notificado);
+            Actualizar(estado, idAsignacion, nombreCliente, fechaInicio, fechaFin, minutosSolicitados, notificado, alertaDesde);
         }
 
         public void Actualizar(
             string estado, int? idAsignacion, string nombreCliente,
-            DateTime? fechaInicio, DateTime? fechaFin, int? minutosSolicitados, bool notificado)
+            DateTime? fechaInicio, DateTime? fechaFin, int? minutosSolicitados, bool notificado, DateTime? alertaDesde)
         {
             Estado = estado;
             IdAsignacion = idAsignacion;
@@ -53,6 +71,66 @@ namespace SistemaFacturacion.Controls
             FechaFin = fechaFin;
             MinutosSolicitados = minutosSolicitados;
             Notificado = notificado;
+
+            if (AlertaDesde != alertaDesde)
+            {
+                // Cambio el origen de la alerta: puede ser una alerta nueva desde cero, o el
+                // salto de "por vencer" (naranja) a "vencido" (rojo) para EL MISMO casillero
+                // (MotorVencimientos inserta una fila VENCIDO nueva, asi que AlertaDesde salta
+                // a ese instante). NO usar -1 aca: eso fuerza un ciclo "0" inmediato y dispara
+                // una alerta duplicada casi pegada a la que acaba de sonar en naranja. En vez
+                // de eso, se calcula en que ciclo "estaria" ahora mismo segun el nuevo origen y
+                // se marca como ya consumido, para que la proxima alerta llegue recien 5s
+                // despues de este cambio, no al instante.
+                AlertaDesde = alertaDesde;
+                if (alertaDesde.HasValue)
+                {
+                    double transcurridoAhora = (DateTime.Now - alertaDesde.Value).TotalSeconds;
+                    _ultimoCicloSonado = transcurridoAhora >= 0 ? (int)(transcurridoAhora / IntervaloAlertaSegundos) : -1;
+                }
+                else
+                {
+                    _ultimoCicloSonado = -1;
+                }
+            }
+
+            Invalidate();
+        }
+
+        // Llamado periodicamente (cada ~200ms) por frmCasilleroPrincipal. Devuelve true
+        // exactamente una vez por cada ciclo de 5s desde AlertaDesde (borde de subida, no
+        // se repite dentro del mismo ciclo). Con muchos casilleros activos, todos corriendo
+        // su propio reloj, esto SOLO significa "ya le toca entrar a la cola" - no dispara
+        // destello ni sonido todavia (eso saturaria el sonido con muchos casilleros). El
+        // form acumula estos "avisos" y los agrupa: cuando decide disparar el lote (con un
+        // piso minimo entre sonidos), llama a Destellar() en cada uno de los acumulados.
+        public bool LeTocaEntrarEnCola()
+        {
+            if (!EnAlerta || !AlertaDesde.HasValue)
+                return false;
+
+            double transcurrido = (DateTime.Now - AlertaDesde.Value).TotalSeconds;
+            if (transcurrido < 0)
+                return false;
+
+            int cicloActual = (int)(transcurrido / IntervaloAlertaSegundos);
+            // "<=" y no "==": si el reloj de Windows se corrige hacia atras (NTP, cambio
+            // manual de hora), cicloActual podria bajar por debajo de lo ya disparado. Con
+            // "==" eso dispara una alerta duplicada; con "<=" simplemente no vuelve a sonar
+            // por un ciclo que ya sono, sin importar si el reloj salto para atras o adelante.
+            if (cicloActual <= _ultimoCicloSonado)
+                return false;
+
+            _ultimoCicloSonado = cicloActual;
+            return true;
+        }
+
+        // Arranca el destello visual (borde) de este casillero. Lo llama frmCasilleroPrincipal
+        // en el momento en que efectivamente dispara el lote agrupado de sonido, para que el
+        // borde siempre este sincronizado con el sonido (nunca se enciende en silencio).
+        public void Destellar()
+        {
+            _resaltadoDesde = DateTime.Now;
             Invalidate();
         }
 
@@ -154,6 +232,33 @@ namespace SistemaFacturacion.Controls
                 using (var fuenteCuerpo = new Font("Segoe UI", 8.75F, disponible ? FontStyle.Italic : FontStyle.Bold))
                     TextRenderer.DrawText(g, cuerpo, fuenteCuerpo, rectCuerpo, Color.FromArgb(52, 58, 64),
                         TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
+            }
+
+            if (_resaltadoDesde.HasValue)
+            {
+                double transcurridoDestello = (DateTime.Now - _resaltadoDesde.Value).TotalSeconds;
+                if (transcurridoDestello >= DuracionDestelloSegundos)
+                {
+                    _resaltadoDesde = null;
+                }
+                else
+                {
+                    // Un solo borde (nunca dos superpuestos): aparece en el instante exacto
+                    // del propio ciclo de 5s de este casillero (ver ComprobarTurno), con el
+                    // color de su estado (rojo = vencido, ambar = por vencer), y se apaga
+                    // solo despues de DuracionDestelloSegundos con un "latido" que decae en
+                    // vez de cortarse de golpe.
+                    double progreso = transcurridoDestello / DuracionDestelloSegundos; // 0..1
+                    double decaimiento = 1.0 - progreso;
+                    double onda = 0.55 + 0.45 * Math.Sin(transcurridoDestello * Math.PI * 3.0);
+                    int alfaResaltado = (int)(70 + onda * 185 * decaimiento);
+                    float grosorResaltado = 2.2f + (float)(onda * 1.8 * decaimiento);
+                    Color colorResaltado = Color.FromArgb(Math.Max(0, Math.Min(255, alfaResaltado)), colorEstado);
+
+                    using (var rutaResaltado = ConstruirRedondeado(Rectangle.Inflate(rectTotal, -1, -1), 15, false))
+                    using (var lapizResaltado = new Pen(colorResaltado, grosorResaltado))
+                        g.DrawPath(lapizResaltado, rutaResaltado);
+                }
             }
 
             if (_hover)

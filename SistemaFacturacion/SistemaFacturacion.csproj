@@ -12,6 +12,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>SistemaFacturacion</RootNamespace>
     <AssemblyName>SistemaFacturacion</AssemblyName>
+    <ApplicationIcon>..\Icono Aplicacion.ico</ApplicationIcon>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
@@ -187,6 +188,8 @@
     <Reference Include="System.Deployment" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="WindowsBase" />
     <Reference Include="System.Xml" />
     <Reference Include="WebGrease, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -343,6 +346,9 @@
     <Compile Include="Forms\frmCasilleroPrincipal.Designer.cs">
       <DependentUpon>frmCasilleroPrincipal.cs</DependentUpon>
     </Compile>
+    <Compile Include="Forms\frmHistorialCasilleros.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Forms\frmCasilleroConfig.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -378,7 +384,23 @@
     <Compile Include="Controls\NotificacionCasilleroCard.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Controls\SonidosCasilleros.cs" />
     <EmbeddedResource Include="Recursos\Fonts\fontawesome-webfont.ttf" />
+    <Content Include="Recursos\SonidosCasilleros\campana.wav">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Recursos\SonidosCasilleros\aviso.wav">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Recursos\SonidosCasilleros\alerta.wav">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Recursos\SonidosCasilleros\telefono.mp3">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Recursos\SonidosCasilleros\facebook.mp3">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Compile Include="Forms\frmMantenimientoTablas.cs">
       <SubType>Form</SubType>
     </Compile>

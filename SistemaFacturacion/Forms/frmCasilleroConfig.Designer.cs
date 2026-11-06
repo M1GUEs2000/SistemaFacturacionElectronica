@@ -29,6 +29,11 @@ namespace SistemaFacturacion
             this.lblMinutosEtiqueta = new System.Windows.Forms.Label();
             this.pnlCajaMinutos = new System.Windows.Forms.Panel();
             this.numMinutos = new System.Windows.Forms.NumericUpDown();
+            this.lblSonidoEtiqueta = new System.Windows.Forms.Label();
+            this.pnlCajaSonido = new System.Windows.Forms.Panel();
+            this.cmbSonido = new System.Windows.Forms.ComboBox();
+            this.btnAgregarSonido = new SistemaFacturacion.Controls.IconButton();
+            this.btnProbarSonido = new SistemaFacturacion.Controls.IconButton();
             this.pnlFooter = new System.Windows.Forms.Panel();
             this.btnGuardar = new SistemaFacturacion.Controls.IconButton();
             this.btnCerrar = new SistemaFacturacion.Controls.IconButton();
@@ -38,6 +43,7 @@ namespace SistemaFacturacion
             ((System.ComponentModel.ISupportInitialize)(this.numCantidad)).BeginInit();
             this.pnlCajaMinutos.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numMinutos)).BeginInit();
+            this.pnlCajaSonido.SuspendLayout();
             this.pnlFooter.SuspendLayout();
             this.SuspendLayout();
             //
@@ -99,10 +105,14 @@ namespace SistemaFacturacion
             this.pnlCuerpo.Controls.Add(this.lblCantidadActual);
             this.pnlCuerpo.Controls.Add(this.lblMinutosEtiqueta);
             this.pnlCuerpo.Controls.Add(this.pnlCajaMinutos);
+            this.pnlCuerpo.Controls.Add(this.lblSonidoEtiqueta);
+            this.pnlCuerpo.Controls.Add(this.pnlCajaSonido);
+            this.pnlCuerpo.Controls.Add(this.btnAgregarSonido);
+            this.pnlCuerpo.Controls.Add(this.btnProbarSonido);
             this.pnlCuerpo.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlCuerpo.Location = new System.Drawing.Point(0, 56);
             this.pnlCuerpo.Name = "pnlCuerpo";
-            this.pnlCuerpo.Size = new System.Drawing.Size(400, 204);
+            this.pnlCuerpo.Size = new System.Drawing.Size(400, 274);
             this.pnlCuerpo.TabIndex = 1;
             //
             // lblCantidadEtiqueta
@@ -186,13 +196,76 @@ namespace SistemaFacturacion
             this.numMinutos.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.numMinutos.Value = new decimal(new int[] { 10, 0, 0, 0 });
             //
+            // lblSonidoEtiqueta
+            //
+            this.lblSonidoEtiqueta.AutoSize = true;
+            this.lblSonidoEtiqueta.BackColor = System.Drawing.Color.Transparent;
+            this.lblSonidoEtiqueta.Font = new System.Drawing.Font("Segoe UI", 7.5F, System.Drawing.FontStyle.Bold);
+            this.lblSonidoEtiqueta.ForeColor = System.Drawing.Color.FromArgb(148, 155, 162);
+            this.lblSonidoEtiqueta.Location = new System.Drawing.Point(72, 188);
+            this.lblSonidoEtiqueta.Name = "lblSonidoEtiqueta";
+            this.lblSonidoEtiqueta.Size = new System.Drawing.Size(160, 13);
+            this.lblSonidoEtiqueta.TabIndex = 5;
+            this.lblSonidoEtiqueta.Text = "SONIDO DE NOTIFICACIÓN";
+            //
+            // pnlCajaSonido
+            //
+            this.pnlCajaSonido.BackColor = System.Drawing.Color.White;
+            this.pnlCajaSonido.Controls.Add(this.cmbSonido);
+            this.pnlCajaSonido.Location = new System.Drawing.Point(72, 204);
+            this.pnlCajaSonido.Name = "pnlCajaSonido";
+            this.pnlCajaSonido.Padding = new System.Windows.Forms.Padding(10, 4, 10, 4);
+            this.pnlCajaSonido.Size = new System.Drawing.Size(196, 33);
+            this.pnlCajaSonido.TabIndex = 6;
+            //
+            // cmbSonido
+            //
+            this.cmbSonido.BackColor = System.Drawing.Color.White;
+            this.cmbSonido.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.cmbSonido.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbSonido.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.cmbSonido.Font = new System.Drawing.Font("Segoe UI", 9.5F);
+            this.cmbSonido.FormattingEnabled = true;
+            this.cmbSonido.Location = new System.Drawing.Point(10, 4);
+            this.cmbSonido.Name = "cmbSonido";
+            this.cmbSonido.Size = new System.Drawing.Size(176, 25);
+            this.cmbSonido.TabIndex = 0;
+            //
+            // btnAgregarSonido
+            //
+            this.btnAgregarSonido.BackColor = System.Drawing.Color.FromArgb(108, 117, 125);
+            this.btnAgregarSonido.CodigoIcono = SistemaFacturacion.Controls.IconosCasilleros.Agregar;
+            this.btnAgregarSonido.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.btnAgregarSonido.ForeColor = System.Drawing.Color.White;
+            this.btnAgregarSonido.Location = new System.Drawing.Point(276, 204);
+            this.btnAgregarSonido.Name = "btnAgregarSonido";
+            this.btnAgregarSonido.RadioEsquinas = 8;
+            this.btnAgregarSonido.Size = new System.Drawing.Size(33, 33);
+            this.btnAgregarSonido.TabIndex = 7;
+            this.btnAgregarSonido.UseVisualStyleBackColor = false;
+            this.btnAgregarSonido.Click += new System.EventHandler(this.btnAgregarSonido_Click);
+            //
+            // btnProbarSonido
+            //
+            this.btnProbarSonido.BackColor = System.Drawing.Color.FromArgb(0, 123, 255);
+            this.btnProbarSonido.CodigoIcono = SistemaFacturacion.Controls.IconosCasilleros.Reproducir;
+            this.btnProbarSonido.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.btnProbarSonido.ForeColor = System.Drawing.Color.White;
+            this.btnProbarSonido.Location = new System.Drawing.Point(313, 204);
+            this.btnProbarSonido.Name = "btnProbarSonido";
+            this.btnProbarSonido.RadioEsquinas = 8;
+            this.btnProbarSonido.Size = new System.Drawing.Size(33, 33);
+            this.btnProbarSonido.TabIndex = 8;
+            this.btnProbarSonido.UseVisualStyleBackColor = false;
+            this.btnProbarSonido.Click += new System.EventHandler(this.btnProbarSonido_Click);
+            //
             // pnlFooter
             //
             this.pnlFooter.BackColor = System.Drawing.Color.FromArgb(247, 248, 249);
             this.pnlFooter.Controls.Add(this.btnGuardar);
             this.pnlFooter.Controls.Add(this.btnCerrar);
             this.pnlFooter.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.pnlFooter.Location = new System.Drawing.Point(0, 260);
+            this.pnlFooter.Location = new System.Drawing.Point(0, 330);
             this.pnlFooter.Name = "pnlFooter";
             this.pnlFooter.Size = new System.Drawing.Size(400, 68);
             this.pnlFooter.TabIndex = 2;
@@ -232,7 +305,7 @@ namespace SistemaFacturacion
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.White;
-            this.ClientSize = new System.Drawing.Size(400, 328);
+            this.ClientSize = new System.Drawing.Size(400, 398);
             this.Controls.Add(this.pnlCuerpo);
             this.Controls.Add(this.pnlFooter);
             this.Controls.Add(this.pnlHeader);
@@ -249,6 +322,7 @@ namespace SistemaFacturacion
             ((System.ComponentModel.ISupportInitialize)(this.numCantidad)).EndInit();
             this.pnlCajaMinutos.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.numMinutos)).EndInit();
+            this.pnlCajaSonido.ResumeLayout(false);
             this.pnlFooter.ResumeLayout(false);
             this.ResumeLayout(false);
 
@@ -268,6 +342,11 @@ namespace SistemaFacturacion
         private System.Windows.Forms.Label lblMinutosEtiqueta;
         private System.Windows.Forms.Panel pnlCajaMinutos;
         private System.Windows.Forms.NumericUpDown numMinutos;
+        private System.Windows.Forms.Label lblSonidoEtiqueta;
+        private System.Windows.Forms.Panel pnlCajaSonido;
+        private System.Windows.Forms.ComboBox cmbSonido;
+        private SistemaFacturacion.Controls.IconButton btnAgregarSonido;
+        private SistemaFacturacion.Controls.IconButton btnProbarSonido;
         private System.Windows.Forms.Panel pnlFooter;
         private SistemaFacturacion.Controls.IconButton btnGuardar;
         private SistemaFacturacion.Controls.IconButton btnCerrar;

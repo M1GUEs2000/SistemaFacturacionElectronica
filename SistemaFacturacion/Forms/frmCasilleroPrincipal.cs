@@ -17,8 +17,35 @@ namespace SistemaFacturacion
 
         private readonly AppServices _services;
         private readonly CasilleroManejador _casilleros;
+        private readonly CasilleroParametrosManejador _parametros;
         private readonly Dictionary<int, CasilleroCardControl> _tarjetas = new Dictionary<int, CasilleroCardControl>();
         private Timer _timerRefresco;
+
+        // Cada tarjeta EnAlerta corre su PROPIO reloj de 5s (ver CasilleroCardControl.
+        // LeTocaEntrarEnCola, basado en AlertaDesde de la base de datos) - no hay turno
+        // compartido ni indice rotativo. Este timer hace de "pulso": cada ~200ms junta en
+        // _colaPendienteSonido los casilleros cuyo propio reloj ya cumplio, y tambien
+        // sirve para refrescar el destello visual y el tiempo restante en vivo (sin
+        // consultar la base de datos), en vez de saltar de golpe cada 5s junto con
+        // CargarTablero().
+        private Timer _timerAnimacion;
+
+        // Con muchos casilleros activos, cada uno con su propio reloj, sonar uno por uno
+        // se vuelve ruido insoportable (con 100 activos, en promedio suena ~1 cada 250ms).
+        // Por eso el sonido tiene un piso minimo entre reproducciones: los que van
+        // "cumpliendo turno" mientras tanto se acumulan aca sin sonar, y cuando se cumple
+        // el piso se disparan TODOS juntos - un solo sonido, y esos bordes destellan a la
+        // vez (ver PulsoAnimacionYAlertas). Ningun casillero se salta ni se prioriza sobre
+        // otro, solo se agrupan los que quedaron pendientes en la ventana de espera.
+        private readonly HashSet<int> _colaPendienteSonido = new HashSet<int>();
+        private DateTime _ultimoSonido = DateTime.MinValue;
+        private const double IntervaloMinimoSonidoSegundos = 2.5;
+
+        // El sonido configurado casi nunca cambia (solo cuando el usuario lo edita en
+        // Configuracion), asi que se cachea en memoria en vez de ir a la base de datos en
+        // cada ciclo de 5s del hilo de la interfaz. Se refresca al abrir la pantalla y al
+        // cerrar el dialogo de configuracion (ver btnConfiguracion_Click).
+        private string _sonidoNotificacionCacheado;
 
         public string UsuarioActual { get; set; }
         public string IPActual { get; set; }
@@ -44,6 +71,7 @@ namespace SistemaFacturacion
 
             _services = services;
             _casilleros = new CasilleroManejador(services.Conexion, services.Log);
+            _parametros = new CasilleroParametrosManejador(services.Conexion, services.Log);
 
             HabilitarDobleBuffer(this);
             HabilitarDobleBuffer(pnlTablero);
@@ -53,6 +81,7 @@ namespace SistemaFacturacion
             this.FormClosed += (s, e) =>
             {
                 _timerRefresco?.Stop();
+                _timerAnimacion?.Stop();
                 if (_instanciaAbierta == this)
                     _instanciaAbierta = null;
             };
@@ -174,10 +203,69 @@ namespace SistemaFacturacion
             }
 
             CargarTablero();
+            RefrescarSonidoCacheado();
 
             _timerRefresco = new Timer { Interval = 5000 };
             _timerRefresco.Tick += (s, e2) => CargarTablero();
             _timerRefresco.Start();
+
+            _timerAnimacion = new Timer { Interval = 200 };
+            _timerAnimacion.Tick += (s, e2) => PulsoAnimacionYAlertas();
+            _timerAnimacion.Start();
+        }
+
+        private void PulsoAnimacionYAlertas()
+        {
+            foreach (var tarjeta in _tarjetas.Values)
+            {
+                if (!tarjeta.EsDisponible)
+                    tarjeta.Invalidate();
+
+                // Se llama siempre (no solo con foco) para que el reloj de cada tarjeta no
+                // se atrase. Solo acumula en la cola - el destello y el sonido se disparan
+                // juntos, en lote, mas abajo.
+                if (tarjeta.LeTocaEntrarEnCola())
+                    _colaPendienteSonido.Add(tarjeta.IdCasillero);
+            }
+
+            if (_colaPendienteSonido.Count == 0)
+                return;
+
+            if ((DateTime.Now - _ultimoSonido).TotalSeconds < IntervaloMinimoSonidoSegundos)
+                return;
+
+            foreach (int idCasillero in _colaPendienteSonido)
+                if (_tarjetas.TryGetValue(idCasillero, out var tarjeta))
+                    tarjeta.Destellar();
+
+            _colaPendienteSonido.Clear();
+            _ultimoSonido = DateTime.Now;
+
+            // Solo mientras la ventana de casilleros esta enfocada (no si esta minimizada,
+            // detras de otra ventana, o con un dialogo modal de detalle abierto encima).
+            if (!ContainsFocus)
+                return;
+
+            try
+            {
+                SonidosCasilleros.Reproducir(_sonidoNotificacionCacheado);
+            }
+            catch (Exception ex)
+            {
+                _services.Log.CrearLog("CASILLEROS", UsuarioActual, IPActual, "ERROR reproduciendo sonido de alerta: " + ex);
+            }
+        }
+
+        private void RefrescarSonidoCacheado()
+        {
+            try
+            {
+                _sonidoNotificacionCacheado = _parametros.ObtenerSonidoNotificacion();
+            }
+            catch (Exception ex)
+            {
+                _services.Log.CrearLog("CASILLEROS", UsuarioActual, IPActual, "ERROR obteniendo sonido de notificacion: " + ex);
+            }
         }
 
         private void CargarTablero()
@@ -198,16 +286,18 @@ namespace SistemaFacturacion
                 DateTime? fechaFin = fila["FECHAFIN"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(fila["FECHAFIN"]);
                 int? minutosSolicitados = fila["MINUTOSSOLICITADOS"] == DBNull.Value ? (int?)null : Convert.ToInt32(fila["MINUTOSSOLICITADOS"]);
                 bool notificado = fila["NOTIFICADO"] != DBNull.Value && Convert.ToBoolean(fila["NOTIFICADO"]);
+                DateTime? alertaDesde = fila.Table.Columns.Contains("ALERTADESDE") && fila["ALERTADESDE"] != DBNull.Value
+                    ? Convert.ToDateTime(fila["ALERTADESDE"]) : (DateTime?)null;
 
                 idsVistos.Add(id);
 
                 if (_tarjetas.TryGetValue(id, out var card))
                 {
-                    card.Actualizar(estado, idAsignacion, cliente, fechaInicio, fechaFin, minutosSolicitados, notificado);
+                    card.Actualizar(estado, idAsignacion, cliente, fechaInicio, fechaFin, minutosSolicitados, notificado, alertaDesde);
                 }
                 else
                 {
-                    card = new CasilleroCardControl(id, codigo, estado, idAsignacion, cliente, fechaInicio, fechaFin, minutosSolicitados, notificado);
+                    card = new CasilleroCardControl(id, codigo, estado, idAsignacion, cliente, fechaInicio, fechaFin, minutosSolicitados, notificado, alertaDesde);
                     card.Click += Card_Click;
                     _tarjetas[id] = card;
                     pnlTablero.Controls.Add(card);
@@ -319,6 +409,16 @@ namespace SistemaFacturacion
             CargarTablero();
         }
 
+        private void btnHistorial_Click(object sender, EventArgs e)
+        {
+            using (var frm = new frmHistorialCasilleros(_services))
+            {
+                frm.UsuarioActual = UsuarioActual;
+                frm.IPActual = IPActual;
+                frm.ShowDialog(this);
+            }
+        }
+
         private void btnConfiguracion_Click(object sender, EventArgs e)
         {
             using (var frm = new frmCasilleroConfig(_services))
@@ -328,6 +428,7 @@ namespace SistemaFacturacion
                 frm.ShowDialog(this);
             }
             CargarTablero();
+            RefrescarSonidoCacheado();
         }
     }
 }

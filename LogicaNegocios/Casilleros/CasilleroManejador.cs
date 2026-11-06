@@ -34,14 +34,28 @@ namespace LogicaNegocios.Casilleros
 
         public DataSet ConsultarConAsignacion()
         {
+            // n.ALERTADESDE: momento exacto (real, de base de datos) en que este casillero
+            // entro a su estado de alerta actual (por vencer o vencido) - el MAX() cubre
+            // ambos casos, porque MotorVencimientos inserta primero POR_VENCER y despues,
+            // si corresponde, VENCIDO para la misma asignacion, en ese orden cronologico.
+            // Con esto cada tarjeta puede correr su propio reloj de notificacion (cada 5s
+            // desde SU momento de alerta), en vez de un turno compartido por indice.
+            // Access/Jet exige parentesis explicitos alrededor de cada JOIN cuando se
+            // encadena mas de uno en el mismo FROM (SQL Server no lo exige, por eso esto
+            // no fallaba en ese motor). De ahi el parentesis extra que envuelve el primer
+            // LEFT JOIN.
             return _conexion.Seleccionar(
                 @"SELECT c.ID, c.CODIGO, c.ESTADO, c.ACTIVO,
                          a.ID AS IDASIGNACION, a.NOMBRECLIENTE, a.FECHAINICIO, a.FECHAFIN,
-                         a.MINUTOSSOLICITADOS, a.NOTIFICADO
-                  FROM CASILLEROS c LEFT JOIN
+                         a.MINUTOSSOLICITADOS, a.NOTIFICADO, n.ALERTADESDE
+                  FROM (CASILLEROS c LEFT JOIN
                     (SELECT ID, IDCASILLERO, NOMBRECLIENTE, FECHAINICIO, FECHAFIN, MINUTOSSOLICITADOS, NOTIFICADO
                      FROM CASILLERO_ASIGNACIONES WHERE ESTADO IN ('ACTIVA','VENCIDA')) a
-                    ON a.IDCASILLERO = c.ID
+                    ON a.IDCASILLERO = c.ID)
+                  LEFT JOIN
+                    (SELECT IDASIGNACION, MAX(FECHACREACION) AS ALERTADESDE
+                     FROM CASILLERO_NOTIFICACIONES GROUP BY IDASIGNACION) n
+                    ON n.IDASIGNACION = a.ID
                   WHERE c.ACTIVO = @activo
                   ORDER BY c.CODIGO",
                 ("activo", true));

@@ -29,6 +29,7 @@ namespace SistemaFacturacion
             this.pnlCajaFiltro = new System.Windows.Forms.Panel();
             this.txtFiltro = new System.Windows.Forms.TextBox();
             this.btnConfiguracion = new SistemaFacturacion.Controls.IconButton();
+            this.btnHistorial = new SistemaFacturacion.Controls.IconButton();
             this.pnlTablero = new System.Windows.Forms.FlowLayoutPanel();
             this.pnlHeader.SuspendLayout();
             this.pnlToolbar.SuspendLayout();
@@ -124,6 +125,7 @@ namespace SistemaFacturacion
             this.pnlToolbar.Controls.Add(this.btnActualizar);
             this.pnlToolbar.Controls.Add(this.pnlCajaFiltro);
             this.pnlToolbar.Controls.Add(this.btnConfiguracion);
+            this.pnlToolbar.Controls.Add(this.btnHistorial);
             this.pnlToolbar.Dock = System.Windows.Forms.DockStyle.Top;
             this.pnlToolbar.Location = new System.Drawing.Point(0, 44);
             this.pnlToolbar.Name = "pnlToolbar";
@@ -166,7 +168,7 @@ namespace SistemaFacturacion
             this.pnlCajaFiltro.Location = new System.Drawing.Point(356, 12);
             this.pnlCajaFiltro.Name = "pnlCajaFiltro";
             this.pnlCajaFiltro.Padding = new System.Windows.Forms.Padding(38, 5, 10, 5);
-            this.pnlCajaFiltro.Size = new System.Drawing.Size(422, 36);
+            this.pnlCajaFiltro.Size = new System.Drawing.Size(270, 36);
             this.pnlCajaFiltro.TabIndex = 2;
             //
             // txtFiltro
@@ -193,6 +195,21 @@ namespace SistemaFacturacion
             this.btnConfiguracion.TabIndex = 3;
             this.btnConfiguracion.Text = "Configuración";
             this.btnConfiguracion.Click += new System.EventHandler(this.btnConfiguracion_Click);
+            //
+            // btnHistorial
+            //
+            this.btnHistorial.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnHistorial.BackColor = System.Drawing.Color.FromArgb(0, 123, 255);
+            this.btnHistorial.CodigoIcono = 0xf1da;
+            this.btnHistorial.Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Bold);
+            this.btnHistorial.ForeColor = System.Drawing.Color.White;
+            this.btnHistorial.Location = new System.Drawing.Point(640, 12);
+            this.btnHistorial.Name = "btnHistorial";
+            this.btnHistorial.RadioEsquinas = 8;
+            this.btnHistorial.Size = new System.Drawing.Size(148, 36);
+            this.btnHistorial.TabIndex = 4;
+            this.btnHistorial.Text = "Historial";
+            this.btnHistorial.Click += new System.EventHandler(this.btnHistorial_Click);
             //
             // pnlTablero
             //
@@ -242,6 +259,7 @@ namespace SistemaFacturacion
         private System.Windows.Forms.Panel pnlCajaFiltro;
         private System.Windows.Forms.TextBox txtFiltro;
         private SistemaFacturacion.Controls.IconButton btnConfiguracion;
+        private SistemaFacturacion.Controls.IconButton btnHistorial;
         private System.Windows.Forms.FlowLayoutPanel pnlTablero;
     }
 }
