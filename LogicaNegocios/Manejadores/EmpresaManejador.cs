@@ -328,6 +328,21 @@ WHERE NOMBRE = '" + Nombre + @"'";
         }
 
         // ======================================================
+        // NOMBRE DE LA EMPRESA (solo lectura)
+        // ======================================================
+        public string ObtenerNombre()
+        {
+            string sql = "SELECT TOP 1 NOMBRE FROM EMPRESA";
+            var ds = _conexion.Seleccionar(sql);
+
+            if (ds == null || ds.Tables.Count == 0 || ds.Tables[0].Rows.Count == 0)
+                return "";
+
+            var val = ds.Tables[0].Rows[0]["NOMBRE"];
+            return val == DBNull.Value ? "" : Convert.ToString(val).Trim();
+        }
+
+        // ======================================================
         // CREDENCIALES MODIFICADAS
         // ======================================================
         public bool ObtenerCredencialesModificadas()

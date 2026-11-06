@@ -229,54 +229,7 @@ namespace LogicaNegocios.Procesos
                 // ------------------------------
                 // SMTP
                 // ------------------------------
-                LogCorreo("Consultando parámetros SMTP...");
-                DataSet dsSMTP = _services.ParamFactura.ConsultarNombre(usuario);
-
-                if (dsSMTP == null)
-                    throw new Exception("ConsultarNombre devolvió null.");
-
-                if (dsSMTP.Tables == null || dsSMTP.Tables.Count == 0)
-                    throw new Exception("ConsultarNombre no devolvió tablas.");
-
-                if (dsSMTP.Tables[0].Rows.Count == 0)
-                    throw new Exception("No se encontraron parámetros SMTP.");
-
-                DataRow p = dsSMTP.Tables[0].Rows[0];
-
-                string smtpServer = p["SMTPSERVER"]?.ToString()?.Trim();
-                string smtpPortTexto = p["SMTPPORT"]?.ToString()?.Trim();
-                string smtpUser = p["SMTPUSER"]?.ToString()?.Trim();
-                string smtpPass = p["SMTPPASS"]?.ToString() ?? "";
-
-                LogCorreo($"SMTP SERVER={smtpServer}");
-                LogCorreo($"SMTP PORT={smtpPortTexto}");
-                LogCorreo($"SMTP USER={smtpUser}");
-                LogCorreo($"SMTP PASS VACIA={(string.IsNullOrWhiteSpace(smtpPass) ? "SI" : "NO")}");
-
-                if (string.IsNullOrWhiteSpace(smtpServer))
-                    throw new Exception("SMTPSERVER está vacío.");
-
-                if (string.IsNullOrWhiteSpace(smtpPortTexto))
-                    throw new Exception("SMTPPORT está vacío.");
-
-                if (!int.TryParse(smtpPortTexto, out int smtpPort))
-                    throw new Exception("SMTPPORT no es numérico: " + smtpPortTexto);
-
-                if (string.IsNullOrWhiteSpace(smtpUser))
-                    throw new Exception("SMTPUSER está vacío.");
-
-                SmtpClient client = new SmtpClient(smtpServer)
-                {
-                    Port = smtpPort,
-                    Credentials = new NetworkCredential(
-                        smtpUser,
-                        smtpPass
-                    ),
-                    EnableSsl = true
-                };
-
-                LogCorreo("SmtpClient creado correctamente.");
-                LogCorreo($"CONFIG SMTP FINAL => HOST={smtpServer} | PORT={smtpPort} | SSL=true");
+                SmtpClient client = CrearClienteSmtp(usuario, out string smtpUser);
 
                 // ------------------------------
                 // Envío cliente
@@ -408,6 +361,126 @@ namespace LogicaNegocios.Procesos
             }
         }
 
+        // ==========================================================
+        // REPORTE POR FECHAS → CORREO DE LA EMPRESA
+        // El Excel se arma en memoria: no se escribe en disco, así que al terminar
+        // el envío no queda ningún archivo que borrar.
+        // ==========================================================
+        public void EnviarReporteFechasEmpresa(
+            DataTable resumen,
+            string fechaDesde,
+            string fechaHasta,
+            string usuario,
+            string ip
+        )
+        {
+            LogCorreo("INICIO EnviarReporteFechasEmpresa");
+
+            string nombreEmpresa = _services.Empresa.ObtenerNombre();
+            DataSet dsEmpresa = _services.Empresa.MostrarEmpresa(nombreEmpresa);
+
+            if (dsEmpresa.Tables[0].Rows.Count == 0)
+                throw new Exception("No se encontró una empresa activa.");
+
+            DataRow empresa = dsEmpresa.Tables[0].Rows[0];
+            string correoEmpresa = empresa["EMAIL"]?.ToString()?.Trim();
+
+            if (string.IsNullOrWhiteSpace(correoEmpresa))
+                throw new Exception("La empresa no tiene correo registrado.");
+
+            DateTime fechaReporte = DateTime.Now;
+            string fechaHora = fechaReporte.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
+            string nombreArchivo = "Reporte Por Fechas "
+                + fechaReporte.ToString("yyyy-MM-dd HH-mm", CultureInfo.InvariantCulture) + ".xlsx";
+
+            string asunto = "Reporte Por Fechas, Formas de Pago " + fechaHora;
+            string cuerpo =
+                $"Empresa: {nombreEmpresa}\n" +
+                "Reporte: Reporte Por Fechas, Formas de Pago\n" +
+                $"Desde: {fechaDesde}\n" +
+                $"Hasta: {fechaHasta}\n" +
+                $"Fecha y hora del reporte: {fechaHora}\n\n" +
+                "Se adjunta el reporte en formato Excel.";
+
+            using (SmtpClient client = CrearClienteSmtp(nombreEmpresa, out string smtpUser))
+            using (MemoryStream excel = new MemoryStream())
+            using (MailMessage msg = CrearMail(smtpUser, nombreEmpresa, correoEmpresa, correoEmpresa, asunto, cuerpo))
+            {
+                ReporteFechasExcel.Generar(resumen, nombreEmpresa, fechaDesde, fechaHasta, fechaReporte, excel);
+                excel.Position = 0;
+
+                msg.Attachments.Add(new Attachment(
+                    excel,
+                    nombreArchivo,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+
+                LogCorreo($"TO={correoEmpresa} | SUBJECT={asunto}");
+                client.Send(msg);
+            }
+
+            _services.Log.CrearLog(
+                "REPORTE POR FECHAS",
+                usuario,
+                ip,
+                "Reporte enviado a " + correoEmpresa + " | Desde " + fechaDesde + " Hasta " + fechaHasta);
+
+            LogCorreo("FIN OK EnviarReporteFechasEmpresa");
+        }
+
+        private SmtpClient CrearClienteSmtp(string nombreEmpresa, out string smtpUser)
+        {
+            LogCorreo("Consultando parámetros SMTP...");
+            DataSet dsSMTP = _services.ParamFactura.ConsultarNombre(nombreEmpresa);
+
+            if (dsSMTP == null)
+                throw new Exception("ConsultarNombre devolvió null.");
+
+            if (dsSMTP.Tables == null || dsSMTP.Tables.Count == 0)
+                throw new Exception("ConsultarNombre no devolvió tablas.");
+
+            if (dsSMTP.Tables[0].Rows.Count == 0)
+                throw new Exception("No se encontraron parámetros SMTP.");
+
+            DataRow p = dsSMTP.Tables[0].Rows[0];
+
+            string smtpServer = p["SMTPSERVER"]?.ToString()?.Trim();
+            string smtpPortTexto = p["SMTPPORT"]?.ToString()?.Trim();
+            smtpUser = p["SMTPUSER"]?.ToString()?.Trim();
+            string smtpPass = p["SMTPPASS"]?.ToString() ?? "";
+
+            LogCorreo($"SMTP SERVER={smtpServer}");
+            LogCorreo($"SMTP PORT={smtpPortTexto}");
+            LogCorreo($"SMTP USER={smtpUser}");
+            LogCorreo($"SMTP PASS VACIA={(string.IsNullOrWhiteSpace(smtpPass) ? "SI" : "NO")}");
+
+            if (string.IsNullOrWhiteSpace(smtpServer))
+                throw new Exception("SMTPSERVER está vacío.");
+
+            if (string.IsNullOrWhiteSpace(smtpPortTexto))
+                throw new Exception("SMTPPORT está vacío.");
+
+            if (!int.TryParse(smtpPortTexto, out int smtpPort))
+                throw new Exception("SMTPPORT no es numérico: " + smtpPortTexto);
+
+            if (string.IsNullOrWhiteSpace(smtpUser))
+                throw new Exception("SMTPUSER está vacío.");
+
+            SmtpClient client = new SmtpClient(smtpServer)
+            {
+                Port = smtpPort,
+                Credentials = new NetworkCredential(
+                    smtpUser,
+                    smtpPass
+                ),
+                EnableSsl = true
+            };
+
+            LogCorreo("SmtpClient creado correctamente.");
+            LogCorreo($"CONFIG SMTP FINAL => HOST={smtpServer} | PORT={smtpPort} | SSL=true");
+
+            return client;
+        }
+
         private static string ObtenerClaveAccesoDesdeXml(string rutaXmlAutorizado)
         {
             try
@@ -515,8 +588,7 @@ namespace LogicaNegocios.Procesos
             string to,
             string subject,
             string body,
-            string rutaPdf,
-            string rutaXml
+            params string[] rutasAdjuntos
         )
         {
             MailMessage msg = new MailMessage();
@@ -533,8 +605,8 @@ namespace LogicaNegocios.Procesos
             msg.Body = body;
             msg.IsBodyHtml = false;
 
-            msg.Attachments.Add(new Attachment(rutaPdf));
-            msg.Attachments.Add(new Attachment(rutaXml));
+            foreach (string ruta in rutasAdjuntos)
+                msg.Attachments.Add(new Attachment(ruta));
 
             return msg;
         }

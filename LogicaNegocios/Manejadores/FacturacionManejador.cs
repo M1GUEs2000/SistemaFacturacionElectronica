@@ -239,6 +239,33 @@ namespace LogicaNegocios
             return dsdatos;
         }
 
+        /// <summary>
+        /// Ventas del rango agrupadas por forma de pago y producto: una sola fila por
+        /// combinación, con la primera y la última fecha en que se vendió.
+        /// Los alias no pueden llamarse CANTIDAD ni TOTAL: Access lo rechaza como
+        /// referencia circular porque coinciden con la columna que se está sumando.
+        /// </summary>
+        public DataSet ConsultarResumenFormaPagoProducto(string fechaDesde, string fechaHasta)
+        {
+            string sql = @"
+        SELECT
+            MIN(FECHA) AS FECHADESDE,
+            MAX(FECHA) AS FECHAHASTA,
+            FORMADEPAGO,
+            PRODUCTO,
+            SUM(CANTIDAD) AS CANTIDADES,
+            SUM(TOTAL) AS TOTALES
+        FROM FACTURACION
+        WHERE FECHA >= @desde
+          AND FECHA <= @hasta
+        GROUP BY FORMADEPAGO, PRODUCTO
+        ORDER BY FORMADEPAGO, PRODUCTO";
+
+            return _conexion.Seleccionar(sql,
+                ("desde", fechaDesde),
+                ("hasta", fechaHasta));
+        }
+
         public DataSet ConsultarCliente()
         {
             DataSet dsdatos = new DataSet();

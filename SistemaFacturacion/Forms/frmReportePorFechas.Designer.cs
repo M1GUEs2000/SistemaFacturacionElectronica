@@ -49,6 +49,7 @@
             this.btnVerPendientes = new System.Windows.Forms.Button();
             this.btnVerConsumidor = new System.Windows.Forms.Button();
             this.chkVerTarjeta = new System.Windows.Forms.CheckBox();
+            this.btnEnviarMailEmpresa = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.gvReporteFecha)).BeginInit();
             this.SuspendLayout();
             // 
@@ -275,12 +276,25 @@
             this.chkVerTarjeta.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.chkVerTarjeta.UseVisualStyleBackColor = true;
             this.chkVerTarjeta.CheckedChanged += new System.EventHandler(this.chkVerTarjeta_CheckedChanged);
-            // 
+            //
+            // btnEnviarMailEmpresa
+            //
+            this.btnEnviarMailEmpresa.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnEnviarMailEmpresa.Location = new System.Drawing.Point(9, 11);
+            this.btnEnviarMailEmpresa.Margin = new System.Windows.Forms.Padding(2);
+            this.btnEnviarMailEmpresa.Name = "btnEnviarMailEmpresa";
+            this.btnEnviarMailEmpresa.Size = new System.Drawing.Size(165, 64);
+            this.btnEnviarMailEmpresa.TabIndex = 20;
+            this.btnEnviarMailEmpresa.Text = "Enviar Mail a Empresa";
+            this.btnEnviarMailEmpresa.UseVisualStyleBackColor = true;
+            this.btnEnviarMailEmpresa.Click += new System.EventHandler(this.btnEnviarMailEmpresa_Click);
+            //
             // frmReportePorFechas
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1273, 609);
+            this.Controls.Add(this.btnEnviarMailEmpresa);
             this.Controls.Add(this.chkVerTarjeta);
             this.Controls.Add(this.btnVerConsumidor);
             this.Controls.Add(this.btnVerPendientes);
@@ -331,5 +345,6 @@
         private System.Windows.Forms.Button btnVerPendientes;
         private System.Windows.Forms.Button btnVerConsumidor;
         private System.Windows.Forms.CheckBox chkVerTarjeta;
+        private System.Windows.Forms.Button btnEnviarMailEmpresa;
     }
 }

@@ -374,6 +374,44 @@ namespace SistemaFacturacion
         }
 
         // ======================================================
+        // BOTÓN ENVIAR MAIL A EMPRESA
+        // ======================================================
+
+        private async void btnEnviarMailEmpresa_Click(object sender, EventArgs e)
+        {
+            string fechaDesde = dtpFechaDesde.Text;
+            string fechaHasta = dtpFechaHasta.Text;
+
+            DataTable resumen = _services.Facturacion
+                .ConsultarResumenFormaPagoProducto(fechaDesde, fechaHasta)
+                .Tables[0];
+
+            if (resumen.Rows.Count == 0)
+            {
+                Notificaciones.Show(this, "No hay ventas en el rango de fechas seleccionado.", "advertencia");
+                return;
+            }
+
+            btnEnviarMailEmpresa.Enabled = false;
+
+            try
+            {
+                await Task.Run(() => _services.ProcesosGenerales.EnviarReporteFechasEmpresa(
+                    resumen,
+                    fechaDesde,
+                    fechaHasta,
+                    UsuarioActual,
+                    IPActual));
+
+                Notificaciones.Show(this, "Reporte enviado al correo de la empresa.");
+            }
+            finally
+            {
+                btnEnviarMailEmpresa.Enabled = true;
+            }
+        }
+
+        // ======================================================
         // LOAD
         // ======================================================
 
